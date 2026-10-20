@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>自機を動かす</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n2" href="2-12_FontRender.html">← 前 2-12</a>
+			<a class="navchip n2" href="index.html#lv2">LV2 の目次</a>
+			<a class="navchip n2" href="2-14_Shoot.html">次 → 2-14</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l2">
+		<p class="kicker">LV2 基礎 ／ 2-13</p>
+		<h1>自機を動かす</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="2-10_Input.html">2-10</a> , <a href="2-11_SpriteRender.html">2-11</a>
+		</p>
+	</header>
+
+	<section class="level l2">
+		<h2><span class="n">00</span>入場チェック</h2>
+		<ul class="checklist prose">
+			<li>スティックの入力を読める？ → <a href="2-10_Input.html">2-10</a></li>
+			<li>スプライトを表示できる？ → <a href="2-11_SpriteRender.html">2-11</a></li>
+			<li>デルタタイムを掛ける理由を説明できる？ → <a href="2-02_DeltaTime.html">2-02</a></li>
+		</ul>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li>ここから<strong>シューティングゲームの制作</strong>が始まります</li>
+			<li>操作できる自機ができる</li>
+			<li>画面の外に出ないように制限できる</li>
+		</ul>
+		<div class="note">
+			<span class="h">これから作るもの</span>
+			<strong>縦スクロールのシューティングゲーム</strong>です。
+			2-13 から 2-23 まで、1つのゲームを少しずつ育てていきます。
+			<strong>毎章コミットしてください。</strong>LV3以降で、このコードを使います。
+		</div>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">02</span>Player クラス</h2>
+<pre><code>// Player.h
+#pragma once
+
+class Player : public IGameObject
+{
+public:
+    bool Start() override;
+    void Update() override;
+    void Render(RenderContext&amp; rc) override;
+
+    const Vector3&amp; GetPosition() const { return m_position; }
+
+private:
+    void Move();
+    void ClampToScreen();
+
+private:
+    SpriteRender m_spriteRender;
+    Vector3      m_position = Vector3::Zero;
+
+    static const float SPEED;           // 1秒に進む距離
+};</code></pre>
+
+<pre><code>// Player.cpp
+#include "stdafx.h"
+#include "Player.h"
+
+const float Player::SPEED = 600.0f;
+
+bool Player::Start()
+{
+    m_spriteRender.Init("Assets/sprite/player.dds", 64.0f, 64.0f);
+    m_position = { 0.0f, -350.0f, 0.0f };    // 下のほうに置く
+    return true;
+}
+
+void Player::Update()
+{
+    Move();
+    ClampToScreen();
+
+    m_spriteRender.SetPosition(m_position);
+    m_spriteRender.Update();
+}
+
+void Player::Render(RenderContext&amp; rc)
+{
+    m_spriteRender.Draw(rc);
+}</code></pre>
+		<div class="note">
+			<span class="h">Update() を短く保つ</span>
+			<code>Update()</code> の中に全部書かず、
+			<strong><code>Move()</code> <code>ClampToScreen()</code> のように名前をつけて分けます。</strong>
+			<code>Update()</code> を読めば「何をしているか」が一目で分かる状態を保ってください。
+			これを怠ると、<a href="4-04_Solid.html">LV4</a> で出てくる「1000行の Update」になります。
+		</div>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">03</span>移動</h2>
+<pre><code>void Player::Move()
+{
+    const float dt = g_gameTime-&gt;GetFrameDeltaTime();
+
+    Vector3 move = Vector3::Zero;
+    move.x = g_pad[0]-&gt;GetLStickXF();
+    move.y = g_pad[0]-&gt;GetLStickYF();
+
+    // 斜めが速くならないように、長さを1にそろえる。
+    if (move.LengthSq() &gt; 1.0f) {
+        move.Normalize();
+    }
+
+    m_position += move * SPEED * dt;
+}</code></pre>
+		<p class="prose">
+			<code>LengthSq()</code> は<strong>長さの2乗</strong>です。
+			<code>Length()</code> は平方根の計算が入るぶん少し遅いので、
+			<strong>「1より長いか」を調べるだけなら2乗で比べれば充分です。</strong>
+			（1の2乗は1なので、そのまま比べられます）
+		</p>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">04</span>画面の外に出さない</h2>
+<pre><code>void Player::ClampToScreen()
+{
+    const float LIMIT_X = 960.0f - 32.0f;    // 画面の半分 - 自機の半分
+    const float LIMIT_Y = 540.0f - 32.0f;
+
+    m_position.x = max(-LIMIT_X, min(LIMIT_X, m_position.x));
+    m_position.y = max(-LIMIT_Y, min(LIMIT_Y, m_position.y));
+}</code></pre>
+		<p class="prose">
+			画面は 1920 × 1080、中心が (0,0) なので、
+			端は ±960 と ±540 です（<a href="2-11_SpriteRender.html">2-11</a>）。
+			自機の幅が64なら、半分の32だけ内側で止めれば、はみ出しません。
+		</p>
+		<div class="note">
+			<span class="h">マジックナンバーを名前にする</span>
+			<code>960.0f - 32.0f</code> をそのまま書かず、
+			<code>LIMIT_X</code> という名前をつけました。
+			<strong>「この数字は何か」が名前で分かるようにする</strong>のが、読みやすいコードの基本です。
+		</div>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">05</span>動かして確かめる</h2>
+		<ul class="checklist prose">
+			<li>スティックで上下左右に動く</li>
+			<li>斜めに動いても速くならない</li>
+			<li>画面の端で止まり、はみ出さない</li>
+			<li>GameObject List に <code>player</code> が1個だけある</li>
+		</ul>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">06</span>よくあるエラー</h2>
+		<h3>斜めが速い</h3>
+		<p class="prose">
+			<strong>原因：</strong><code>Normalize()</code> していない。<br>
+			<strong>直し方：</strong>上のコードのように、長さが1を超えたら正規化する。
+		</p>
+
+		<h3>じわじわ勝手に動く</h3>
+		<p class="prose">
+			<strong>原因：</strong>スティックのあそび（ドリフト）。
+			手を離しても 0.05 くらいの値が返ってくるパッドがあります。<br>
+			<strong>直し方：</strong>小さい値を切り捨てる。
+		</p>
+<pre><code>if (fabsf(move.x) &lt; 0.15f) { move.x = 0.0f; }
+if (fabsf(move.y) &lt; 0.15f) { move.y = 0.0f; }</code></pre>
+
+		<h3>上に動かすと下に行く</h3>
+		<p class="prose">
+			<strong>原因：</strong>Y軸の向きを逆に考えている。<br>
+			<strong>直し方：</strong>k2Engine の2Dは<strong>上が +Y</strong> です。
+		</p>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（まねる）<span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">上のコードで自機を動かす。</p>
+
+		<h3>演習2（調整する）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			<code>SPEED</code> を変えて、<strong>自分が遊んで気持ちいい速さ</strong>を探す。
+			デバッグパネル（<a href="2-23_MyDebugPanel.html">2-23</a>）で
+			スライダーにすると、実行しながら調整できます。
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p>
+<strong>正解はありません。自分が気持ちいいと感じた値が正解です。</strong>
+目安として、次のあたりから試してみてください。
+</p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>SPEED</th><th>画面（横1920）を横切る時間</th><th>感じ</th></tr></thead>
+<tbody>
+<tr><td>300</td><td>約6.4秒</td><td>もっさり</td></tr>
+<tr><td>600</td><td>約3.2秒</td><td>ちょうどよい</td></tr>
+<tr><td>1200</td><td>約1.6秒</td><td>きびきび。弾幕系ならこのくらい</td></tr>
+</tbody>
+</table>
+</div>
+<p>
+<strong>スライダーにすると、実行しながら試せます。</strong>
+（<a href="2-23_MyDebugPanel.html">2-23</a>）
+</p>
+<pre><code>m_debugPanel.Register("Game", "Player", [this]() {
+    ImGui::SliderFloat("speed", &amp;m_speed, 100.0f, 2000.0f);
+});</code></pre>
+<p>
+そのために <code>SPEED</code> を <code>static const</code> ではなく
+<strong>メンバ変数 <code>m_speed</code></strong> にしておく必要があります。
+「あとで調整したい値はメンバ変数にする」と覚えておいてください。
+</p>
+		</details>
+
+		<h3>演習3（自分で書く）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			<strong>ボタンを押している間だけ低速移動</strong>になるようにする
+			（弾幕シューティングによくある操作です）。
+			<strong>本文には答えがありません。</strong>
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>// Player.h
+private:
+    float m_speed = 600.0f;
+    static const float SLOW_RATE;    // 低速時の倍率
+
+// Player.cpp
+const float Player::SLOW_RATE = 0.35f;
+
+void Player::Move()
+{
+    const float dt = g_gameTime-&gt;GetFrameDeltaTime();
+
+    Vector3 move = Vector3::Zero;
+    move.x = g_pad[0]-&gt;GetLStickXF();
+    move.y = g_pad[0]-&gt;GetLStickYF();
+    if (move.LengthSq() &gt; 1.0f) {
+        move.Normalize();
+    }
+
+    float speed = m_speed;
+    if (g_pad[0]-&gt;IsPress(enButtonRB1)) {    // 押している間だけ低速
+        speed *= SLOW_RATE;
+    }
+    m_position += move * speed * dt;
+}</code></pre>
+<p><strong>ポイント</strong></p>
+<ul>
+<li><code>IsPress</code> を使う。<code>IsTrigger</code> だと1フレームしか効きません</li>
+<li><strong>低速中は当たり判定を表示する</strong>と、本物らしくなります。
+	弾幕シューティングで低速移動があるのは、
+	細かく避けるためと、判定位置を見せるためです</li>
+</ul>
+		</details>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li>なぜ斜め移動で <code>Normalize()</code> が必要？</li>
+			<li><code>Length()</code> ではなく <code>LengthSq()</code> を使ったのはなぜ？</li>
+			<li><code>Update()</code> を小さい関数に分ける理由は？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>XとYを同時に1ずつ足すと、斜めの長さが約1.41になり、速くなってしまうから。</li>
+				<li>平方根の計算を省けるから。大小を比べるだけなら2乗のままで足りる。</li>
+				<li>何をしているかが読んで分かるようになる。あとで直す場所も見つけやすい。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="2-14_Shoot.html"><strong>2-14 弾を撃つ</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

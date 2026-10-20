@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>定数バッファ</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n3" href="3-03_FirstShader.html">← 前 3-03</a>
+			<a class="navchip n3" href="index.html#lv3">LV3 の目次</a>
+			<a class="navchip n3" href="3-05_DamageFlash.html">次 → 3-05</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l3">
+		<p class="kicker">LV3 表現 ／ 3-04</p>
+		<h1>定数バッファ ― C++からシェーダへ値を渡す</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span>
+			／ 前提 <a href="3-03_FirstShader.html">3-03</a>
+		</p>
+	</header>
+
+	<section class="level l3">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>C++の変数の値を、シェーダの中で使える</strong></li>
+			<li>時間で変化する表現が書ける</li>
+			<li><code>cbuffer</code> の書き方の決まりが分かる</li>
+		</ul>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">02</span>シェーダは外の世界を知りません</h2>
+		<p class="prose">
+			シェーダはGPUの上で動いています。
+			<strong>C++のメンバ変数を、そのまま読むことはできません。</strong>
+		</p>
+		<p class="prose">
+			値を渡すための箱が<strong>定数バッファ（constant buffer）</strong>です。
+			<code>sprite.fx</code> の先頭にも、すでにありました。
+		</p>
+<pre><code>cbuffer cb : register(b0){
+    float4x4 mvp;        // エンジンが入れている
+    float4 mulColor;     // SetMulColor で入れている
+};</code></pre>
+		<p class="prose">
+			<strong><code>b0</code> はエンジンが使っています。</strong>
+			自分の値は <strong><code>b1</code></strong> に入れます。
+		</p>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">03</span>書き方 ― 3か所をそろえる</h2>
+		<h3>① シェーダ側</h3>
+<pre><code>// myBullet.fx
+
+cbuffer cb : register(b0){
+    float4x4 mvp;
+    float4 mulColor;
+};
+
+cbuffer myCb : register(b1){     // ★ 追加
+    float4 myColor;
+    float  myTime;
+    float3 dummy;                // ★ 16バイト単位にそろえる（後述）
+};</code></pre>
+
+		<h3>② C++側の構造体</h3>
+<pre><code>// MySpriteRender.h
+struct MyShaderCB {
+    Vector4 myColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+    float   myTime  = 0.0f;
+    float   dummy[3] = { 0.0f, 0.0f, 0.0f };     // ★ シェーダと同じ形に
+};</code></pre>
+
+		<h3>③ 初期化のときに渡す</h3>
+<pre><code>void MySpriteRender::Init(...)
+{
+    SpriteInitData initData;
+    initData.m_ddsFilePath[0] = ddsFilePath;
+    initData.m_fxFilePath     = fxFilePath;
+    initData.m_width          = (UINT)w;
+    initData.m_height         = (UINT)h;
+    initData.m_alphaBlendMode = AlphaBlendMode_Trans;
+
+    // ★ 自分の定数バッファを登録する
+    initData.m_expandConstantBuffer     = &amp;m_cb;
+    initData.m_expandConstantBufferSize = sizeof(m_cb);
+
+    m_sprite.Init(initData);
+}</code></pre>
+		<div class="note">
+			<span class="h">値の更新は、ただ構造体を書き換えるだけ</span>
+			<code>m_cb</code> のアドレスを渡してあるので、
+			<strong><code>m_sprite.Update()</code> のたびに中身が自動でGPUへ送られます。</strong><br>
+			つまり、C++側では <code>m_cb.myTime = ...;</code> と書くだけです。
+		</div>
+<pre><code>void MySpriteRender::Update()
+{
+    m_cb.myTime += g_gameTime-&gt;GetFrameDeltaTime();   // ★ ただの代入
+    m_sprite.Update(m_position, m_rotation, m_scale);
+}</code></pre>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">04</span>16バイトの壁</h2>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">定数バッファでいちばんハマるところです</span>
+			<strong>シェーダの定数バッファは、16バイト単位で区切られています。</strong>
+			C++の構造体とメモリの並びが違うと、<u>値がまったく違う場所に入ります。</u><br>
+			<strong>エラーも警告も出ません。ただ、変な値になります。</strong>
+		</div>
+		<p class="prose">
+			<code>float4</code> がちょうど16バイトです。
+			<strong><code>float4</code> だけで書けば、絶対にずれません。</strong>
+		</p>
+<pre><code>// ★ いちばん安全な書き方
+cbuffer myCb : register(b1){
+    float4 param0;      // x:時間  y:強さ  z:未使用  w:未使用
+    float4 myColor;
+};</code></pre>
+<pre><code>struct MyShaderCB {
+    Vector4 param0 = { 0.0f, 0.0f, 0.0f, 0.0f };
+    Vector4 myColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+};</code></pre>
+		<p class="prose">
+			<strong>「使わないところは余らせておく」</strong>のが定石です。
+			もったいなく見えますが、ずれて悩むより百倍ましです。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>やりかた</th><th>安全度</th></tr></thead>
+			<tbody>
+				<tr><td><code>float4</code> だけを並べる</td><td><strong>安全。おすすめ</strong></td></tr>
+				<tr><td><code>float4</code> のあとに <code>float</code> を4つ並べる</td><td>だいたい安全</td></tr>
+				<tr><td><code>float</code> と <code>float3</code> を混ぜる</td><td><strong>危険。ずれやすい</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">05</span>動かしてみる ― 点滅させる</h2>
+<pre><code>// myBullet.fx
+cbuffer myCb : register(b1){
+    float4 param0;      // x = 経過時間
+};
+
+float4 PSMain( PSInput In ) : SV_Target0
+{
+    float4 color = colorTexture.Sample(Sampler, In.uv) * mulColor;
+
+    // sin は -1〜1 を行き来する。0〜1 に直して明るさに使う。
+    float blink = sin(param0.x * 10.0f) * 0.5f + 0.5f;
+    color.rgb *= blink;
+
+    return color;
+}</code></pre>
+<pre><code>// C++
+void MySpriteRender::Update()
+{
+    m_cb.param0.x += g_gameTime-&gt;GetFrameDeltaTime();
+    m_sprite.Update(m_position, m_rotation, m_scale);
+}</code></pre>
+		<p class="prose">
+			<strong>点滅します。</strong>
+			<code>10.0f</code> を変えると速さが変わります。
+		</p>
+		<div class="note">
+			<span class="h"><code>sin</code> は「なめらかに行き来する」道具です</span>
+			点滅、ふわふわ浮かせる、脈打たせる。
+			<strong>ゲームの演出で、いちばん出番の多い関数です。</strong>
+<pre style="margin-top:8px;"><code>sin(t)                    // -1 〜 1
+sin(t) * 0.5f + 0.5f      // 0 〜 1   ← よく使う形
+abs(sin(t))               // 0 〜 1（跳ねるような動き）</code></pre>
+		</div>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">06</span>よくあるエラー</h2>
+		<h3>値が変な数になる</h3>
+		<p class="prose">
+			<strong>原因：</strong>C++の構造体とシェーダの <code>cbuffer</code> の並びが違う。<br>
+			<strong>直し方：</strong><code>float4</code> だけで書き直す。
+		</p>
+
+		<h3>値がずっと 0 のまま</h3>
+		<p class="prose">
+			<strong>原因1：</strong><code>m_expandConstantBufferSize</code> の設定忘れ。<br>
+			<strong>原因2：</strong><code>register(b1)</code> ではなく <code>b0</code> にしている。
+			<code>b0</code> はエンジンが使っています。<br>
+			<strong>原因3：</strong><code>m_sprite.Update()</code> を呼んでいない。
+			これを呼ばないとGPUへ送られません。
+		</p>
+
+		<h3><code>error X3000: syntax error</code></h3>
+		<p class="prose">
+			<strong>原因：</strong><code>cbuffer</code> の <code>};</code> の
+			セミコロン忘れなど。<br>
+			<strong>直し方：</strong>出力ウィンドウに行番号が出ています。
+		</p>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（まねる）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">上の点滅シェーダを動かす。速さを変えてみる。</p>
+
+		<h3>演習2（増やす）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">定数バッファに<strong>色</strong>を足して、C++側から点滅の色を変えられるようにする。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>// myBullet.fx
+cbuffer myCb : register(b1){
+    float4 param0;        // x = 時間
+    float4 blinkColor;    // 点滅させる色
+};
+
+float4 PSMain( PSInput In ) : SV_Target0
+{
+    float4 color = colorTexture.Sample(Sampler, In.uv) * mulColor;
+
+    float blink = sin(param0.x * 10.0f) * 0.5f + 0.5f;
+
+    // 元の色と blinkColor を、blink の割合で混ぜる
+    color.rgb = lerp(color.rgb, blinkColor.rgb, blink);
+
+    return color;
+}</code></pre>
+<pre><code>// MySpriteRender.h
+struct MyShaderCB {
+    Vector4 param0     = { 0.0f, 0.0f, 0.0f, 0.0f };
+    Vector4 blinkColor = { 1.0f, 0.0f, 0.0f, 1.0f };
+};
+
+public:
+    void SetBlinkColor(const Vector4&amp; c) { m_cb.blinkColor = c; }</code></pre>
+<p>
+<strong><code>lerp(a, b, t)</code> は、t が 0 なら a、1 なら b、
+0.5 ならその中間を返します。</strong>
+<code>a + (b - a) * t</code> と同じで、
+<a href="2-14_Shoot.html">2-14</a> の連射速度でも使った式です。
+</p>
+		</details>
+
+		<h3>演習3（自分で書く）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>画像を下から上へ、じわっと出現させる</strong>シェーダを書く。（時間に応じて、UVのYが一定より下の部分だけ表示する）<strong>本文には答えがありません。</strong></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>cbuffer myCb : register(b1){
+    float4 param0;      // x = 出現の進み具合（0〜1）
+};
+
+float4 PSMain( PSInput In ) : SV_Target0
+{
+    float4 color = colorTexture.Sample(Sampler, In.uv) * mulColor;
+
+    // uv.y は 上が0、下が1。下から出したいので反転して比べる。
+    float appear = 1.0f - In.uv.y;
+
+    if (appear &gt; param0.x) {
+        discard;            // ★ このピクセルは描かない
+    }
+    return color;
+}</code></pre>
+<p>
+<strong><code>discard</code> は「このピクセルは描くのをやめる」という命令です。</strong>
+透明にするのとは違い、<u>そもそも書き込まれません。</u>
+</p>
+<p><strong>境目をぼかすと、もっときれいになります。</strong></p>
+<pre><code>float appear = 1.0f - In.uv.y;
+// param0.x の周り 0.1 の幅で、なめらかに 0→1 に変える
+float alpha = smoothstep(param0.x + 0.1f, param0.x, appear);
+color.a *= alpha;
+return color;</code></pre>
+<p>
+<code>smoothstep(a, b, x)</code> は、
+<strong>x が a のとき 0、b のとき 1、その間をなめらかにつなぐ</strong>関数です。
+<code>lerp</code> と並んで、シェーダで非常によく使います。
+</p>
+<div class="note">
+<span class="h">C++側</span>
+<pre style="margin-top:8px;"><code>void MySpriteRender::Update()
+{
+    // 1秒で出現しきる
+    m_cb.param0.x = min(m_cb.param0.x + g_gameTime-&gt;GetFrameDeltaTime(), 1.0f);
+    m_sprite.Update(m_position, m_rotation, m_scale);
+}</code></pre>
+<strong>この「出現」は、ボスの登場やアイテムの出現に、そのまま使えます。</strong>
+</div>
+		</details>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li>自分の定数バッファは、どのレジスタに置く？ <code>b0</code> は？</li>
+			<li>定数バッファを <code>float4</code> だけで書くのはなぜ？</li>
+			<li>C++側で値を変えたあと、GPUへ送るには何が必要？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li><code>b1</code>。<code>b0</code> はエンジンが
+					<code>mvp</code> と <code>mulColor</code> に使っている。</li>
+				<li>16バイト単位で区切られており、混ぜるとC++側とずれるから。
+					<code>float4</code> はちょうど16バイト。</li>
+				<li><code>m_sprite.Update()</code> を呼ぶ。
+					構造体のアドレスを渡してあるので、中身は自動で送られる。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="3-05_DamageFlash.html"><strong>3-05 被弾したら赤く光らせる</strong></a>
+				— 自分のゲームに入れます</li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

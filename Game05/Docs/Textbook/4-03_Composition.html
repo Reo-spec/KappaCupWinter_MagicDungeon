@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>継承の落とし穴とコンポジション</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n4" href="4-02_Encapsulation.html">← 前 4-02</a>
+			<a class="navchip n4" href="index.html#lv4">LV4 の目次</a>
+			<a class="navchip n4" href="4-04_Solid.html">次 → 4-04</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l4">
+		<p class="kicker">LV4 設計 ／ 4-03</p>
+		<h1>継承の落とし穴とコンポジション</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span>
+			／ 前提 <a href="4-02_Encapsulation.html">4-02</a>
+		</p>
+	</header>
+
+	<section class="level l4">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>継承で破綻する理由</strong>を説明できる</li>
+			<li>「持つ」で書き直せる</li>
+			<li>それでも継承を使ってよい場面が分かる</li>
+		</ul>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">02</span>ありがちな破綻</h2>
+		<p class="prose">
+			敵を作ります。共通部分を <code>Enemy</code> にまとめました。
+			<strong>ここまでは、うまくいきます。</strong>
+		</p>
+<pre><code>Enemy
+ ├ ZakoEnemy          // まっすぐ進む雑魚
+ └ ShooterEnemy       // 弾を撃つ敵</code></pre>
+		<p class="prose">
+			次に<strong>「弾を撃ちながら、まっすぐ進む敵」</strong>が欲しくなります。
+		</p>
+		<p class="prose">
+			…どちらを継承すればいいでしょうか。
+		</p>
+
+		<figure>
+			<svg viewBox="0 0 740 420" role="img"
+			     aria-label="継承とコンポジションの比較図。継承では機能の組み合わせが増えるたびにクラスが倍々に増え、どちらを親にするか決められなくなる。コンポジションでは移動・攻撃・耐久という部品を一つの敵クラスが持ち、組み合わせを変えるだけで新しい敵が作れる">
+				<g class="fig-head" color="currentColor">
+					<defs>
+						<marker id="cp-arrow" viewBox="0 0 10 10" refX="9" refY="5"
+						        markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+							<path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+						</marker>
+					</defs>
+
+					<text class="fig-t sm cdanger" x="20" y="22">継承でやると ― 組み合わせのたびにクラスが増える</text>
+
+					<rect class="fig-box" x="130" y="36" width="120" height="30" rx="4"/>
+					<text class="fig-m" x="190" y="56" text-anchor="middle">Enemy</text>
+
+					<path class="fig-line" d="M 190 70 L 190 82 L 90 82 L 90 94"/>
+					<path class="fig-line" d="M 190 70 L 190 82 L 290 82 L 290 94"/>
+
+					<rect class="fig-box" x="30" y="94" width="120" height="30" rx="4"/>
+					<text class="fig-m" x="90" y="114" text-anchor="middle">ZakoEnemy</text>
+					<rect class="fig-box" x="230" y="94" width="120" height="30" rx="4"/>
+					<text class="fig-m" x="290" y="114" text-anchor="middle">ShooterEnemy</text>
+
+					<path class="fig-dash" d="M 90 128 L 150 158"/>
+					<path class="fig-dash" d="M 290 128 L 230 158"/>
+
+					<rect class="fig-danger" x="110" y="160" width="160" height="34" rx="4"/>
+					<text class="fig-m cdanger" x="190" y="181" text-anchor="middle">撃ちながら進む敵？</text>
+
+					<text class="fig-m cdanger" x="290" y="181">← どちらを親にする？</text>
+
+					<text class="fig-m" x="20" y="222">機能が n 個増えるたび、組み合わせは 2 のｎ乗に増えていく</text>
+
+					<path class="fig-dash" d="M 20 240 L 720 240"/>
+
+					<text class="fig-t sm cok" x="20" y="268">持つ（コンポジション）でやると ― 部品を組み替えるだけ</text>
+
+					<rect class="fig-box b4" x="20" y="284" width="150" height="86" rx="6"/>
+					<text class="fig-t sm c4" x="95" y="308" text-anchor="middle">Enemy</text>
+					<text class="fig-m" x="95" y="330" text-anchor="middle">1つだけ</text>
+					<text class="fig-m" x="95" y="350" text-anchor="middle">部品を持つ</text>
+
+					<path class="fig-line" d="M 176 327 L 195 327 L 195 301 L 214 301" marker-end="url(#cp-arrow)"/>
+					<path class="fig-line" d="M 195 327 L 214 327" marker-end="url(#cp-arrow)"/>
+					<path class="fig-line" d="M 195 327 L 195 385 L 214 385" marker-end="url(#cp-arrow)"/>
+
+					<rect class="fig-box" x="220" y="284" width="140" height="34" rx="4"/>
+					<text class="fig-m" x="290" y="305" text-anchor="middle">動き方（Move）</text>
+					<rect class="fig-box" x="220" y="326" width="140" height="34" rx="4"/>
+					<text class="fig-m" x="290" y="347" text-anchor="middle">撃ち方（Shot）</text>
+					<rect class="fig-box" x="220" y="368" width="140" height="34" rx="4"/>
+					<text class="fig-m" x="290" y="389" text-anchor="middle">耐久（Hp）</text>
+
+					<text class="fig-m" x="380" y="305">まっすぐ／ジグザグ／追尾…</text>
+					<text class="fig-m" x="380" y="347">単発／3方向／撃たない…</text>
+					<text class="fig-m" x="380" y="389">硬い／柔らかい…</text>
+
+					<rect class="fig-box b4" x="380" y="240" width="340" height="0" rx="4"/>
+					<text class="fig-t sm cok" x="380" y="268">組み合わせを変えるだけで、新しい敵ができる</text>
+				</g>
+			</svg>
+			<figcaption>
+				<strong>継承は「木」なので、枝分かれの掛け算に弱い。</strong>
+				持つ（コンポジション）なら、部品の組み合わせで表せます。
+			</figcaption>
+		</figure>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">03</span>なぜ継承だと増えるのか</h2>
+		<p class="prose">
+			継承は<strong>1本の木</strong>です。親は1つしか選べません
+			（C++は多重継承もできますが、話がもっと複雑になります）。
+		</p>
+		<p class="prose">
+			ところがゲームの敵は、<strong>いくつもの軸の組み合わせ</strong>で決まります。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>軸</th><th>種類</th></tr></thead>
+			<tbody>
+				<tr><td>動き方</td><td>まっすぐ / ジグザグ / 追尾 / 止まる</td></tr>
+				<tr><td>撃ち方</td><td>撃たない / 単発 / 3方向 / 全方位</td></tr>
+				<tr><td>耐久</td><td>1発 / 数発 / 大量</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>この3軸だけで、4 × 4 × 3 = 48通り。</strong>
+			継承で表そうとすると、48個のクラスが要ります。
+		</p>
+		<p class="prose">
+			部品として持てば、<strong>4 + 4 + 3 = 11個</strong>で足ります。
+		</p>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">04</span>もうひとつの落とし穴 ― 親を直すと子が壊れる</h2>
+<pre><code>// あるとき、Enemy の Update に処理を足した
+void Enemy::Update()
+{
+    Move();
+    CheckScreenOut();     // ★ 画面外に出たら DeleteGO するようにした
+}</code></pre>
+		<p class="prose">
+			便利だと思って足しました。ところが <code>BossEnemy</code> は
+			<strong>画面外に一度出てから戻ってくる</strong>演出をしていました。
+		</p>
+		<p class="prose">
+			<strong>ボスが消えました。</strong>
+		</p>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">これを「脆い基底クラス問題」といいます</span>
+			<strong>親を直したとき、影響が及ぶ範囲が見えません。</strong>
+			子クラスが10個あれば、10個分を頭の中で確認することになります。<br>
+			<u>継承が深くなるほど、親に手を入れるのが怖くなります。</u>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">05</span>「持つ」に書き直す</h2>
+<pre><code>// 動き方を、部品として切り出す
+class IMover {
+public:
+    virtual ~IMover() {}
+    virtual void Move(Vector3&amp; position, float dt) = 0;
+};
+
+class StraightMover : public IMover {
+public:
+    void Move(Vector3&amp; position, float dt) override
+    {
+        position.y -= 200.0f * dt;
+    }
+};
+
+class ZigzagMover : public IMover {
+public:
+    void Move(Vector3&amp; position, float dt) override
+    {
+        m_time += dt;
+        position.y -= 150.0f * dt;
+        position.x  = m_baseX + sinf(m_time * 3.0f) * 200.0f;
+    }
+private:
+    float m_time  = 0.0f;
+    float m_baseX = 0.0f;
+};</code></pre>
+<pre><code>// 敵は1つだけ。部品を持つ
+class Enemy : public IGameObject {
+public:
+    void SetMover(std::unique_ptr&lt;IMover&gt; mover)
+    {
+        m_mover = std::move(mover);
+    }
+
+    void Update() override
+    {
+        const float dt = g_gameTime-&gt;GetFrameDeltaTime();
+        if (m_mover) {
+            m_mover-&gt;Move(m_position, dt);
+        }
+        ...
+    }
+
+private:
+    std::unique_ptr&lt;IMover&gt; m_mover;
+};</code></pre>
+<pre><code>// 使うとき
+Enemy* e = NewGO&lt;Enemy&gt;(enPriority_Enemy, "enemy");
+e-&gt;SetMover(std::make_unique&lt;ZigzagMover&gt;());</code></pre>
+		<div class="note">
+			<span class="h">これは Strategy パターンです</span>
+			<strong>名前は <a href="4-09_Strategy.html">4-09</a> で出てきます。</strong>
+			いまは「動き方を部品にして、差し替えられるようにした」
+			とだけ分かっていれば充分です。
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">06</span>では、継承はいつ使うのか</h2>
+		<p class="prose">
+			<strong>継承が悪いわけではありません。</strong>
+			使いどころが決まっているだけです。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th></th><th>インターフェースの継承</th><th>実装の継承</th></tr></thead>
+			<tbody>
+				<tr><td>親の中身</td><td><strong>ほぼ空（純粋仮想関数だけ）</strong></td>
+					<td>実際の処理が入っている</td></tr>
+				<tr><td>目的</td><td>「同じように扱える」ことの宣言</td>
+					<td>コードの使い回し</td></tr>
+				<tr><td>例</td><td><code>IGameObject</code>、<code>IMover</code></td>
+					<td><code>Enemy</code> → <code>ZakoEnemy</code></td></tr>
+				<tr><td>評価</td><td><strong>どんどん使ってよい</strong></td>
+					<td><u>2段までにとどめる</u></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong><code>IGameObject</code> を継承するのは、まったく問題ありません。</strong>
+			親にはほとんど実装がなく、
+			「<code>Start</code> / <code>Update</code> / <code>Render</code> が呼ばれる」
+			という約束だけを決めているからです。
+		</p>
+		<div class="note">
+			<span class="h">判断の合言葉</span>
+			<strong>「〜である（is-a）」なら継承、「〜を持つ（has-a）」ならメンバ。</strong><br>
+			<u>敵は「移動方法である」わけではなく、「移動方法を持つ」のです。</u>
+			だからメンバにします。
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（数える）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">自分のコードの<strong>継承の段数</strong>を調べる。3段以上あるものはどれか。</p>
+
+		<h3>演習2（書き直す）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose">敵の<strong>動き方を <code>IMover</code> として切り出し</strong>、2種類以上の動きを差し替えられるようにする。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>IMover.h（1ファイルにまとめてよい）</strong></p>
+<pre><code>#pragma once
+
+/// &lt;summary&gt;敵の動き方。&lt;/summary&gt;
+class IMover {
+public:
+    virtual ~IMover() {}
+
+    /// &lt;summary&gt;
+    /// 1フレーム分、位置を動かす。
+    /// &lt;/summary&gt;
+    /// &lt;param name="position"&gt;動かす対象。書き換える。&lt;/param&gt;
+    /// &lt;param name="dt"&gt;前のフレームからの秒数。&lt;/param&gt;
+    virtual void Move(Vector3&amp; position, float dt) = 0;
+};
+
+/// &lt;summary&gt;まっすぐ下に進む。&lt;/summary&gt;
+class StraightMover : public IMover {
+public:
+    explicit StraightMover(float speed) : m_speed(speed) {}
+
+    void Move(Vector3&amp; position, float dt) override
+    {
+        position.y -= m_speed * dt;
+    }
+private:
+    float m_speed;
+};
+
+/// &lt;summary&gt;左右に揺れながら下に進む。&lt;/summary&gt;
+class ZigzagMover : public IMover {
+public:
+    ZigzagMover(float speed, float width, float cycle)
+        : m_speed(speed), m_width(width), m_cycle(cycle) {}
+
+    void Move(Vector3&amp; position, float dt) override
+    {
+        if (m_isFirst) {
+            m_baseX  = position.x;       // 最初のX座標を覚えておく
+            m_isFirst = false;
+        }
+        m_time += dt;
+        position.y -= m_speed * dt;
+        position.x  = m_baseX + sinf(m_time * m_cycle) * m_width;
+    }
+private:
+    float m_speed, m_width, m_cycle;
+    float m_time  = 0.0f;
+    float m_baseX = 0.0f;
+    bool  m_isFirst = true;
+};
+
+/// &lt;summary&gt;プレイヤーを追いかける。&lt;/summary&gt;
+class ChaseMover : public IMover {
+public:
+    explicit ChaseMover(float speed) : m_speed(speed) {}
+
+    void Move(Vector3&amp; position, float dt) override
+    {
+        Player* player = FindGO&lt;Player&gt;("player");
+        if (player == nullptr) {
+            position.y -= m_speed * dt;    // いなければ、まっすぐ
+            return;
+        }
+        Vector3 toPlayer = player-&gt;GetPosition() - position;
+        toPlayer.Normalize();
+        position += toPlayer * m_speed * dt;
+    }
+private:
+    float m_speed;
+};</code></pre>
+<p><strong>使い方</strong></p>
+<pre><code>// Spawner.cpp
+Enemy* e = NewGO&lt;Enemy&gt;(enPriority_Enemy, "enemy");
+e-&gt;SetPosition({ x, 600.0f, 0.0f });
+
+switch (type) {
+case 0: e-&gt;SetMover(std::make_unique&lt;StraightMover&gt;(200.0f)); break;
+case 1: e-&gt;SetMover(std::make_unique&lt;ZigzagMover&gt;(150.0f, 200.0f, 3.0f)); break;
+case 2: e-&gt;SetMover(std::make_unique&lt;ChaseMover&gt;(120.0f)); break;
+}</code></pre>
+<div class="note">
+<span class="h">数値をコンストラクタで渡すのがコツです</span>
+<strong>同じ <code>ZigzagMover</code> でも、
+振れ幅と周期を変えれば別の敵に見えます。</strong>
+<br><br>
+クラスを増やす前に、<u>「数値を変えるだけで済まないか」</u>を考えてください。
+</div>
+<div class="note" style="--lv: var(--warn);">
+<span class="h">仮想デストラクタを忘れずに</span>
+<code>virtual ~IMover() {}</code> を書かないと、
+<code>unique_ptr&lt;IMover&gt;</code> が破棄されるとき
+<strong>派生クラスのデストラクタが呼ばれません。</strong>
+<br><br>
+<u>基底クラスを作ったら、まず仮想デストラクタ。</u>反射で書いてください。
+</div>
+		</details>
+
+		<h3>演習3（考える）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>IGameObject</code> を継承するのは問題ないのに、<code>Enemy</code> を3段継承するとまずいのはなぜか、<strong>自分の言葉で説明する。</strong></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>違いは「親に実装があるかどうか」です。</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th></th><th><code>IGameObject</code></th><th>3段継承した <code>Enemy</code></th></tr></thead>
+<tbody>
+<tr><td>親の中身</td>
+	<td><strong>ほぼ空。<code>virtual bool Start() { return true; }</code> 程度</strong></td>
+	<td>移動・描画・当たり判定…実処理がびっしり</td></tr>
+<tr><td>親を直したとき</td>
+	<td><u>直すことがほぼ無い</u></td>
+	<td><strong>子全部に影響する</strong></td></tr>
+<tr><td>子が知るべきこと</td>
+	<td>「Update が毎フレーム呼ばれる」だけ</td>
+	<td>親が何をしているか全部</td></tr>
+<tr><td>段数</td><td>1段</td><td>3段。<strong>実処理が3か所に散る</strong></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>3段継承の具体的な困りごと</strong></p>
+<pre><code>Enemy → MovingEnemy → ShootingEnemy → BossEnemy</code></pre>
+<ul>
+<li><strong><code>BossEnemy::Update()</code> を読んでも、何が起きるか分からない。</strong>
+	4つのファイルを行き来する必要がある</li>
+<li>デバッガでステップ実行すると、
+	<u>知らない親の関数に何度も入る</u></li>
+<li><code>Enemy</code> に1行足すと、<strong>BossEnemy まで影響が届く</strong>。
+	しかも影響したことに気づけない</li>
+<li>「ボスだけ、この処理を通したくない」となったとき、
+	<strong>親にフラグを足すことになる</strong>。そして親がさらに複雑になる</li>
+</ul>
+<div class="note">
+<span class="h">見分け方：親のコードを読まずに子が読めるか</span>
+<strong><code>IGameObject</code> は、中身を読まなくても使えます。</strong>
+「Start が最初に1回、Update が毎フレーム」―― それだけ知っていれば書けます。
+<br><br>
+<u>3段継承の <code>BossEnemy</code> は、親3つを読まないと理解できません。</u>
+これが決定的な差です。
+</div>
+<p><strong>「継承は1段まで」を目安にしてよいです。</strong></p>
+<p>
+2段目が欲しくなったら、<u>「それは持たせられないか」</u>を先に考える。
+それでも継承がきれいなら使う。
+<strong>思考の順番を変えるだけで、だいぶ変わります。</strong>
+</p>
+		</details>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li>継承で組み合わせを表すと、クラス数はどう増える？</li>
+			<li>脆い基底クラス問題とは？</li>
+			<li>「is-a」と「has-a」、それぞれどう書く？</li>
+			<li>基底クラスを作ったとき、必ず書くものは？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>軸の数だけ掛け算で増える（4×4×3＝48など）。</li>
+				<li>親を直すと、子クラス全部に影響が及ぶこと。
+					しかも影響範囲が見えない。</li>
+				<li>is-a は継承、has-a はメンバとして持つ。</li>
+				<li>仮想デストラクタ（<code>virtual ~Base() {}</code>）。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="4-04_Solid.html"><strong>4-04 SOLID原則で自分のコードを点検する</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

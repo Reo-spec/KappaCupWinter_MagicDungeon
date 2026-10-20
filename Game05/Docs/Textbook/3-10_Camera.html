@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>カメラ</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n3" href="3-09_ModelRender.html">← 前 3-09</a>
+			<a class="navchip n3" href="index.html#lv3">LV3 の目次</a>
+			<a class="navchip n3" href="3-11_Lighting.html">次 → 3-11</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l3">
+		<p class="kicker">LV3 表現 ／ 3-10</p>
+		<h1>カメラ</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="3-09_ModelRender.html">3-09</a>
+		</p>
+	</header>
+
+	<section class="level l3">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li>カメラを動かせる</li>
+			<li><strong>プレイヤーを追いかけるカメラ</strong>が作れる</li>
+			<li>「画面に出ない」ときにカメラを疑えるようになる</li>
+		</ul>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">02</span>カメラは2つある</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>変数</th><th>用途</th></tr></thead>
+			<tbody>
+				<tr><td><code>g_camera3D</code></td><td><strong>3Dを映すカメラ。ふつうこちら</strong></td></tr>
+				<tr><td><code>g_camera2D</code></td><td>2D用。さわる必要はほぼない</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			どちらもグローバル変数です。どこからでも使えます。
+		</p>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">03</span>カメラに必要なのは2点だけ</h2>
+<pre><code>g_camera3D-&gt;SetPosition({ 0.0f, 200.0f, -500.0f });   // どこから
+g_camera3D-&gt;SetTarget  ({ 0.0f,   0.0f,    0.0f });   // どこを見る</code></pre>
+		<p class="prose">
+			<strong>「目の位置」と「見ている点」。</strong>この2つで向きが決まります。
+		</p>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">Position と Target が同じだと壊れます</span>
+			<strong>向きが計算できないため、画面が真っ黒になったり、
+			おかしな絵になったりします。</strong>
+			プレイヤーの位置をそのまま両方に入れてしまう、というミスが起きがちです。
+		</div>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">04</span>その他の設定</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>関数</th><th>意味</th><th>既定値の目安</th></tr></thead>
+			<tbody>
+				<tr><td><code>SetUp</code></td><td>どちらが「上」か</td>
+					<td><code>{0,1,0}</code></td></tr>
+				<tr><td><code>SetNear</code></td><td><strong>これより近いものは映らない</strong></td>
+					<td>1.0f</td></tr>
+				<tr><td><code>SetFar</code></td><td><strong>これより遠いものは映らない</strong></td>
+					<td>10000.0f</td></tr>
+				<tr><td><code>SetViewAngle</code></td><td>画角（ラジアン）</td>
+					<td><code>Math::DegToRad(60.0f)</code></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">Near と Far の比が大きすぎると、Zファイティングが起きます</span>
+			遠くの面が<strong>ちらちらとちらつく</strong>症状です。
+			深度の精度が足りなくなるために起きます。<br>
+			<strong>Near を大きくする（0.1 ではなく 1.0 にする）のがいちばん効きます。</strong>
+			Far を減らすより効果的です。
+		</div>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">05</span>追いかけるカメラ</h2>
+		<p class="prose">
+			いちばんよく作るカメラです。
+			<strong>プレイヤーの少し後ろ、少し上から見る</strong>だけ。
+		</p>
+<pre><code>// GameCamera.h
+class GameCamera : public IGameObject {
+public:
+    void Update() override;
+private:
+    GOHandle&lt;Player&gt; m_player;
+    Vector3 m_toCameraPos = { 0.0f, 200.0f, -500.0f };  // プレイヤーからの相対位置
+};
+
+// GameCamera.cpp
+void GameCamera::Update()
+{
+    Player* player = m_player.Get();
+    if (player == nullptr) {
+        player = FindGO&lt;Player&gt;("player");
+        if (player == nullptr) {
+            return;                       // まだいない
+        }
+        m_player = GOHandle&lt;Player&gt;(player);
+    }
+
+    Vector3 target = player-&gt;GetPosition();
+    Vector3 pos    = target + m_toCameraPos;
+
+    g_camera3D-&gt;SetTarget(target);
+    g_camera3D-&gt;SetPosition(pos);
+    g_camera3D-&gt;Update();                 // ★ 忘れやすい
+}</code></pre>
+		<p class="prose">
+			<strong>優先度は、プレイヤーより後にしてください。</strong>
+			プレイヤーが動いたあとの位置を使わないと、
+			1フレームぶん遅れてカメラが揺れます。
+		</p>
+<pre><code>enPriority_Player = 2,
+enPriority_Camera = 8,          // ★ プレイヤーより後
+enPriority_UI     = 10,</code></pre>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">06</span>なめらかに追いかける</h2>
+		<p class="prose">
+			上のコードは<strong>プレイヤーにぴったり張り付く</strong>ので、
+			動きが硬く見えます。<u>少し遅れて追いつく</u>ようにすると自然になります。
+		</p>
+<pre><code>// いまのカメラ位置から、目標位置へ 10% ずつ近づく
+m_currentTarget += (target - m_currentTarget) * 0.1f;
+m_currentPos    += (pos    - m_currentPos)    * 0.1f;
+
+g_camera3D-&gt;SetTarget(m_currentTarget);
+g_camera3D-&gt;SetPosition(m_currentPos);</code></pre>
+		<p class="prose">
+			<strong>0.1 を小さくするほど、ゆるく追いかけます。</strong>
+			0.05〜0.2 のあいだで好みを探してください。
+		</p>
+		<div class="note">
+			<span class="h">この式は、いろいろな場所で使えます</span>
+			<code>現在値 += (目標値 - 現在値) * 係数</code><br>
+			HPバーがじわっと減る、音量がフェードする、
+			敵がゆっくりこちらを向く。<strong>全部これで書けます。</strong>
+		</div>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（まねる）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">カメラの位置をキー操作で前後に動かして、見え方の変化を確認する。</p>
+
+		<h3>演習2（追う）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">プレイヤーを追いかけるカメラを作る。<strong>なめらかに追いかける</strong>版にする。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>// GameCamera.h
+#pragma once
+
+class Player;
+
+class GameCamera : public IGameObject {
+public:
+    bool Start()  override;
+    void Update() override;
+
+private:
+    GOHandle&lt;Player&gt; m_player;
+    Vector3 m_toCameraPos  = { 0.0f, 200.0f, -500.0f };
+    Vector3 m_currentPos    = Vector3::Zero;
+    Vector3 m_currentTarget = Vector3::Zero;
+    bool    m_isFirst = true;
+};
+
+// GameCamera.cpp
+bool GameCamera::Start()
+{
+    g_camera3D-&gt;SetNear(1.0f);
+    g_camera3D-&gt;SetFar(10000.0f);
+    return true;
+}
+
+void GameCamera::Update()
+{
+    Player* player = m_player.Get();
+    if (player == nullptr) {
+        player = FindGO&lt;Player&gt;("player");
+        if (player == nullptr) {
+            return;
+        }
+        m_player = GOHandle&lt;Player&gt;(player);
+    }
+
+    Vector3 target = player-&gt;GetPosition();
+    Vector3 pos    = target + m_toCameraPos;
+
+    if (m_isFirst) {
+        // 初回はいきなり合わせる（でないと原点から飛んでくる）
+        m_currentTarget = target;
+        m_currentPos    = pos;
+        m_isFirst = false;
+    }
+    else {
+        m_currentTarget += (target - m_currentTarget) * 0.1f;
+        m_currentPos    += (pos    - m_currentPos)    * 0.1f;
+    }
+
+    g_camera3D-&gt;SetTarget(m_currentTarget);
+    g_camera3D-&gt;SetPosition(m_currentPos);
+    g_camera3D-&gt;Update();
+}</code></pre>
+<div class="note" style="--lv: var(--warn);">
+<span class="h">初回の処理を忘れると、ゲーム開始時にカメラが飛んできます</span>
+<code>m_currentPos</code> は最初 <code>(0,0,0)</code> なので、
+<strong>そこからプレイヤーの位置まで、じわーっと移動する絵になります。</strong>
+<code>m_isFirst</code> で1回だけ直接代入してください。
+</div>
+<p>
+<strong>優先度の確認も忘れずに。</strong>
+プレイヤー（2）より後（8）にしないと、カメラが1フレーム遅れます。
+</p>
+		</details>
+
+		<h3>演習3（揺らす）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>画面を揺らす（カメラシェイク）</strong>機能を足す。被弾や爆発のときに呼ぶ。<strong>本文には答えがありません。</strong></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>// GameCamera.h
+public:
+    void Shake(float power, float time);
+
+private:
+    float m_shakePower = 0.0f;
+    float m_shakeTimer = 0.0f;
+    float m_shakeTotal = 0.0f;
+
+// GameCamera.cpp
+void GameCamera::Shake(float power, float time)
+{
+    // 弱い揺れで上書きしない
+    if (power &lt; m_shakePower * (m_shakeTimer / max(m_shakeTotal, 0.0001f))) {
+        return;
+    }
+    m_shakePower = power;
+    m_shakeTimer = time;
+    m_shakeTotal = time;
+}
+
+void GameCamera::Update()
+{
+    ... 追従の計算 ...
+
+    Vector3 finalPos    = m_currentPos;
+    Vector3 finalTarget = m_currentTarget;
+
+    if (m_shakeTimer &gt; 0.0f) {
+        m_shakeTimer -= g_gameTime-&gt;GetFrameDeltaTime();
+        float rate = max(m_shakeTimer / m_shakeTotal, 0.0f);
+        float p = m_shakePower * rate;             // だんだん収まる
+
+        Vector3 offset = {
+            (rand() / (float)RAND_MAX - 0.5f) * 2.0f * p,
+            (rand() / (float)RAND_MAX - 0.5f) * 2.0f * p,
+            0.0f
+        };
+        finalPos    += offset;
+        finalTarget += offset;                     // ★ 両方ずらす
+    }
+
+    g_camera3D-&gt;SetTarget(finalTarget);
+    g_camera3D-&gt;SetPosition(finalPos);
+    g_camera3D-&gt;Update();
+}</code></pre>
+<p><strong>大事なところ</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>やること</th><th>理由</th></tr></thead>
+<tbody>
+<tr><td><strong>Position と Target を同じだけずらす</strong></td>
+	<td>片方だけだと<u>視線がぐるぐる回って</u>気持ち悪くなる</td></tr>
+<tr><td>時間とともに弱める</td><td>いきなり止まると不自然</td></tr>
+<tr><td><code>m_currentPos</code> 自体は<u>ずらさない</u></td>
+	<td>揺れが追従の計算に混ざると、発散する</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>使うとき</strong></p>
+<pre><code>// 被弾
+FindGO&lt;GameCamera&gt;("gameCamera")-&gt;Shake(15.0f, 0.2f);
+
+// 爆発
+FindGO&lt;GameCamera&gt;("gameCamera")-&gt;Shake(40.0f, 0.4f);</code></pre>
+<div class="note">
+<span class="h">揺れは「思っているより短く、弱く」</span>
+<strong>0.15〜0.3秒くらいで充分です。</strong>
+長いと画面酔いします。
+強さも、最初は小さめから試してください。
+<br><br>
+<strong>設定で切れるようにしておくと親切です。</strong>
+カメラの揺れが苦手な人は少なくありません。
+</div>
+		</details>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li>カメラの向きを決めるのに必要な2つは？</li>
+			<li>カメラの優先度を、プレイヤーより後にするのはなぜ？</li>
+			<li>遠くの面がちらつくときは、どこを直す？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li><code>SetPosition</code>（目の位置）と <code>SetTarget</code>（見る点）。</li>
+				<li>プレイヤーが動いたあとの位置を使うため。
+					先に動くと1フレーム遅れて揺れる。</li>
+				<li><code>SetNear</code> を大きくする。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="3-11_Lighting.html"><strong>3-11 ライティングを理解する</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

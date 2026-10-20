@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>【研究課題】自分のゲームを2倍速くする</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n5" href="5-15_BuildTime.html">← 前 5-15</a>
+			<a class="navchip n5" href="index.html#lv5">LV5 の目次</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l5">
+		<p class="kicker">LV5 最適化 ／ 5-16</p>
+		<h1>【研究課題】自分のゲームを2倍速くする</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span>
+			／ 前提 <a href="5-01_ReadProfiler.html">5-01</a> , <a href="5-13_Simd.html">5-13</a>
+		</p>
+	</header>
+
+			<div class="note" style="--lv: var(--ok);">
+			<span class="h">行き詰まったら、完成形を見てください</span>
+			<strong><code>Sample/Goal_LV5</code></strong> に、
+			この章に到達した状態のプロジェクトが入っています。<br>
+			<u>先に見てしまっても構いません。</u>
+			読んで理解してから、自分のコードに戻ってください。<br>
+			<strong>読む順番は <code>Goal_LV5/readme.txt</code> に書いてあります。</strong>
+			readme.txt には<strong>「測ったら、思っていたところが遅くなかった」</strong>という
+			計測の結果も書いてあります。そちらが本体です。
+		</div>
+
+	<section class="level l5">
+		<h2><span class="n">01</span>やること</h2>
+		<p class="prose">
+			<strong>自分のゲームを、測って、速くして、レポートにまとめます。</strong>
+		</p>
+		<p class="prose">
+			<a href="4-16_Redesign.html">4-16</a> が「設計」の総まとめだったように、
+			これは<strong>「性能」の総まとめ</strong>です。
+		</p>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h">成果物は、速くなったゲームではなくレポートです</span>
+			<strong>2倍にならなくても構いません。</strong><br>
+			<u>「測って、仮説を立てて、試して、結果を記録した」</u>
+			という過程が成果物です。<br><br>
+			<strong>「試したが効果がなかった」も、立派な結果です。</strong>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">02</span>進め方</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>手順</th><th>やること</th><th>章</th></tr></thead>
+			<tbody>
+				<tr><td><strong>1</strong></td>
+					<td><strong>再現できる負荷テスト場面を作る</strong></td>
+					<td><a href="5-02_ProfileScope.html">5-02</a></td></tr>
+				<tr><td><strong>2</strong></td>
+					<td><strong>Release で測って、基準値を記録する</strong></td>
+					<td><a href="5-01_ReadProfiler.html">5-01</a></td></tr>
+				<tr><td>3</td><td>CPU か GPU かを切り分ける</td>
+					<td><a href="5-01_ReadProfiler.html">5-01</a></td></tr>
+				<tr><td>4</td><td>いちばん重い場所を絞り込む</td>
+					<td><a href="5-02_ProfileScope.html">5-02</a></td></tr>
+				<tr><td><strong>5</strong></td>
+					<td><strong>仮説を立てる（なぜ遅いか）</strong></td>
+					<td><a href="5-03_Cpu.html">5-03</a>、
+						<a href="5-04_CacheLine.html">5-04</a></td></tr>
+				<tr><td>6</td><td><strong>1つだけ</strong>変えて、測る</td>
+					<td>—</td></tr>
+				<tr><td>7</td><td>効果を記録して、4に戻る</td><td>—</td></tr>
+				<tr><td>8</td><td>レポートにまとめる</td><td>—</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">ルール：一度に変えるのは1つだけ</span>
+			<strong>2つ変えて速くなっても、どちらが効いたか分かりません。</strong><br>
+			<u>そして「片方は効いて、片方は遅くしていた」ということも起きます。</u><br><br>
+			<strong>1つ変える → 測る → コミット。</strong>
+			<a href="4-13_Refactoring.html">4-13</a> と同じです。
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">03</span>負荷テスト場面の作り方</h2>
+		<p class="prose">
+			<strong>毎回同じ条件で測れないと、比較になりません。</strong>
+		</p>
+<pre><code>// StressTest.cpp
+namespace {
+
+void DrawStressPanel()
+{
+    static int numEnemy  = 200;
+    static int numBullet = 1000;
+
+    ImGui::SliderInt(U8("敵の数"),   &amp;numEnemy, 0, 1000);
+    ImGui::SliderInt(U8("弾の数"),   &amp;numBullet, 0, 5000);
+
+    if (ImGui::Button(U8("この条件で配置"))) {
+        ClearAll();
+        srand(12345);                    // ★ 乱数の種を固定する
+        for (int i = 0; i &lt; numEnemy; i++) {
+            CreateEnemy(enEnemyType_Zako, RandomPosition());
+        }
+        for (int i = 0; i &lt; numBullet; i++) {
+            FireBullet(RandomPosition(), RandomDirection());
+        }
+    }
+
+    ImGui::Separator();
+    if (ImGui::Button(U8("60フレーム測定"))) {
+        BeginMeasure(60);
+    }
+    if (IsMeasureDone()) {
+        ImGui::Text("平均 %.3f ms / 最大 %.3f ms",
+                    GetAverageMs(), GetMaxMs());
+    }
+}
+
+}</code></pre>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h"><code>srand(12345)</code> が大事です</span>
+			<strong>乱数の種を固定すれば、毎回まったく同じ配置になります。</strong><br>
+			<u>これがないと、測るたびに条件が変わって比較できません。</u>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">04</span>仮説の立て方</h2>
+		<p class="prose">
+			<strong>「遅いから速くする」ではなく、
+			「なぜ遅いか」を先に言葉にしてください。</strong>
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>観察</th><th>仮説の例</th><th>試すこと</th></tr></thead>
+			<tbody>
+				<tr><td>当たり判定が 6ms</td>
+					<td>弾×敵の総当たりで O(n²)</td>
+					<td>まず範囲で絞る</td></tr>
+				<tr><td>敵を増やすと、比例以上に遅くなる</td>
+					<td><strong>キャッシュからあふれた</strong></td>
+					<td><a href="5-06_AosSoa.html">SoA</a></td></tr>
+				<tr><td>Draw Call が 2000</td>
+					<td>1体ずつ描いている</td>
+					<td><a href="5-08_Instancing.html">インスタンシング</a></td></tr>
+				<tr><td>ウィンドウを小さくすると速い</td>
+					<td>GPU律速。ポストエフェクト</td>
+					<td>効果を切って確認</td></tr>
+				<tr><td>ボス出現時だけ跳ねる</td>
+					<td>そこで読み込んでいる</td>
+					<td>先に読んでおく</td></tr>
+				<tr><td>長く遊ぶと遅くなる</td>
+					<td>リークか断片化</td>
+					<td><a href="5-14_CrashDump.html">5-14</a></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note">
+			<span class="h">仮説が外れることは、よくあります</span>
+			<strong>外れたら、それも記録してください。</strong><br>
+			<u>「SoA にしたが、0.02ms しか変わらなかった。
+			データが小さくて、もともとキャッシュに乗っていたため」</u><br>
+			<strong>これは、成功と同じくらい価値のある記録です。</strong>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">05</span>効果の大きい順（目安）</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>やること</th><th>効果</th><th>手間</th><th>章</th></tr></thead>
+			<tbody>
+				<tr><td><strong>画面外のものを処理しない</strong></td>
+					<td><strong>特大</strong></td><td>小</td>
+					<td><a href="5-08_Instancing.html">5-08</a></td></tr>
+				<tr><td><strong>先に読んでおく（スパイク解消）</strong></td>
+					<td><strong>特大</strong></td><td>小</td>
+					<td><a href="5-01_ReadProfiler.html">5-01</a></td></tr>
+				<tr><td>ループの外で <code>FindGO</code></td>
+					<td>大</td><td><strong>ごく小</strong></td>
+					<td><a href="5-05_AccessOrder.html">5-05</a></td></tr>
+				<tr><td>当たり判定を空間分割</td><td>大</td><td>中</td><td>—</td></tr>
+				<tr><td>インスタンシング</td><td>大</td><td>小</td>
+					<td><a href="5-08_Instancing.html">5-08</a></td></tr>
+				<tr><td>オブジェクトプール</td><td>中</td><td>小</td>
+					<td><a href="4-06_ObjectPool.html">4-06</a></td></tr>
+				<tr><td>SoA 化</td><td>中</td><td>大</td>
+					<td><a href="5-06_AosSoa.html">5-06</a></td></tr>
+				<tr><td>並列化</td><td>中</td><td>大</td>
+					<td><a href="5-12_JobSystem.html">5-12</a></td></tr>
+				<tr><td><u>SIMD</u></td><td><u>小</u></td><td><u>大</u></td>
+					<td><a href="5-13_Simd.html">5-13</a></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">上から順に試してください</span>
+			<strong>下のものほど、手間がかかって効果が小さい。</strong><br>
+			<u>そして、下のものほど「やった感」があるので、
+			つい先にやりたくなります。</u><br><br>
+			<strong>SIMD を書く前に、カリングが入っているか確認してください。</strong>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">06</span>レポートの形</h2>
+<pre><code># 最適化レポート
+
+## 測定環境
+CPU : Intel Core i7-12700 (12コア/20スレッド)
+RAM : 32GB
+GPU : NVIDIA RTX 3060
+OS  : Windows 11
+ビルド : Release x64
+
+## 測定条件
+敵 300体、弾 2000発（srand(12345) で固定配置）
+60フレームの平均値。3回測って中央値を採用。
+
+## 結果
+
+| 段階 | 施策 | Frame(ms) | 改善 |
+|------|------|-----------|------|
+| 0 | 初期状態 | 34.2 | — |
+| 1 | 画面外の敵を描画しない | 21.8 | -12.4 |
+| 2 | FindGO をループの外へ | 18.1 | -3.7 |
+| 3 | 弾をオブジェクトプールに | 16.4 | -1.7 |
+| 4 | 当たり判定をグリッド分割 | 11.2 | -5.2 |
+| 5 | 弾の位置・速度を SoA に | 10.1 | -1.1 |
+| 6 | 星の描画をインスタンシングに | 8.4 | -1.7 |
+
+**34.2ms → 8.4ms（4.1倍）**
+
+## 各施策の詳細
+
+### 1. 画面外の敵を描画しない（-12.4ms）
+Draw Call が 1,842 → 605 に減少。
+カメラ前方の内積判定と距離判定の2行を Render() に追加しただけ。
+**いちばん効果が大きく、いちばん手間が少なかった。**
+
+### 4. 当たり判定をグリッド分割（-5.2ms）
+仮説：弾2000 × 敵300 = 60万回の総当たりが原因。
+K2_PROFILE_SCOPE で Collision が 8.9ms を占めていることを確認。
+画面を 100x100 のセルに分け、同じセルと隣接セルだけ判定するように変更。
+60万回 → 約1.1万回。
+
+## 効果がなかったもの
+
+### 敵の SoA 化（効果 0.03ms）
+仮説：敵の更新がキャッシュミスしている。
+結果：ほぼ変化なし。
+理由：敵は300体 × 約400バイト = 120KB で、L2キャッシュに収まっていた。
+5-06 の「数千個以上でないと効かない」という条件を満たしていなかった。
+**この変更は revert した。**
+
+### SIMD による当たり判定（効果 0.04ms）
+グリッド分割で1.1万回まで減っていたため、
+SIMD 化しても絶対時間が小さく、効果が出なかった。
+コードが読みにくくなるだけなので採用しなかった。
+
+## 残った課題
+- Frame 8.4ms のうち、5.1ms が GPU（ポストエフェクト）
+  → ウィンドウを小さくすると 4.2ms になることを確認済み
+- ボス出現時に 42ms のスパイクが残っている
+  → モデルの先読みで解決できるはずだが、未実装
+
+## 学んだこと
+測る前に「当たり判定が重いはずだ」と思い込んでいたが、
+実際にいちばん重かったのは描画だった。
+5-01 の「推測するな、測れ」を身をもって理解した。</code></pre>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（測る）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>負荷テスト場面を作って、基準値を記録する。</strong><u>乱数の種を固定すること。</u></p>
+
+		<h3>演習2（速くする）<span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span></h3>
+		<p class="prose"><strong>効果の大きい順に、上から試していく。</strong><u>1つ変えるごとに測って、記録する。</u></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>まず、この3つだけやってみてください</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>順</th><th>やること</th><th>所要</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>カリング</strong>（画面外を描かない）</td>
+	<td>30分</td></tr>
+<tr><td>2</td><td><strong><code>FindGO</code> をループの外に出す</strong></td>
+	<td>15分</td></tr>
+<tr><td>3</td><td><strong>プロファイラで、いちばん重い場所を特定</strong></td>
+	<td>30分</td></tr>
+</tbody>
+</table>
+</div>
+<p>
+<strong>この1時間半で、たいてい半分くらいまで減ります。</strong>
+</p>
+<p><strong>1. カリング</strong></p>
+<pre><code>void Enemy::Render(RenderContext&amp; rc)
+{
+    Vector3 toMe = m_position - g_camera3D-&gt;GetPosition();
+    if (toMe.Dot(g_camera3D-&gt;GetForward()) &lt; -m_radius) { return; }
+    if (toMe.LengthSq() &gt; DRAW_DIST * DRAW_DIST)        { return; }
+    m_modelRender.Draw(rc);
+}</code></pre>
+<p><strong>2. <code>FindGO</code> を外に</strong></p>
+<pre><code>// 探して置き換える
+// Ctrl+Shift+F で "FindGO" を検索し、for の中にあるものを探す
+
+// Enemy.h にハンドルを持たせる
+GOHandle&lt;Player&gt; m_player;
+
+// Update の先頭で1回だけ
+Player* p = m_player.Get();
+if (p == nullptr) {
+    p = FindGO&lt;Player&gt;("player");
+    if (p) { m_player = GOHandle&lt;Player&gt;(p); }
+}</code></pre>
+<p><strong>3. プロファイラで絞る</strong></p>
+<pre><code>void GameScene::Update()
+{
+    { K2_PROFILE_SCOPE("Enemies");   UpdateEnemies();   }
+    { K2_PROFILE_SCOPE("Bullets");   UpdateBullets();   }
+    { K2_PROFILE_SCOPE("Collision"); UpdateCollision(); }
+    { K2_PROFILE_SCOPE("UI");        UpdateUi();        }
+}</code></pre>
+<p><strong>記録のつけ方</strong></p>
+<pre><code>== 最適化ログ ==
+
+[基準] 34.2 ms
+  Enemies   4.1
+  Bullets   2.8
+  Collision 8.9
+  UI        0.3
+  Render   17.8    ← いちばん重い
+
+[1] カリング追加         34.2 → 21.8 ms  (-12.4)
+    Draw Call 1842 → 605
+    コミット: a1b2c3d
+
+[2] FindGO をループ外へ  21.8 → 18.1 ms  (-3.7)
+    Enemies 4.1 → 0.4
+    コミット: e4f5g6h
+
+[3] 弾をプールに         18.1 → 16.4 ms  (-1.7)
+    コミット: i7j8k9l</code></pre>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">コミットハッシュを書いておいてください</span>
+<strong>「この変更で本当に速くなったのか」を、
+あとから確かめ直せます。</strong>
+<br><br>
+<u>効果がなかった変更を revert するときにも使えます。</u>
+</div>
+<div class="note" style="--lv: var(--danger);">
+<span class="h">遊べなくなっていないか、毎回確認してください</span>
+<strong>速くなっても、ゲームが壊れていたら意味がありません。</strong>
+<br><br>
+<a href="4-14_Testable.html">4-14</a> のテストパネルがあれば、
+<u>変更のたびに1クリックで確認できます。</u>
+<br><br>
+特に<strong>カリングは「見えるべきものが消える」</strong>という
+壊れ方をします。必ず目で確認してください。
+</div>
+		</details>
+
+		<h3>演習3（まとめる）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>最適化レポートを書く。</strong><u>「効果がなかったもの」の節を、必ず入れること。</u></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>レポートに必ず入れるもの</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>項目</th><th>なぜ必要か</th></tr></thead>
+<tbody>
+<tr><td><strong>測定環境</strong></td>
+	<td>他のPCでは違う結果になる。<u>数字に意味を持たせるため</u></td></tr>
+<tr><td><strong>測定条件</strong></td>
+	<td>再現できないと、検証できない</td></tr>
+<tr><td>施策ごとの数字</td><td>どれがどれだけ効いたか</td></tr>
+<tr><td><strong>仮説と結果</strong></td>
+	<td><strong>「なぜそうしたか」が無いと、ただの作業記録</strong></td></tr>
+<tr><td><strong>効果がなかったもの</strong></td>
+	<td><strong>これがいちばん価値がある</strong></td></tr>
+<tr><td>残った課題</td><td>客観的に見られていることを示す</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>なぜ「効果がなかったもの」が重要なのか</strong></p>
+<ul>
+<li><strong>測っていないと書けない</strong>（＝測ったことの証明になる）</li>
+<li>「知っている技術を、闇雲に適用していない」ことが伝わる</li>
+<li><u>条件が合わないと効かない、という理解を示せる</u></li>
+<li><strong>revert したという判断力</strong>が伝わる</li>
+</ul>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">面接で、これがいちばん効きます</span>
+<strong>「SIMD を使いました」より、
+「SIMD も試しましたが、グリッド分割で判定回数が十分減っていたので、
+効果が 0.04ms しかなく、読みにくくなるだけなので採用しませんでした」</strong>
+のほうが、<u>圧倒的に評価されます。</u>
+<br><br>
+<strong>前者は知識、後者は判断力です。</strong>
+</div>
+<p><strong>グラフを1枚入れると、伝わりやすくなります</strong></p>
+<pre><code>Frame(ms)
+35 ┤█
+30 ┤█
+25 ┤█  █
+20 ┤█  █  █
+15 ┤█  █  █  █  █
+10 ┤█  █  █  █  █  █  █
+ 5 ┤█  █  █  █  █  █  █
+ 0 ┼──────────────────────
+    0  1  2  3  4  5  6   施策</code></pre>
+<p>
+<strong>Excel でも、手描きでも構いません。</strong>
+<u>数字の表より、下がっていく様子が一目で分かります。</u>
+</p>
+<p><strong>提出・保管</strong></p>
+<ul>
+<li><code>OPTIMIZE_REPORT.md</code> としてリポジトリに入れる</li>
+<li><a href="4-17_Portfolio.html">4-17</a> の技術資料に、要約を載せる</li>
+<li><strong>面接の90秒トークの材料にする</strong></li>
+</ul>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">これで、LV5 の全部がつながります</span>
+<strong>測る（5-01, 5-02）→ 仕組みを知る（5-03, 5-04）→
+実験する（5-05）→ 手を打つ（5-06〜5-13）→ 記録する（この章）</strong>
+<br><br>
+<u>そして、記録できたことが LV4 の
+<a href="4-17_Portfolio.html">ポートフォリオ</a>に戻ってきます。</u>
+</div>
+		</details>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">08</span>この教材を終えて</h2>
+		<p class="prose">
+			<strong>同じゲームを、4回作りました。</strong>
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th></th><th>作った目的</th><th>判断基準</th></tr></thead>
+			<tbody>
+				<tr><td><a href="2-24_Complete.html">LV2</a></td>
+					<td><strong>動かす</strong></td><td>遊べるか</td></tr>
+				<tr><td><a href="3-14_Make3D.html">LV3</a></td>
+					<td><strong>見せる</strong></td><td>見栄えがするか</td></tr>
+				<tr><td><a href="4-16_Redesign.html">LV4</a></td>
+					<td><strong>壊れにくくする</strong></td><td>変更しやすいか</td></tr>
+				<tr><td><strong>LV5</strong></td>
+					<td><strong>速くする</strong></td><td>速いか</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>そして、LV4 と LV5 の判断基準は、しばしば対立しました。</strong>
+			カプセル化とSoA。読みやすさと速さ。
+		</p>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h">どちらかが正しいのではありません</span>
+			<strong>「いま、どちらが必要か」を測って決められること。</strong><br>
+			<u>それが、この教材で最後に身につけてほしいものです。</u><br><br>
+			最初は「かゆいところに手が届かない」でした。<br>
+			<strong>いまは、手が届くうえに、
+			「どこに手を伸ばすべきか」を自分で決められます。</strong>
+		</div>
+		<p class="prose">
+			<strong>ここから先は、教材の外です。</strong>
+			自分の作りたいものを作ってください。
+		</p>
+		<ul class="prose">
+			<li><a href="index.html"><strong>→ 目次に戻る</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

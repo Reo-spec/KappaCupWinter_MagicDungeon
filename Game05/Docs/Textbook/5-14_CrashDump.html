@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>メモリリークとクラッシュダンプ</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n5" href="5-13_Simd.html">← 前 5-13</a>
+			<a class="navchip n5" href="index.html#lv5">LV5 の目次</a>
+			<a class="navchip n5" href="5-15_BuildTime.html">次 → 5-15</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l5">
+		<p class="kicker">LV5 最適化 ／ 5-14</p>
+		<h1>メモリリークとクラッシュダンプ</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span>
+			／ 前提 <a href="5-01_ReadProfiler.html">5-01</a>
+		</p>
+	</header>
+
+	<section class="level l5">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>メモリリークを見つけられる</strong></li>
+			<li><strong>提出後に落ちたゲームの原因を、あとから調べられる</strong></li>
+			<li>「自分のPCでは動くのに」に対処できる</li>
+		</ul>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">02</span>メモリリークに気づく</h2>
+		<p class="prose">
+			<kbd>F1</kbd> → Profiler の <strong>Memory</strong> を見てください。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>様子</th><th>判断</th></tr></thead>
+			<tbody>
+				<tr><td>一定の値で落ち着いている</td><td><strong>正常</strong></td></tr>
+				<tr><td>上下するが、平均は変わらない</td><td>正常</td></tr>
+				<tr><td><strong>じわじわ増え続ける</strong></td>
+					<td><strong>リークの疑い</strong></td></tr>
+				<tr><td>シーンを切り替えるたびに増える</td>
+					<td><strong>ほぼ確実にリーク</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h">シーンを10回往復してみてください</span>
+			<strong>タイトル → ゲーム → タイトル → ゲーム …</strong><br>
+			<u>そのたびにメモリが増えるなら、
+			シーン終了時に何かを消し忘れています。</u><br>
+			<strong>いちばん見つけやすいリークです。</strong>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">03</span>Visual Studio でリークを検出する</h2>
+<pre><code>// main.cpp の先頭
+#define _CRTDBG_MAP_ALLOC
+#include &lt;crtdbg.h&gt;
+
+int WINAPI WinMain(...)
+{
+    // ★ 終了時に、解放されていないメモリを出力ウィンドウに出す
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+    ...
+}</code></pre>
+		<p class="prose">
+			プログラムを終了すると、出力ウィンドウにこう出ます。
+		</p>
+<pre><code>Detected memory leaks!
+Dumping objects -&gt;
+Player.cpp(42) : {1483} normal block at 0x000001F2A4B0, 128 bytes long.
+ Data: &lt; ... &gt;
+Object dump complete.</code></pre>
+		<p class="prose">
+			<strong>ファイル名と行番号まで出ます。</strong>
+		</p>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">ファイル名が出ないことも多いです</span>
+			<strong><code>new</code> が <code>.cpp</code> の中で
+			直接呼ばれていないと、場所が特定できません。</strong>
+			（<code>std::vector</code> の中など）<br><br>
+			そのときは<strong>確保番号 <code>{1483}</code></strong> を使います。
+<pre style="margin-top:8px;"><code>// main の先頭に置くと、1483回目の確保でブレークする
+_CrtSetBreakAlloc(1483);</code></pre>
+			<u>毎回同じ順番で確保されるなら、これで犯人を捕まえられます。</u>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">04</span>k2Engine でよくあるリーク</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>やりがちなこと</th><th>対策</th></tr></thead>
+			<tbody>
+				<tr><td><strong>シーンを消すとき、子のGOを消していない</strong></td>
+					<td><strong>デストラクタで <code>DeleteGO</code></strong></td></tr>
+				<tr><td><code>new</code> したものを <code>delete</code> していない</td>
+					<td><code>std::unique_ptr</code> を使う</td></tr>
+				<tr><td><a href="4-08_Observer.html">Observer</a> の解除忘れ</td>
+					<td>RAII の <code>Subscription</code></td></tr>
+				<tr><td><code>std::vector</code> が増え続ける</td>
+					<td><u>「リーク」ではないが、同じ症状</u></td></tr>
+				<tr><td>ログの文字列を貯め続ける</td><td>上限を決める</td></tr>
+			</tbody>
+		</table>
+		</div>
+<pre><code>// シーンの終わりに、自分が作ったものを片付ける
+GameScene::~GameScene()
+{
+    // QueryGOs で、自分が作ったものをまとめて消す
+    QueryGOs&lt;Enemy&gt;("enemy", [](Enemy* e) {
+        DeleteGO(e);
+        return true;        // 続ける
+    });
+
+    DeleteGO(m_player);
+    DeleteGO(m_score);
+}</code></pre>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">「リークではないが、メモリが増え続ける」ほうが多い</span>
+			<strong><code>std::vector</code> に <code>push_back</code> し続けていて、
+			誰も消していない</strong>というパターンです。<br>
+			<u>これは <code>delete</code> 漏れではないので、
+			リーク検出には引っかかりません。</u><br><br>
+			<strong>Profiler の Memory を見るのが、いちばん確実です。</strong>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">05</span>クラッシュダンプ ― 提出後に落ちたとき</h2>
+		<p class="prose">
+			<strong>「先生のPCで落ちました」と言われたとき、
+			原因を調べる手段がなければ、手も足も出ません。</strong>
+		</p>
+		<p class="prose">
+			落ちた瞬間のメモリの状態を<strong>ファイルに書き出しておけば、
+			あとから Visual Studio で開けます。</strong>
+		</p>
+<pre><code>// CrashDump.cpp
+#include &lt;windows.h&gt;
+#include &lt;DbgHelp.h&gt;
+#pragma comment(lib, "Dbghelp.lib")
+
+namespace {
+
+LONG WINAPI OnUnhandledException(EXCEPTION_POINTERS* ep)
+{
+    // ファイル名に日時を入れる
+    SYSTEMTIME st;
+    GetLocalTime(&amp;st);
+
+    char path[MAX_PATH];
+    sprintf_s(path, "crash_%04d%02d%02d_%02d%02d%02d.dmp",
+              st.wYear, st.wMonth, st.wDay,
+              st.wHour, st.wMinute, st.wSecond);
+
+    HANDLE hFile = CreateFileA(path, GENERIC_WRITE, 0, nullptr,
+                               CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (hFile != INVALID_HANDLE_VALUE) {
+        MINIDUMP_EXCEPTION_INFORMATION mei = {};
+        mei.ThreadId = GetCurrentThreadId();
+        mei.ExceptionPointers = ep;
+        mei.ClientPointers = FALSE;
+
+        MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(),
+                          hFile, MiniDumpWithDataSegs, &amp;mei,
+                          nullptr, nullptr);
+        CloseHandle(hFile);
+    }
+
+    MessageBoxA(nullptr,
+        "エラーが発生しました。\n"
+        "crash_*.dmp を開発者に送ってください。",
+        "エラー", MB_OK | MB_ICONERROR);
+
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+
+}  // namespace
+
+void SetupCrashDump()
+{
+    SetUnhandledExceptionFilter(OnUnhandledException);
+}</code></pre>
+<pre><code>// main.cpp
+int WINAPI WinMain(...)
+{
+    SetupCrashDump();        // ★ いちばん最初に
+    ...
+}</code></pre>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">06</span>ダンプを読む</h2>
+		<ol class="prose">
+			<li><code>.dmp</code> ファイルを Visual Studio にドラッグする</li>
+			<li><strong>「ネイティブのみでデバッグ」</strong>をクリック</li>
+			<li><u>落ちた行にカーソルが止まります</u></li>
+			<li>コールスタックと、変数の中身が見られます</li>
+		</ol>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">pdb ファイルが必要です</span>
+			<strong><code>.pdb</code>（デバッグ情報）がないと、
+			関数名も行番号も出ません。</strong><br>
+			<u>配布した <code>.exe</code> と、
+			<strong>まったく同じビルドの <code>.pdb</code></strong> を
+			保存しておいてください。</u><br><br>
+			<strong>ビルドし直すと、対応しなくなります。</strong>
+			提出したバージョンの <code>.pdb</code> は、
+			ソースコードと一緒に Git に入れるか、別に保管してください。
+		</div>
+		<p class="prose">
+			<strong>Release ビルドでも <code>.pdb</code> は作れます。</strong>
+		</p>
+<pre><code>プロパティ → C/C++ → デバッグ情報の形式 → /Zi
+プロパティ → リンカー → デバッグ → デバッグ情報の生成 → はい (/DEBUG)</code></pre>
+		<div class="note">
+			<span class="h">これを入れても、実行速度は落ちません</span>
+			<strong><code>.pdb</code> は別ファイルなので、
+			<code>.exe</code> の中身も速度も変わりません。</strong><br>
+			<u>Release ビルドに入れておかない理由がありません。</u>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">07</span>そのほかの調査手段</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>手段</th><th>使いどころ</th></tr></thead>
+			<tbody>
+				<tr><td><strong>ログをファイルに出す</strong></td>
+					<td><strong>いちばん手軽。まずこれ</strong></td></tr>
+				<tr><td>アサート（<code>assert</code>）</td>
+					<td>おかしい状態を、その場で止める</td></tr>
+				<tr><td>リプレイ（<a href="4-11_Command.html">4-11</a>）</td>
+					<td><strong>再現手順を、ファイルで渡せる</strong></td></tr>
+				<tr><td>Application Verifier</td>
+					<td>メモリの不正アクセスを、その場で捕まえる</td></tr>
+				<tr><td>イベントビューアー</td>
+					<td><u>ダンプが無くても、落ちたモジュール名は分かる</u></td></tr>
+			</tbody>
+		</table>
+		</div>
+<pre><code>// いちばん簡単なログ
+void WriteLog(const char* format, ...)
+{
+    static FILE* fp = nullptr;
+    if (fp == nullptr) {
+        fopen_s(&amp;fp, "game.log", "w");
+        if (fp == nullptr) { return; }
+    }
+
+    va_list args;
+    va_start(args, format);
+    vfprintf(fp, format, args);
+    va_end(args);
+
+    fflush(fp);        // ★ これが大事。落ちても消えない
+}</code></pre>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h"><code>fflush</code> を忘れないでください</span>
+			<strong>バッファに溜まったまま落ちると、
+			肝心の最後の数行が書かれません。</strong><br>
+			<u>落ちる直前のログこそが、いちばん知りたい情報です。</u><br>
+			毎回 <code>fflush</code> は遅いですが、<strong>デバッグ用なら構いません。</strong>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">08</span>演習</h2>
+		<h3>演習1（検出する）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>_CrtSetDbgFlag</code> を入れて、<strong>わざとリークを作って検出されるか確かめる。</strong>そのあと、自分のゲームで実行する。</p>
+
+		<h3>演習2（追う）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>シーンを10回往復して、Profiler の Memory が増えないか確認する。</strong>増えるなら、原因を突き止める。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>手順</strong></p>
+<ol>
+<li>タイトル画面で Memory を記録（例：182 MB）</li>
+<li>ゲーム → タイトル を1往復して、また記録</li>
+<li><strong>10往復して、増え方を見る</strong></li>
+</ol>
+<pre><code>== メモリ推移 ==
+起動直後       182.4 MB
+1往復後        189.1 MB   (+6.7)
+2往復後        195.8 MB   (+6.7)
+3往復後        202.5 MB   (+6.7)
+...
+10往復後       249.4 MB   (+67.0)
+
+→ 1往復あたり 6.7MB。明らかにリーク</code></pre>
+<p><strong>原因の絞り込み</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>試すこと</th><th>分かること</th></tr></thead>
+<tbody>
+<tr><td><strong><kbd>F1</kbd> の GameObject List で、個数を見る</strong></td>
+	<td><strong>GO が消えていないなら、一目で分かる</strong></td></tr>
+<tr><td>ゲームシーンで、敵を出さずに往復</td>
+	<td>敵が原因かどうか</td></tr>
+<tr><td>UI だけのシーンで往復</td><td>UI が原因かどうか</td></tr>
+<tr><td>増加量から推測</td>
+	<td>6.7MB ÷ オブジェクトのサイズ で、おおよその個数</td></tr>
+</tbody>
+</table>
+</div>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">GameObject List パネルが、いちばん速い</span>
+<strong><kbd>F1</kbd> → GameObject List で、
+生きているオブジェクトの一覧と個数が見られます</strong>
+（<a href="2-06_GameObjectList.html">2-06</a>）。
+<br><br>
+<u>往復するたびに「enemy」が30個ずつ増えていたら、
+それが答えです。</u>
+<br><br>
+メモリの数字を追うより、<strong>まずこのパネルを見てください。</strong>
+</div>
+<p><strong>よくある原因と直し方</strong></p>
+<pre><code>// ★ 原因：シーンを消しても、子が残る
+void GameScene::~GameScene()
+{
+    // 何もしていない → 敵も弾もUIも残り続ける
+}
+
+// ○ 直す
+GameScene::~GameScene()
+{
+    QueryGOs&lt;Enemy&gt;("enemy", [](Enemy* e) { DeleteGO(e); return true; });
+    QueryGOs&lt;Bullet&gt;("bullet", [](Bullet* b) { DeleteGO(b); return true; });
+
+    if (m_player) { DeleteGO(m_player); }
+    if (m_score)  { DeleteGO(m_score); }
+    if (m_camera) { DeleteGO(m_camera); }
+}</code></pre>
+<div class="note" style="--lv: var(--warn);">
+<span class="h">「自分が作ったものは、自分で消す」を徹底してください</span>
+<strong><code>NewGO</code> したクラスが、対応する <code>DeleteGO</code> の
+責任を持つ</strong>と決めておくと、漏れにくくなります。
+<br><br>
+<u><a href="2-05_Lifetime.html">2-05</a> でやった「寿命」の話が、
+ここで効いてきます。</u>
+</div>
+<p><strong>増えないのが確認できたら</strong></p>
+<pre><code>== メモリ推移（修正後）==
+起動直後       182.4 MB
+1往復後        184.1 MB   (+1.7)   ← 最初だけ増える（キャッシュ）
+2往復後        184.3 MB   (+0.2)
+5往復後        184.4 MB   (+0.1)
+10往復後       184.5 MB   (+0.1)
+
+→ 落ち着いた。正常</code></pre>
+<p>
+<strong>最初の数回だけ増えて、そのあと横ばいになるのは正常です。</strong>
+<u>テクスチャやモデルのキャッシュ、アロケータの確保などです。</u>
+</p>
+		</details>
+
+		<h3>演習3（備える）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>クラッシュダンプの仕組みを入れる。</strong>わざと落として、<u>ダンプを Visual Studio で開けるか</u>確かめる。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>わざと落とす</strong></p>
+<pre><code>// デバッグパネルに、クラッシュさせるボタンを置く
+if (ImGui::Button(U8("わざとクラッシュさせる"))) {
+    int* p = nullptr;
+    *p = 42;                  // ★ アクセス違反
+}</code></pre>
+<p><strong>確認の手順</strong></p>
+<ol>
+<li><strong>Release ビルド</strong>で、<code>.pdb</code> を生成する設定にする</li>
+<li>Visual Studio の外から <code>.exe</code> を起動する
+	（デバッガに接続されていると、ダンプが出ません）</li>
+<li>ボタンを押して落とす</li>
+<li><code>crash_*.dmp</code> ができているか確認</li>
+<li><strong>その <code>.dmp</code> を Visual Studio にドラッグ</strong></li>
+<li>「ネイティブのみでデバッグ」をクリック</li>
+</ol>
+<p><strong>うまくいけば</strong></p>
+<pre><code>例外がスローされました:
+  0xC0000005: 場所 0x00000000 への書き込み中にアクセス違反が発生しました。
+
+呼び出し履歴：
+  Game.exe!DrawDebugPanel() 行 128
+  Game.exe!nsDbg::DebugGui::Render() 行 240
+  Game.exe!K2EngineLow::Execute() 行 88
+  ...</code></pre>
+<p>
+<strong>落ちた行と、そこに至る呼び出しの履歴が全部見えます。</strong>
+</p>
+<div class="note" style="--lv: var(--danger);">
+<span class="h">pdb が対応していないと、こうなります</span>
+<pre style="margin-top:8px;"><code>呼び出し履歴：
+  Game.exe!0x00007FF6A2B41C30()
+  Game.exe!0x00007FF6A2B0F881()
+  ...</code></pre>
+<strong>アドレスしか出ません。まったく役に立ちません。</strong>
+<br><br>
+<u>配布した exe と同じビルドの pdb を、必ず保管してください。</u>
+</div>
+<p><strong>提出時の準備</strong></p>
+<pre><code>提出物/
+├ MyGame.exe
+├ Assets/
+├ readme.txt
+└ （手元に保管）
+   ├ MyGame.pdb          ★ 配布はしないが、必ず取っておく
+   └ ソースコードのコミットハッシュをメモ</code></pre>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">これがあると、対応がまったく違います</span>
+<strong>「先生のPCで落ちました」</strong>
+<br><br>
+<u>ダンプなし：</u>
+「すみません、こちらでは再現しなくて…」で終わり。
+<br><br>
+<u>ダンプあり：</u>
+「dmp を送ってください」→ 5分で原因特定 → 修正版を提出。
+<br><br>
+<strong>就職後、これは当たり前に求められるスキルです。</strong>
+製品版のゲームは、全部この仕組みを持っています。
+</div>
+<div class="note" style="--lv: var(--warn);">
+<span class="h">個人情報に注意</span>
+<strong>ダンプにはメモリの内容が入ります。</strong>
+<u>ファイルパス（<code>C:\Users\自分の名前\...</code>）なども含まれます。</u>
+<br><br>
+提出やネット公開の前に、<strong>何が入るか意識してください。</strong>
+<code>MiniDumpNormal</code> にすると、含まれる情報を減らせます。
+</div>
+		</details>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">09</span>確認</h2>
+		<ol class="prose">
+			<li>リークを疑うのは、Profiler の何を見たとき？</li>
+			<li>「リークではないが、メモリが増え続ける」例は？</li>
+			<li>クラッシュダンプを読むのに必要なものは？</li>
+			<li>ログを書くとき、忘れてはいけないことは？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>Memory が、じわじわ増え続けているとき。
+					特にシーンを往復するたびに増えるとき。</li>
+				<li><code>std::vector</code> に追加し続けている。
+					<code>DeleteGO</code> し忘れたゲームオブジェクトが残っている。</li>
+				<li>そのビルドと対応した <code>.pdb</code> ファイル。</li>
+				<li><code>fflush</code>。落ちる直前の行が書かれないと意味がない。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">10</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="5-15_BuildTime.html"><strong>5-15 ビルド時間を短くする</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

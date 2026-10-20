@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ライティングを理解する</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n3" href="3-10_Camera.html">← 前 3-10</a>
+			<a class="navchip n3" href="index.html#lv3">LV3 の目次</a>
+			<a class="navchip n3" href="3-12_Shadow.html">次 → 3-12</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l3">
+		<p class="kicker">LV3 表現 ／ 3-11</p>
+		<h1>ライティングを理解する</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span>
+			／ 前提 <a href="3-01_TouchTheLook.html">3-01</a> , <a href="3-09_ModelRender.html">3-09</a>
+		</p>
+	</header>
+
+	<section class="level l3">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li>ディレクションライトとアンビエントライトの違いが分かる</li>
+			<li><strong>陰影が付く理由</strong>を説明できる</li>
+			<li>コードからライトを操作できる</li>
+		</ul>
+		<p class="prose">
+			<a href="3-01_TouchTheLook.html">3-01</a> でGUIからさわったものを、
+			<strong>今度は仕組みから理解します。</strong>
+		</p>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">02</span>3種類のライト</h2>
+
+		<figure>
+			<svg viewBox="0 0 740 340" role="img"
+			     aria-label="3種類のライトの図。ディレクションライトは太陽のように平行に降り注ぎ向きだけを持つ。ポイントライトは電球のように一点から全方向へ広がり距離で減衰する。アンビエントライトは向きを持たずすべての面を一様に底上げする">
+				<g class="fig-head" color="currentColor">
+					<defs>
+						<marker id="lt-arrow" viewBox="0 0 10 10" refX="9" refY="5"
+						        markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+							<path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+						</marker>
+					</defs>
+
+					<!-- ディレクション -->
+					<text class="fig-t sm c3" x="115" y="24" text-anchor="middle">ディレクションライト</text>
+					<text class="fig-m" x="115" y="42" text-anchor="middle">太陽</text>
+					<path class="fig-line" d="M 45 62 L 85 122"  marker-end="url(#lt-arrow)"/>
+					<path class="fig-line" d="M 95 62 L 135 122" marker-end="url(#lt-arrow)"/>
+					<path class="fig-line" d="M 145 62 L 185 122" marker-end="url(#lt-arrow)"/>
+					<rect class="fig-box b3" x="50" y="130" width="130" height="34" rx="4"/>
+					<text class="fig-m" x="115" y="152" text-anchor="middle">平行に降り注ぐ</text>
+					<text class="fig-m" x="115" y="186" text-anchor="middle">向きと色だけ</text>
+					<text class="fig-m" x="115" y="204" text-anchor="middle">位置は無い／減衰しない</text>
+
+					<!-- ポイント -->
+					<text class="fig-t sm c3" x="370" y="24" text-anchor="middle">ポイントライト</text>
+					<text class="fig-m" x="370" y="42" text-anchor="middle">電球・たき火</text>
+					<circle class="fig-box b3" cx="370" cy="78" r="9"/>
+					<path class="fig-line" d="M 370 90 L 370 124"  marker-end="url(#lt-arrow)"/>
+					<path class="fig-line" d="M 361 86 L 320 118"  marker-end="url(#lt-arrow)"/>
+					<path class="fig-line" d="M 379 86 L 420 118"  marker-end="url(#lt-arrow)"/>
+					<path class="fig-line" d="M 357 79 L 306 82"   marker-end="url(#lt-arrow)"/>
+					<path class="fig-line" d="M 383 79 L 434 82"   marker-end="url(#lt-arrow)"/>
+					<rect class="fig-box b3" x="305" y="130" width="130" height="34" rx="4"/>
+					<text class="fig-m" x="370" y="152" text-anchor="middle">一点から全方向へ</text>
+					<text class="fig-m" x="370" y="186" text-anchor="middle">位置・色・届く範囲</text>
+					<text class="fig-m" x="370" y="204" text-anchor="middle">遠いほど暗くなる</text>
+
+					<!-- アンビエント -->
+					<text class="fig-t sm c3" x="625" y="24" text-anchor="middle">アンビエントライト</text>
+					<text class="fig-m" x="625" y="42" text-anchor="middle">回り込んだ光のごまかし</text>
+					<rect class="fig-box" x="560" y="58" width="130" height="66" rx="4"/>
+					<text class="fig-m" x="625" y="84" text-anchor="middle">向きが無い</text>
+					<text class="fig-m" x="625" y="104" text-anchor="middle">全部の面に同じだけ足す</text>
+					<rect class="fig-box b3" x="560" y="130" width="130" height="34" rx="4"/>
+					<text class="fig-m" x="625" y="152" text-anchor="middle">底上げする</text>
+					<text class="fig-m" x="625" y="186" text-anchor="middle">0 にすると影が真っ黒</text>
+					<text class="fig-m" x="625" y="204" text-anchor="middle">上げすぎると のっぺりする</text>
+
+					<path class="fig-dash" d="M 20 228 L 720 228"/>
+
+					<rect class="fig-box b2" x="20" y="246" width="700" height="72" rx="6"/>
+					<text class="fig-t sm" x="370" y="270" text-anchor="middle">最終的な明るさ ＝ ディレクション ＋ ポイント（複数） ＋ アンビエント</text>
+					<text class="fig-m" x="370" y="292" text-anchor="middle">それぞれが計算した明るさを、ぜんぶ足しているだけ</text>
+					<text class="fig-m" x="370" y="310" text-anchor="middle">だから「暗すぎる」ときは足りない光を探し、「白飛び」するときは足しすぎている</text>
+				</g>
+			</svg>
+			<figcaption>
+				<strong>3種類のライトと、それらがどう合成されるか。</strong>
+				k2Engine では、ディレクションライトとアンビエントライトが最初から入っています。
+			</figcaption>
+		</figure>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">03</span>陰影が付く理由</h2>
+		<p class="prose">
+			なぜ、光が当たる面は明るく、そうでない面は暗くなるのでしょうか。
+		</p>
+		<p class="prose">
+			モデルの<strong>面には向き（法線）があります。</strong>
+			その向きと、光の向きを比べて、
+			<strong>「どれだけ正面から光を受けているか」</strong>を計算しています。
+		</p>
+<pre><code>// 光の向きと、面の向きの内積
+float t = dot(normal, -lightDirection);
+t = max(t, 0.0f);              // 裏側は 0（真っ暗）
+
+float3 lig = lightColor * t;   // 正面を向いているほど明るい</code></pre>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>面と光の関係</th><th>内積</th><th>明るさ</th></tr></thead>
+			<tbody>
+				<tr><td>真正面から受けている</td><td>1.0</td><td>いちばん明るい</td></tr>
+				<tr><td>斜め45度</td><td>約 0.7</td><td>やや暗い</td></tr>
+				<tr><td>真横</td><td>0.0</td><td>真っ暗</td></tr>
+				<tr><td>裏を向いている</td><td>マイナス</td><td>0 に潰す</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>これが「ランバート拡散反射」と呼ばれる、いちばん基本の計算です。</strong>
+			内積1回。それだけです。
+		</p>
+		<div class="note">
+			<span class="h">内積は「どれだけ同じ方向を向いているか」</span>
+			2つの向きが<u>同じなら 1、直角なら 0、逆なら -1</u>。<br>
+			ライティング以外にも、<strong>「敵は自分のほうを向いているか」
+			「前方にいるか、後方にいるか」</strong>の判定に使えます。
+		</div>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">04</span>コードから操作する</h2>
+<pre><code>// ディレクションライト
+DirectionalLight&amp; dirLight = g_renderingEngine-&gt;GetDirectionLight();
+dirLight.SetDirection({ 1.0f, -1.0f, 1.0f });      // 向き
+dirLight.SetColor    ({ 1.0f,  1.0f, 1.0f, 1.0f }); // 色
+
+// アンビエントライト
+g_renderingEngine-&gt;SetAmbient({ 0.3f, 0.3f, 0.3f });</code></pre>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">向きは「光が進む方向」です</span>
+			<strong>「光源がある方向」ではありません。</strong>
+			上から照らしたいなら <code>{0, -1, 0}</code>（下向き）です。
+			<u>ここはよく間違えます。</u>
+		</div>
+		<p class="prose">
+			<strong>時間帯で色を変えると、雰囲気が大きく変わります。</strong>
+		</p>
+<pre><code>// 夕方
+dirLight.SetDirection({ 1.0f, -0.2f, 0.0f });       // ほぼ真横から
+dirLight.SetColor({ 1.0f, 0.6f, 0.3f, 1.0f });      // オレンジ
+g_renderingEngine-&gt;SetAmbient({ 0.25f, 0.15f, 0.2f });
+
+// 夜
+dirLight.SetDirection({ 0.2f, -1.0f, 0.3f });
+dirLight.SetColor({ 0.3f, 0.35f, 0.6f, 1.0f });     // 青白い
+g_renderingEngine-&gt;SetAmbient({ 0.1f, 0.1f, 0.18f });</code></pre>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">05</span>GUI で探して、コードに写す</h2>
+		<p class="prose">
+			<strong>いちばん効率がいいやり方です。</strong>
+		</p>
+		<ol class="prose">
+			<li><kbd>F1</kbd> → <strong>Lighting</strong> パネルを開く</li>
+			<li>スライダーを動かして、いい感じの値を探す</li>
+			<li><strong>その数字をコードに書き写す</strong></li>
+		</ol>
+		<p class="prose">
+			ビルドし直しながら数字を探すより、<u>何十倍も速い</u>です。
+		</p>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">06</span>演習</h2>
+		<h3>演習1（まねる）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">コードからディレクションライトの向きを変え、陰影の付き方を確認する。</p>
+
+		<h3>演習2（変える）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>時間帯（朝・昼・夕・夜）を切り替えられる</strong>ようにする。キー入力で切り替えて見比べる。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>// TimeOfDay.h
+enum EnTimeOfDay {
+    enMorning, enNoon, enEvening, enNight, enNumTimeOfDay
+};
+
+class TimeOfDay : public IGameObject {
+public:
+    void Update() override;
+    void Set(EnTimeOfDay t);
+private:
+    EnTimeOfDay m_current = enNoon;
+};
+
+// TimeOfDay.cpp
+void TimeOfDay::Set(EnTimeOfDay t)
+{
+    m_current = t;
+    auto&amp; dir = g_renderingEngine-&gt;GetDirectionLight();
+
+    switch (t) {
+    case enMorning:
+        dir.SetDirection({ -1.0f, -0.3f, 0.2f });
+        dir.SetColor({ 1.0f, 0.9f, 0.75f, 1.0f });
+        g_renderingEngine-&gt;SetAmbient({ 0.3f, 0.3f, 0.32f });
+        break;
+    case enNoon:
+        dir.SetDirection({ 0.2f, -1.0f, 0.3f });
+        dir.SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+        g_renderingEngine-&gt;SetAmbient({ 0.35f, 0.35f, 0.35f });
+        break;
+    case enEvening:
+        dir.SetDirection({ 1.0f, -0.2f, 0.0f });
+        dir.SetColor({ 1.0f, 0.6f, 0.3f, 1.0f });
+        g_renderingEngine-&gt;SetAmbient({ 0.25f, 0.15f, 0.2f });
+        break;
+    case enNight:
+        dir.SetDirection({ 0.2f, -1.0f, 0.3f });
+        dir.SetColor({ 0.3f, 0.35f, 0.6f, 1.0f });
+        g_renderingEngine-&gt;SetAmbient({ 0.1f, 0.1f, 0.18f });
+        break;
+    }
+}
+
+void TimeOfDay::Update()
+{
+    if (g_pad[0]-&gt;IsTrigger(enButtonRB)) {
+        int next = (m_current + 1) % enNumTimeOfDay;
+        Set((EnTimeOfDay)next);
+    }
+}</code></pre>
+<p><strong>見どころ</strong></p>
+<ul>
+<li><strong>ライトの向きを変えると、影の向きも変わります</strong>（3-12）</li>
+<li>夜はアンビエントを下げるのがコツ。下げないと<u>夜に見えません</u></li>
+<li>色は<strong>ディレクションとアンビエントをセットで</strong>考える</li>
+</ul>
+<div class="note">
+<span class="h">数字は GUI で探してください</span>
+上の値は一例です。<kbd>F1</kbd> の Lighting パネルで
+<strong>自分のモデルに合う値を探して、書き写す</strong>ほうが確実です。
+</div>
+		</details>
+
+		<h3>演習3（考える）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose">アンビエントを <code>{0, 0, 0}</code> にすると、どうなる？ <strong>なぜそうなるのか、上の説明から説明してみる。</strong></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>起きること</strong></p>
+<ul>
+<li>光が当たっていない面が<strong>完全な黒</strong>になる</li>
+<li>キャラクターの裏側が<u>まったく見えなくなる</u></li>
+<li>影の中が真っ黒になり、何があるか分からない</li>
+</ul>
+<p><strong>なぜか</strong></p>
+<p>
+明るさは <code>ディレクション ＋ アンビエント</code> です。
+ディレクションは <code>max(dot(normal, -lightDir), 0)</code> なので、
+<strong>裏を向いた面では 0 になります。</strong>
+アンビエントも 0 なら、合計が 0 ―― 真っ黒です。
+</p>
+<p><strong>現実ではそうならない理由</strong></p>
+<p>
+現実では、<u>壁や床で跳ね返った光</u>が裏側にも回り込みます。
+これを正しく計算するのは非常に重い（大域照明といいます）ので、
+<strong>「どこからでも一定量の光が来ることにする」というごまかしが
+アンビエントライト</strong>です。
+</p>
+<div class="note">
+<span class="h">逆に、上げすぎると「のっぺり」します</span>
+アンビエントは<strong>すべての面に同じだけ足す</strong>ので、
+上げるほど面どうしの明暗差が相対的に小さくなります。
+<br><br>
+<strong>0.2〜0.4 くらいが目安です。</strong>
+「影がつぶれない、いちばん低い値」を探すとよい絵になります。
+</div>
+		</details>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">07</span>確認</h2>
+		<ol class="prose">
+			<li>ディレクションライトが持つのは？ 持たないのは？</li>
+			<li>陰影は何を計算して求めている？</li>
+			<li><code>SetDirection({0,-1,0})</code> は、どこから照らす？</li>
+			<li>アンビエントを上げすぎるとどうなる？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>持つのは向きと色。持たないのは位置（と距離による減衰）。</li>
+				<li>面の向き（法線）と光の向きの内積。</li>
+				<li>真上から。「光が進む方向」なので下向き＝上から。</li>
+				<li>明暗差がなくなり、のっぺりする。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">08</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="3-12_Shadow.html"><strong>3-12 影（シャドウマップ）</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>エラーメッセージの読み方</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n1" href="1-04_FirstChange.html">← 前 1-04</a>
+			<a class="navchip n1" href="index.html#lv1">LV1 の目次</a>
+			<a class="navchip n1" href="1-06_Variable.html">次 → 1-06</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l1">
+		<p class="kicker">LV1 入門 ／ 1-05</p>
+		<h1>エラーメッセージの読み方</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="1-04_FirstChange.html">1-04</a>
+		</p>
+	</header>
+
+	<section class="level l1">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li>エラーが出ても、<strong>あわてずに原因の行までたどり着ける</strong></li>
+			<li>よく出る3つのエラーを、自力で直せる</li>
+		</ul>
+		<div class="note">
+			<span class="h">これは「おまけ」の章ではありません</span>
+			プログラミングの時間の多くは、<strong>エラーと向き合う時間</strong>です。
+			ここができるかどうかで、この先の進み方がまったく変わります。
+			<strong>いちばん大事な章のひとつだと思ってください。</strong>
+		</div>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">02</span>まず、あわてない</h2>
+		<p class="prose">
+			エラーが50個出ると、心が折れそうになります。でも安心してください。
+		</p>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">いちばん上のエラーだけ見ればよい</span>
+			<strong>C++のエラーは、1つの間違いから何十個も連鎖します。</strong>
+			セミコロンを1個忘れただけで、40個エラーが出ることもあります。<br>
+			<strong>いちばん上の1個を直して、もう一度ビルドしてください。</strong>
+			残り49個が消えることがよくあります。
+		</div>
+		<p class="prose">
+			エラーの一覧は<strong>エラー一覧ウィンドウ</strong>に出ます。
+			行をダブルクリックすると、その場所にジャンプします。
+		</p>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">03</span>エラー一覧と出力ウィンドウ</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>ウィンドウ</th><th>開き方</th><th>何が見える</th></tr></thead>
+			<tbody>
+				<tr><td><strong>エラー一覧</strong></td>
+					<td><kbd>Ctrl</kbd>+<kbd>\</kbd> → <kbd>E</kbd></td>
+					<td>エラーの一覧。ダブルクリックで飛べる</td></tr>
+				<tr><td><strong>出力</strong></td>
+					<td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>O</kbd></td>
+					<td>ビルドの全部のログ。実行中のログもここ</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note">
+			<span class="h">エラー一覧が嘘をつくことがあります</span>
+			エラー一覧は、ときどき古い情報を残したままになります。
+			<strong>「直したはずなのにエラーが消えない」と思ったら、
+			出力ウィンドウのほうを見てください。</strong>
+			こちらが本物です。
+		</div>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">04</span>よく出るエラー その1 ― <code>C2065</code></h2>
+
+<pre><code>error C2065: 'm_hp': 定義されていない識別子です。</code></pre>
+		<p class="prose">
+			<strong>意味：</strong>「<code>m_hp</code> なんて知りません」
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>原因</th><th>直し方</th></tr></thead>
+			<tbody>
+				<tr><td><strong>打ち間違い</strong></td><td><code>m_hp</code> と <code>m_Hp</code> は別物。
+					C++は大文字と小文字を区別します</td></tr>
+				<tr><td>宣言していない</td><td><code>int m_hp = 100;</code> を <code>.h</code> に書く</td></tr>
+				<tr><td><code>#include</code> していない</td><td>そのクラスのヘッダを読み込む</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>ほとんどは打ち間違いです。</strong>
+			まずスペルを疑ってください。
+		</p>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">05</span>よく出るエラー その2 ― <code>C2143</code></h2>
+
+<pre><code>error C2143: 構文エラー: ';' が '}' の前にありません。</code></pre>
+		<p class="prose">
+			<strong>意味：</strong>「セミコロンが足りません」
+		</p>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">エラーが出た行の、<u>ひとつ上</u>を見る</span>
+			コンパイラは「セミコロンが無い」ことに、
+			<strong>次の行まで来てから気づきます。</strong>
+			だから、<strong>本当の間違いは1行上にあることがほとんどです。</strong>
+		</div>
+<pre><code>int hp = 100        // ← 本当はここにセミコロンが無い
+int mp = 50;        // ← でもエラーはこの行に出る</code></pre>
+		<p class="prose">
+			クラスの定義のあとのセミコロンも、忘れがちです。
+		</p>
+<pre><code>class Player
+{
+    ...
+};      // ← この「;」が必要（忘れやすい）</code></pre>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">06</span>よく出るエラー その3 ― <code>LNK2019</code></h2>
+
+<pre><code>error LNK2019: 未解決の外部シンボル "public: void __cdecl Player::Move(void)"
+               が関数 ... で参照されました。</code></pre>
+		<p class="prose">
+			<strong>意味：</strong>「<code>Player::Move</code> を呼んでいるけど、中身がどこにもありません」
+		</p>
+		<p class="prose">
+			これは<strong>リンクエラー</strong>といって、これまでの2つとは種類が違います。
+			文法は合っているが、<strong>部品が足りない</strong>という状態です。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>原因</th><th>直し方</th></tr></thead>
+			<tbody>
+				<tr><td><strong><code>.h</code> に宣言だけ書いて、
+					<code>.cpp</code> に中身を書いていない</strong></td>
+					<td><code>.cpp</code> に <code>void Player::Move() { ... }</code> を書く</td></tr>
+				<tr><td><code>Player::</code> を書き忘れた</td>
+					<td><code>void Move()</code> ではなく <code>void Player::Move()</code></td></tr>
+				<tr><td><code>.cpp</code> をプロジェクトに追加していない</td>
+					<td>ソリューションエクスプローラーで確認する</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>エラーメッセージの中に、関数の名前がそのまま出ています。</strong>
+			その名前で検索すれば、書き忘れた場所が見つかります。
+		</p>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">07</span>エラーメッセージの調べ方</h2>
+		<p class="prose">
+			知らないエラーが出たら、<strong>エラー番号で検索してください。</strong>
+		</p>
+<pre><code>C2660 C++          ← エラー番号 + 言語名
+error LNK2001      ← そのまま貼る</code></pre>
+		<div class="note">
+			<span class="h">検索するときのコツ</span>
+			<ul style="margin-bottom:0;">
+				<li><strong>変数名やファイル名は消す。</strong>
+					<code>'m_hp'</code> のような、自分だけの名前が入っていると引っかかりません</li>
+				<li>Microsoft の公式ドキュメントが上位に出ます。それが正確です</li>
+				<li>それでも分からなければ、<strong>先生や友達に聞いてください。</strong>
+					30分悩むより、5分聞いたほうが速いことがあります</li>
+			</ul>
+		</div>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">08</span>実行中に落ちたときは</h2>
+		<p class="prose">
+			ビルドは通ったのに、実行したら止まった。そういうときは
+			<strong>Visual Studio が「例外がスローされました」と教えてくれます。</strong>
+		</p>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">「中断」を押して、そのまま閉じないでください</span>
+			<strong>止まったその場所に、答えがあります。</strong>
+			どの行で止まったか、変数に何が入っているかを見れば、原因が分かります。<br>
+			そのやり方は <a href="1-18_Debugger.html">1-18 デバッガを使う</a> でやります。
+			<strong>いまは「閉じずに、止まった行を見る」とだけ覚えてください。</strong>
+		</div>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">09</span>演習</h2>
+		<h3>演習1（わざと壊す）<span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>Game.cpp</code> のセミコロンを1個消してビルドする。<strong>エラーが何個出るか</strong>数えて、いちばん上のエラーを読む。</p>
+
+		<h3>演習2（直す）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">次の3つの間違いを1つずつ作って、出るエラー番号をメモする。<br>① 変数名を打ち間違える　② セミコロンを消す　③ <code>.h</code> に関数を宣言して <code>.cpp</code> に書かない</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>やったこと</th><th>出るエラー</th><th>種類</th></tr></thead>
+<tbody>
+<tr><td>変数名を打ち間違える</td><td><code>C2065</code></td><td>コンパイルエラー</td></tr>
+<tr><td>セミコロンを消す</td><td><code>C2143</code> など</td><td>コンパイルエラー</td></tr>
+<tr><td>宣言だけして中身を書かない</td><td><code>LNK2019</code></td><td><strong>リンクエラー</strong></td></tr>
+</tbody>
+</table>
+</div>
+<p>
+<strong>③だけ種類が違うことに気づきましたか。</strong>
+</p>
+<ul>
+<li><strong>コンパイルエラー（C から始まる）</strong>
+	… 文法が間違っている。<strong>行番号が出る</strong></li>
+<li><strong>リンクエラー（LNK から始まる）</strong>
+	… 文法は合っているが、部品が足りない。<strong>行番号が出ないことが多い</strong></li>
+</ul>
+<p>
+行番号が出ないので、リンクエラーは最初とまどいます。
+<strong>「LNK が出たら、中身を書き忘れていないか探す」</strong>と覚えておいてください。
+</p>
+		</details>
+
+		<h3>演習3（読み解く）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">次のコードには間違いが3つあります。<strong>ビルドする前に</strong>探してみてください。<br><code>int hp = 100</code><br><code>if (hp = 0) {</code><br><code>    OutputDebugStringA("しんだ\\n")</code><br><code>}</code></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>int hp = 100        // ① セミコロンが無い
+if (hp = 0) {       // ② == ではなく = になっている
+    OutputDebugStringA("しんだ\n")   // ③ セミコロンが無い
+}</code></pre>
+<p><strong>正しくは、こうです。</strong></p>
+<pre><code>int hp = 100;
+if (hp == 0) {
+    OutputDebugStringA("しんだ\n");
+}</code></pre>
+<div class="note" style="--lv: var(--danger);">
+<span class="h">②がいちばん怖い</span>
+<code>if (hp = 0)</code> は<strong>エラーになりません。</strong>
+文法としては正しいからです（<code>hp</code> に 0 を代入して、その結果で判定する）。<br>
+<strong>つまり、コンパイラは何も教えてくれず、
+そのうえ <code>hp</code> の値まで 0 に書き換わります。</strong>
+<code>==</code> と <code>=</code> の取り違えは <a href="1-08_If.html">1-08</a> で詳しくやります。
+</div>
+<p>
+<strong>①③のようにエラーが出るものは、まだ幸せです。</strong>
+②のように<strong>エラーが出ない間違い</strong>のほうが、ずっとやっかいです。
+</p>
+		</details>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">10</span>確認</h2>
+		<ol class="prose">
+			<li>エラーが50個出た。まず何をする？</li>
+			<li><code>C2143</code>（セミコロンが無い）が出たとき、どこを見る？</li>
+			<li><code>C</code> で始まるエラーと <code>LNK</code> で始まるエラーの違いは？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>いちばん上の1個だけ直して、もう一度ビルドする。連鎖して消えることが多い。</li>
+				<li>エラーが出た行の<strong>ひとつ上</strong>。</li>
+				<li><code>C</code> はコンパイルエラー（文法の間違い、行番号が出る）。
+					<code>LNK</code> はリンクエラー（中身が足りない、行番号が出ないことが多い）。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">11</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="1-06_Variable.html"><strong>1-06 変数と型</strong></a>
+				— ここからC++の文法に入ります</li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

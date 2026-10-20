@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>配列と std::vector</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n1" href="1-10_Function.html">← 前 1-10</a>
+			<a class="navchip n1" href="index.html#lv1">LV1 の目次</a>
+			<a class="navchip n1" href="1-12_Class.html">次 → 1-12</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l1">
+		<p class="kicker">LV1 入門 ／ 1-11</p>
+		<h1>配列と <code>std::vector</code></h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="1-10_Function.html">1-10</a>
+		</p>
+	</header>
+
+	<section class="level l1">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li>たくさんの値をまとめて持てる</li>
+			<li><strong>配列の外を触ると何が起きるか</strong>を知っている</li>
+			<li><code>std::vector</code> で、数が変わるものを扱える</li>
+		</ul>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">02</span>配列は「箱が並んだもの」</h2>
+<pre><code>int scores[5] = { 10, 20, 30, 40, 50 };
+
+scores[0] = 100;      // 1番目（0から数える）
+int a = scores[4];    // 5番目 = 50</code></pre>
+
+		<figure>
+			<svg viewBox="0 0 640 190" role="img"
+			     aria-label="要素数5の配列のメモリ上の並びを示す図。添字は0から4まで。メモリ上では連続して並んでおり、範囲外の添字5は他人の領域になる">
+				<g class="fig-head" color="currentColor">
+					<text class="fig-m" x="20" y="24">int scores[5]</text>
+
+					<rect class="fig-box b2" x="20" y="44" width="90" height="46" rx="4"/>
+					<rect class="fig-box b2" x="110" y="44" width="90" height="46" rx="4"/>
+					<rect class="fig-box b2" x="200" y="44" width="90" height="46" rx="4"/>
+					<rect class="fig-box b2" x="290" y="44" width="90" height="46" rx="4"/>
+					<rect class="fig-box b2" x="380" y="44" width="90" height="46" rx="4"/>
+					<rect class="fig-danger" x="470" y="44" width="90" height="46" rx="4"/>
+
+					<text class="fig-t" x="65"  y="74" text-anchor="middle">10</text>
+					<text class="fig-t" x="155" y="74" text-anchor="middle">20</text>
+					<text class="fig-t" x="245" y="74" text-anchor="middle">30</text>
+					<text class="fig-t" x="335" y="74" text-anchor="middle">40</text>
+					<text class="fig-t" x="425" y="74" text-anchor="middle">50</text>
+					<text class="fig-t sm cdanger" x="515" y="74" text-anchor="middle">？</text>
+
+					<text class="fig-n c2" x="65"  y="112" text-anchor="middle">[0]</text>
+					<text class="fig-n c2" x="155" y="112" text-anchor="middle">[1]</text>
+					<text class="fig-n c2" x="245" y="112" text-anchor="middle">[2]</text>
+					<text class="fig-n c2" x="335" y="112" text-anchor="middle">[3]</text>
+					<text class="fig-n c2" x="425" y="112" text-anchor="middle">[4]</text>
+					<text class="fig-n cdanger" x="515" y="112" text-anchor="middle">[5]</text>
+
+					<path class="fig-line s2" d="M 20 128 L 470 128"/>
+					<text class="fig-m c2" x="245" y="148" text-anchor="middle">ここが自分の場所（5個）</text>
+					<text class="fig-m cdanger" x="515" y="148" text-anchor="middle">よその場所</text>
+					<text class="fig-t sm" x="20" y="176">メモリの上では、すきまなく連続して並んでいる。</text>
+				</g>
+			</svg>
+			<figcaption>
+				<strong>添字は 0 から始まり、要素数 - 1 で終わります。</strong>
+				<code>scores[5]</code> は存在しません。
+				そこには、まったく別のもののデータが置かれています。
+			</figcaption>
+		</figure>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">03</span>範囲外を触るとどうなるか</h2>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">エラーにならずに、よその場所を書き換えます</span>
+<pre style="margin-top:8px;"><code>int scores[5];
+scores[5] = 999;      // ← 範囲外。でもビルドは通る</code></pre>
+			<strong>C++は、配列の範囲をチェックしてくれません。</strong>
+			その場所にあった別の変数が、勝手に <code>999</code> に書き換わります。<br>
+			結果、<strong>まったく関係ない場所でおかしな動きをします。</strong>
+			原因を突き止めるのが非常に大変なバグです。
+		</div>
+		<p class="prose">
+			<strong>Debug ビルドなら、運がよければその場で止めてくれます。</strong>
+			これも Debug で開発する理由のひとつです。
+		</p>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">04</span><code>std::vector</code> ― 数が変わる配列</h2>
+		<p class="prose">
+			配列は、最初に個数を決めなければいけません。
+			<strong>弾のように「増えたり減ったりするもの」には向きません。</strong>
+			そこで <code>std::vector</code> を使います。
+		</p>
+<pre><code>#include &lt;vector&gt;     // ← k2Engine ではすでに読み込まれているので不要
+
+std::vector&lt;int&gt; scores;      // 空っぽで始まる
+
+scores.push_back(10);         // 後ろに足す
+scores.push_back(20);
+scores.push_back(30);
+
+int n = (int)scores.size();   // いくつ入っているか → 3
+int a = scores[0];            // 取り出す → 10
+
+scores.clear();               // 全部消す</code></pre>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>関数</th><th>意味</th></tr></thead>
+			<tbody>
+				<tr><td><code>push_back(値)</code></td><td>後ろに1つ足す</td></tr>
+				<tr><td><code>size()</code></td><td>いま何個入っているか</td></tr>
+				<tr><td><code>empty()</code></td><td>空っぽか（<code>size() == 0</code> と同じ）</td></tr>
+				<tr><td><code>clear()</code></td><td>全部消す</td></tr>
+				<tr><td><code>[i]</code></td><td>i番目を取り出す。<strong>範囲チェックは無い</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">05</span>全部まわす</h2>
+<pre><code>// 書き方1：添字を使う
+for (int i = 0; i &lt; (int)scores.size(); i++) {
+    total += scores[i];
+}
+
+// 書き方2：範囲for（こちらが読みやすい）
+for (int score : scores) {
+    total += score;
+}</code></pre>
+		<p class="prose">
+			<strong>添字が要らないなら、範囲forを使ってください。</strong>
+			短いうえに、<strong>範囲外アクセスの事故が起きません。</strong>
+		</p>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h"><code>size()</code> は <code>int</code> ではありません</span>
+			<code>size()</code> が返すのは <code>size_t</code> という別の型です。
+			<code>int</code> と比べると<strong>警告 <code>C4018</code></strong> が出ます。<br>
+			<code>(int)scores.size()</code> のように書けば消えます。
+			（なぜ別の型なのかは、いまは気にしなくて大丈夫です）
+		</div>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">06</span>演習</h2>
+		<h3>演習1（まねる）<span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>std::vector&lt;int&gt;</code> に5つの数を入れて、合計を計算して表示する。</p>
+
+		<h3>演習2（増やす）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">Aボタンを押すたびに <code>vector</code> に数を足して、<strong>いま何個入っているか</strong>を表示する。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>// Game.h
+private:
+    std::vector&lt;int&gt; m_values;
+
+// Game.cpp
+void Game::Update()
+{
+    if (g_pad[0]-&gt;IsTrigger(enButtonA)) {
+        m_values.push_back(rand() % 100);
+    }
+    if (g_pad[0]-&gt;IsTrigger(enButtonB)) {
+        m_values.clear();
+    }
+
+    int total = 0;
+    for (int v : m_values) {
+        total += v;
+    }
+
+    wchar_t text[256];
+    swprintf_s(text, 256, L"個数 %d / 合計 %d",
+        (int)m_values.size(), total);
+    m_fontRender.SetText(text);
+}</code></pre>
+<p>
+これが<strong>「弾が増えたり減ったりする」の原型</strong>です。
+LV2では、<code>int</code> ではなくゲームオブジェクトを管理することになります。
+</p>
+		</details>
+
+		<h3>演習3（壊してみる）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>わざと範囲外にアクセスしてみる。</strong><code>int a[5];</code> を作って <code>a[10] = 999;</code> と書いたら何が起きるか。（Gitでコミットしてから試してください）</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>void Game::Update()
+{
+    int a[5] = { 1, 2, 3, 4, 5 };
+    int b = 111;              // すぐ隣に置かれることが多い
+
+    a[5] = 999;               // ★ 範囲外
+
+    wchar_t text[256];
+    swprintf_s(text, 256, L"b = %d", b);    // 111 のはずが…
+    m_fontRender.SetText(text);
+}</code></pre>
+<p><strong>起こりうること（どれになるかは運です）</strong></p>
+<ul>
+<li><code>b</code> の値が <code>999</code> に書き換わる</li>
+<li>Debug ビルドなら
+	<strong>「Stack around the variable 'a' was corrupted」</strong>
+	というエラーで止まる</li>
+<li>何も起きない（<strong>いちばん怖い</strong>）</li>
+</ul>
+<div class="note" style="--lv: var(--danger);">
+<span class="h">この「何も起きないことがある」が最悪です</span>
+自分のPCでは平気なのに、提出した先で落ちる。
+<strong>C++でいちばん怖いバグの形です。</strong><br>
+同じ種類の事故を <a href="2-08_DanglingPointer.html">2-08</a> でもう一度扱います。
+そのときは「あぁ、これか」と思えるはずです。
+</div>
+<p>
+<strong>だから、範囲forを使ってください。</strong>
+そもそも添字を書かなければ、この事故は起きません。
+</p>
+		</details>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">07</span>確認</h2>
+		<ol class="prose">
+			<li><code>int a[5]</code> の、使える添字の範囲は？</li>
+			<li>範囲外にアクセスするとどうなる？ エラーは出る？</li>
+			<li>配列と <code>std::vector</code> の使い分けは？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>0 から 4 まで。</li>
+				<li>よその場所を読み書きする。<strong>エラーにならないことが多い。</strong>
+					Debugなら止まってくれることもある。</li>
+				<li>個数が決まっていて変わらないなら配列。
+					増減するなら <code>std::vector</code>。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">08</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="1-12_Class.html"><strong>1-12 構造体とクラス</strong></a>
+				— ここから少し難しくなります</li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

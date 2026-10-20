@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ボスを作る</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n2" href="2-21_SceneChange.html">← 前 2-21</a>
+			<a class="navchip n2" href="index.html#lv2">LV2 の目次</a>
+			<a class="navchip n2" href="2-23_MyDebugPanel.html">次 → 2-23</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l2">
+		<p class="kicker">LV2 基礎 ／ 2-22</p>
+		<h1>ボスを作る</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span>
+			／ 前提 <a href="2-21_SceneChange.html">2-21</a>
+		</p>
+	</header>
+
+	<section class="level l2">
+		<h2><span class="n">00</span>入場チェック</h2>
+		<ul class="checklist prose">
+			<li>敵を出して倒せる？ → <a href="2-16_Spawner.html">2-16</a></li>
+			<li>状態（<code>Alive</code> / <code>Dying</code>）を持たせたことがある？ → <a href="2-17_DeathTiming.html">2-17</a></li>
+		</ul>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li>行動パターンが切り替わるボスを作れる</li>
+			<li><strong>ステートマシン</strong>という考え方が使える</li>
+		</ul>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">02</span>ボスは「状態が変わる敵」</h2>
+		<p class="prose">
+			ふつうの敵は「出てきて、まっすぐ進んで、やられる」だけです。
+			ボスはそうではありません。
+		</p>
+		<ul class="prose">
+			<li>登場する（無敵。画面の上から降りてくる）</li>
+			<li>攻撃パターンA（左右に動きながら弾をばらまく）</li>
+			<li>攻撃パターンB（HPが半分以下になったら、突進してくる）</li>
+			<li>やられる（大きく爆発してから消える）</li>
+		</ul>
+		<p class="prose">
+			これを <code>if</code> で書こうとすると、すぐに読めなくなります。
+		</p>
+<pre><code>// こうなってはいけない
+if (m_isEntering) {
+    ...
+} else if (!m_isEntering &amp;&amp; m_hp &gt; m_maxHp / 2 &amp;&amp; m_timer &lt; 3.0f) {
+    ...
+} else if (...) {
+    // どの条件がどの行動なのか、もう分からない
+}</code></pre>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">03</span>ステートマシンで書く</h2>
+		<p class="prose">
+			<strong>「いま何をしているか」をひとつの変数で持ちます。</strong>
+			状態ごとに関数を分ければ、それぞれが短くなります。
+		</p>
+<pre><code>// Boss.h
+class Boss : public IGameObject {
+public:
+    bool Start() override;
+    void Update() override;
+    void Render(RenderContext&amp; rc) override;
+    void TakeDamage(int damage);
+
+private:
+    enum EnState {
+        enState_Enter,      // 登場中（無敵）
+        enState_AttackA,    // 攻撃パターンA
+        enState_AttackB,    // 攻撃パターンB（HP半分以下）
+        enState_Dying,      // やられた
+    };
+
+    void ChangeState(EnState next);
+
+    void UpdateEnter();
+    void UpdateAttackA();
+    void UpdateAttackB();
+    void UpdateDying();
+
+private:
+    EnState m_state = enState_Enter;
+    float   m_stateTimer = 0.0f;     // 状態に入ってからの秒数
+    int     m_hp = 200;
+    int     m_maxHp = 200;
+    Vector3 m_position = Vector3::Zero;
+};</code></pre>
+
+<pre><code>// Boss.cpp
+void Boss::ChangeState(EnState next)
+{
+    m_state = next;
+    m_stateTimer = 0.0f;      // 状態が変わったら必ず0に戻す
+}
+
+void Boss::Update()
+{
+    m_stateTimer += g_gameTime-&gt;GetFrameDeltaTime();
+
+    switch (m_state) {
+    case enState_Enter:   UpdateEnter();   break;
+    case enState_AttackA: UpdateAttackA(); break;
+    case enState_AttackB: UpdateAttackB(); break;
+    case enState_Dying:   UpdateDying();   break;
+    }
+
+    m_spriteRender.SetPosition(m_position);
+    m_spriteRender.Update();
+}</code></pre>
+		<div class="note">
+			<span class="h"><code>m_stateTimer</code> が効きます</span>
+			「状態に入ってから何秒たったか」を持っておくと、
+			<strong>「3秒たったら次の状態へ」「1秒ごとに弾を撃つ」が簡単に書けます。</strong>
+			<code>ChangeState()</code> で必ず0に戻すのを忘れないでください。
+		</div>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">04</span>状態ごとの中身</h2>
+<pre><code>void Boss::UpdateEnter()
+{
+    // 上から降りてくる。
+    m_position.y -= 150.0f * g_gameTime-&gt;GetFrameDeltaTime();
+
+    if (m_position.y &lt;= 320.0f) {
+        m_position.y = 320.0f;
+        ChangeState(enState_AttackA);
+    }
+}
+
+void Boss::UpdateAttackA()
+{
+    // 左右に揺れる。
+    m_position.x = sinf(m_stateTimer * 1.5f) * 500.0f;
+
+    // 0.5秒ごとに弾をばらまく。
+    if (m_stateTimer &gt;= m_nextShotTime) {
+        ShootWay(5);
+        m_nextShotTime += 0.5f;
+    }
+}
+
+void Boss::TakeDamage(int damage)
+{
+    if (m_state == enState_Enter || m_state == enState_Dying) {
+        return;              // 登場中とやられ中は無敵
+    }
+    m_hp -= damage;
+
+    if (m_hp &lt;= 0) {
+        ChangeState(enState_Dying);
+        return;
+    }
+    // HPが半分を切ったら、攻撃パターンを変える。
+    if (m_state == enState_AttackA &amp;&amp; m_hp &lt;= m_maxHp / 2) {
+        ChangeState(enState_AttackB);
+    }
+}</code></pre>
+		<p class="prose">
+			<strong>ひとつひとつの関数が短いことに注目してください。</strong>
+			状態が増えても、関数が1つ増えるだけです。
+			<code>if</code> の入れ子が深くなることはありません。
+		</p>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">05</span>この書き方の限界</h2>
+		<p class="prose">
+			状態が10個、20個と増えると、このやり方でもつらくなってきます。
+		</p>
+		<ul class="prose">
+			<li><code>switch</code> に追加するのを忘れる</li>
+			<li><code>Boss.cpp</code> が1000行を超える</li>
+			<li>別の敵でも同じ仕組みを使いたいのに、コピペするしかない</li>
+		</ul>
+		<div class="note">
+			<span class="h">そのつらさは、正しい感覚です</span>
+			<a href="4-05_State.html">LV4-05 State パターン</a>で、
+			<strong>状態そのものをクラスにする</strong>やり方を学びます。
+			でも、<strong>いまはこの書き方で完成させてください。</strong>
+			つらさを感じていないのにパターンを使うと、無駄に複雑になるだけです。
+		</div>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">06</span>動かして確かめる</h2>
+		<ul class="checklist prose">
+			<li>ボスが上から降りてきて、所定の位置で止まる</li>
+			<li>降りてくる間は、撃ってもダメージが入らない</li>
+			<li>HPが半分になると、動きが変わる</li>
+			<li>倒すと、爆発してから消える</li>
+		</ul>
+		<p class="prose">
+			<strong>いまの状態をデバッグパネルに出すと、確認がとても楽になります。</strong>
+			次の章でやります。
+		</p>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（まねる）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">4つの状態を持つボスを作る。</p>
+
+		<h3>演習2（増やす）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			攻撃パターンをもう1つ増やして、<strong>AとBを交互に繰り返す</strong>ようにする。
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>// Boss.h
+private:
+    enum EnState {
+        enState_Enter,
+        enState_AttackA,
+        enState_AttackB,
+        enState_Dying,
+    };
+    static const float ATTACK_TIME;     // 1つの攻撃を続ける秒数
+
+// Boss.cpp
+const float Boss::ATTACK_TIME = 6.0f;
+
+void Boss::UpdateAttackA()
+{
+    m_position.x = sinf(m_stateTimer * 1.5f) * 500.0f;
+
+    if (m_stateTimer &gt;= m_nextShotTime) {
+        ShootWay(5);
+        m_nextShotTime += 0.5f;
+    }
+
+    // 一定時間たったら B へ。
+    if (m_stateTimer &gt;= ATTACK_TIME) {
+        ChangeState(enState_AttackB);
+    }
+}
+
+void Boss::UpdateAttackB()
+{
+    // 自機に向かって突進する。
+    Player* player = m_player.Get();
+    if (player != nullptr) {
+        Vector3 toPlayer = player-&gt;GetPosition() - m_position;
+        toPlayer.Normalize();
+        m_position += toPlayer * 250.0f * g_gameTime-&gt;GetFrameDeltaTime();
+    }
+
+    // 一定時間たったら A へ戻る。
+    if (m_stateTimer &gt;= ATTACK_TIME) {
+        ChangeState(enState_AttackA);
+    }
+}</code></pre>
+<p>
+<code>ChangeState()</code> が <code>m_stateTimer</code> を0に戻してくれるので、
+<strong>それぞれの状態で「入ってから何秒か」を同じように書けます。</strong>
+これがステートマシンの気持ちよさです。
+</p>
+<div class="note">
+<span class="h">HPで切り替えるか、時間で切り替えるか</span>
+本文ではHPで、この演習では時間で切り替えました。<strong>両方あってよいです。</strong>
+「HPが半分を切ったら第2形態、その中でAとBを交互に」のように組み合わせると、
+ボスらしくなります。
+</div>
+		</details>
+
+		<h3>演習3（自分で書く）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			<strong>状態が変わった瞬間だけ1回やりたい処理</strong>（例：登場時に効果音）は、
+			どこに書けばよいでしょうか。
+			<code>ChangeState()</code> を工夫して、きれいに書けるようにする。
+			<strong>本文には答えがありません。</strong>
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p>
+<strong><code>ChangeState()</code> の中で、入場処理を呼んでしまうのがいちばん簡単です。</strong>
+</p>
+<pre><code>void Boss::ChangeState(EnState next)
+{
+    m_state = next;
+    m_stateTimer = 0.0f;
+    m_nextShotTime = 0.0f;
+
+    OnEnterState(next);      // ★ 状態に入った瞬間の処理
+}
+
+void Boss::OnEnterState(EnState state)
+{
+    switch (state) {
+    case enState_Enter:
+        PlaySe(enSound_BossAppear);
+        break;
+
+    case enState_AttackA:
+        m_spriteRender.SetMulColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+        break;
+
+    case enState_AttackB:
+        PlaySe(enSound_BossRage);
+        m_spriteRender.SetMulColor({ 1.0f, 0.5f, 0.5f, 1.0f });  // 赤くなる
+        break;
+
+    case enState_Dying:
+        PlaySe(enSound_BossExplosion);
+        PlayBigExplosion();
+        AddScore(10000);
+        break;
+    }
+}</code></pre>
+<p><strong>この書き方の良いところ</strong></p>
+<ul>
+<li><strong><code>ChangeState()</code> を通れば必ず1回だけ呼ばれる</strong>ので、
+	書き忘れも二重呼び出しも起きません</li>
+<li>「入ったとき」の処理が1か所にまとまるので、読みやすい</li>
+<li>状態を追加するとき、<code>OnEnterState</code> に1行足すだけ</li>
+</ul>
+<div class="note">
+<span class="h">この形が、そのまま State パターンになります</span>
+「入ったとき（<code>Enter</code>）」「毎フレーム（<code>Update</code>）」
+「出るとき（<code>Exit</code>）」の3つを持たせる、というのが
+<a href="index.html#ch4-05">LV4-05 State パターン</a>の基本形です。
+<strong>あなたはもう、その半分を自分で書いています。</strong>
+</div>
+		</details>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li>ステートマシンにすると、何が良くなる？</li>
+			<li><code>m_stateTimer</code> は何に使う？ いつリセットする？</li>
+			<li>登場中に無敵にするには、どこで弾く？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>状態ごとに関数が分かれるので、1つ1つが短くなる。状態が増えても複雑にならない。</li>
+				<li>「状態に入ってから何秒たったか」。<code>ChangeState()</code> の中で0に戻す。</li>
+				<li><code>TakeDamage()</code> の先頭で、状態を見て <code>return</code> する。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="2-23_MyDebugPanel.html"><strong>2-23 自分のデバッグパネルを作る</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

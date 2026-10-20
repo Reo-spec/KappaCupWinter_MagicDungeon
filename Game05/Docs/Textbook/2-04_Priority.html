@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>優先度と処理順・描画順</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n2" href="2-03_MyGameObject.html">← 前 2-03</a>
+			<a class="navchip n2" href="index.html#lv2">LV2 の目次</a>
+			<a class="navchip n2" href="2-05_Lifetime.html">次 → 2-05</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l2">
+		<p class="kicker">LV2 基礎 ／ 2-04</p>
+		<h1>優先度（priority）と処理順・描画順</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="2-03_MyGameObject.html">2-03</a>
+		</p>
+	</header>
+
+	<section class="level l2">
+		<h2><span class="n">00</span>入場チェック</h2>
+		<ul class="checklist prose">
+			<li><code>NewGO</code> の第1引数は何だった？ → 答えられないなら <a href="2-03_MyGameObject.html">2-03</a> へ戻る</li>
+			<li><code>enum</code> の書き方が分かる？ → 答えられないなら <a href="1-06_Variable.html">1-06</a> へ戻る</li>
+		</ul>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li>優先度で処理順と描画順が決まることを説明できる</li>
+			<li>背景の上にキャラ、その上にUI、という重なりを作れる</li>
+			<li><strong>数字を直接書かず、<code>enum</code> で管理できる</strong></li>
+		</ul>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">02</span>優先度とは</h2>
+		<p class="prose">
+			<code>GameObjectManager</code> は、ゲームオブジェクトを<strong>優先度ごとのリスト</strong>に
+			分けて持っています。そして<strong>優先度の小さい順に</strong>
+			<code>Update()</code> と <code>Render()</code> を呼びます。
+		</p>
+
+		<figure>
+			<svg viewBox="0 0 740 260" role="img"
+			     aria-label="優先度ごとにゲームオブジェクトがリストに分けられ、小さい順にUpdateとRenderが呼ばれる図。描画も同じ順なので、優先度の大きいものが手前に描かれる">
+				<defs>
+					<marker id="ahP" viewBox="0 0 10 10" refX="9" refY="5"
+					        markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+						<path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+					</marker>
+				</defs>
+				<g class="fig-head" color="currentColor">
+					<text class="fig-m" x="20" y="22">呼ばれる順</text>
+					<path class="fig-line" d="M 120 16 L 560 16" marker-end="url(#ahP)"/>
+
+					<rect class="fig-box" x="20" y="36" width="130" height="44" rx="6"/>
+					<text class="fig-n" x="34" y="56">prio 0</text>
+					<text class="fig-t sm" x="34" y="73">background</text>
+
+					<rect class="fig-box b2" x="170" y="36" width="130" height="44" rx="6"/>
+					<text class="fig-n c2" x="184" y="56">prio 3</text>
+					<text class="fig-t sm" x="184" y="73">player, enemy</text>
+
+					<rect class="fig-box b3" x="320" y="36" width="130" height="44" rx="6"/>
+					<text class="fig-n c3" x="334" y="56">prio 5</text>
+					<text class="fig-t sm" x="334" y="73">bullet</text>
+
+					<rect class="fig-box b5" x="470" y="36" width="130" height="44" rx="6"/>
+					<text class="fig-n c5" x="484" y="56">prio 9</text>
+					<text class="fig-t sm" x="484" y="73">ui</text>
+
+					<path class="fig-dash" d="M 20 104 L 720 104"/>
+
+					<text class="fig-t" x="20" y="134">描画も同じ順。だから…</text>
+
+					<rect class="fig-box" x="60" y="154" width="240" height="80" rx="6"/>
+					<text class="fig-t sm" x="180" y="180" text-anchor="middle">背景（prio 0）</text>
+					<rect class="fig-box b2" x="110" y="186" width="160" height="40" rx="6"/>
+					<text class="fig-t sm" x="190" y="211" text-anchor="middle">キャラ（prio 3）</text>
+
+					<text class="fig-t sm" x="330" y="182">あとから描いたものが上に重なる</text>
+					<text class="fig-m" x="330" y="206">＝ 優先度が大きいほど手前</text>
+				</g>
+			</svg>
+			<figcaption>
+				<strong>優先度は「処理順」であり、同時に「描画順」でもあります。</strong>
+				あとから描いたものが上に重なるので、
+				UIを手前に出したければ、UIの優先度を大きくします。
+			</figcaption>
+		</figure>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">03</span>数字を直接書いてはいけない</h2>
+		<p class="prose">
+			こう書くと、すぐに分からなくなります。
+		</p>
+<pre><code>NewGO&lt;Background&gt;(0, "background");
+NewGO&lt;Player&gt;(3, "player");
+NewGO&lt;Bullet&gt;(5, "bullet");
+NewGO&lt;Ui&gt;(9, "ui");</code></pre>
+		<p class="prose">
+			3ヶ月後に <code>5</code> を見て「これ何だっけ」となります。
+			間に新しいものを入れたくなったとき、どの数字が空いているかも分かりません。
+			<strong><code>enum</code> で名前をつけてください。</strong>
+		</p>
+<pre><code>// GameObjectPriority.h
+#pragma once
+
+/// &lt;summary&gt;
+/// ゲームオブジェクトの優先度。
+/// 小さいものから順に Update / Render される。
+/// 描画も同じ順なので、大きいほど手前に描かれる。
+/// &lt;/summary&gt;
+enum EnGameObjectPriority {
+    enPriority_Background = 0,   // 背景
+    enPriority_Enemy      = 3,   // 敵
+    enPriority_Player     = 4,   // 自機
+    enPriority_Bullet     = 5,   // 弾
+    enPriority_Effect     = 7,   // エフェクト
+    enPriority_Ui         = 9,   // UI（いちばん手前）
+};</code></pre>
+<pre><code>NewGO&lt;Background&gt;(enPriority_Background, "background");
+NewGO&lt;Player&gt;(enPriority_Player, "player");
+NewGO&lt;Bullet&gt;(enPriority_Bullet, "bullet");
+NewGO&lt;Ui&gt;(enPriority_Ui, "ui");</code></pre>
+		<div class="note">
+			<span class="h">数字を飛ばしておく</span>
+			<code>0, 1, 2, 3</code> と詰めずに、<code>0, 3, 4, 5, 7, 9</code> のように
+			<strong>すき間をあけておきます。</strong>
+			あとで「敵と自機の間に何か入れたい」となったとき、
+			全部の数字を振り直さずに済みます。
+		</div>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">04</span>優先度で気をつけること</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>こと</th><th>説明</th></tr></thead>
+			<tbody>
+				<tr><td>同じ優先度の中の順番</td>
+					<td><strong><code>NewGO</code> した順</strong>。でも、これに頼った設計にしてはいけません</td></tr>
+				<tr><td>上限</td>
+					<td>0 〜 254。範囲外を渡すと落ちます</td></tr>
+				<tr><td><code>Start()</code> の順番</td>
+					<td>これも優先度順。<strong>自分より優先度が大きい相手は、まだ <code>Start</code> していないかもしれません</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h"><code>Start()</code> での <code>FindGO</code> に注意</span>
+			<code>Player</code>（優先度4）の <code>Start()</code> で
+			<code>FindGO&lt;Ui&gt;("ui")</code>（優先度9）をしても、
+			<strong>UIがまだ作られていなければ <code>nullptr</code> が返ります。</strong>
+			順番に依存するなら、優先度を見直すか、<code>Update()</code> の中で取得してください。
+		</div>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">05</span>動かして確かめる</h2>
+		<p class="prose">
+			2つのスプライトを重ねて置き、優先度を入れ替えてみます。
+		</p>
+<pre><code>NewGO&lt;SpriteA&gt;(2, "a");   // 赤い四角
+NewGO&lt;SpriteB&gt;(4, "b");   // 青い四角（同じ場所）</code></pre>
+		<ul class="checklist prose">
+			<li>青が手前に出る</li>
+			<li>数字を入れ替えると、赤が手前になる</li>
+			<li>GameObject List の <code>Group by prio</code> で、優先度ごとに分かれて見える</li>
+		</ul>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">06</span>演習</h2>
+		<h3>演習1（まねる）<span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">上の2つのスプライトで、重なり順が変わることを確認する。</p>
+
+		<h3>演習2（整理する）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			自分のプロジェクトに <code>GameObjectPriority.h</code> を作り、
+			<strong>いま数字で書いてあるところを全部 <code>enum</code> に置き換える。</strong>
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>// GameObjectPriority.h
+#pragma once
+
+enum EnGameObjectPriority {
+    enPriority_Background = 0,
+    enPriority_Enemy      = 3,
+    enPriority_Player     = 4,
+    enPriority_Bullet     = 5,
+    enPriority_Effect     = 7,
+    enPriority_Ui         = 9,
+};</code></pre>
+<p>
+置き場所は <code>Game/</code> の直下でかまいません。
+使うファイルで <code>#include "GameObjectPriority.h"</code> します。
+</p>
+<p>
+<strong>置き換えたあと、必ず一度実行してください。</strong>
+数字を間違えると重なり順が変わります。見た目で気づけます。
+</p>
+		</details>
+
+		<h3>演習3（考える）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			弾は自機より手前に出るべきでしょうか、奥に出るべきでしょうか。
+			<strong>自分のゲームではどちらが正しいか</strong>を決めて、理由を書く。
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>どちらにも理由があります。自分のゲームで決めてください。</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>選択</th><th>理由</th></tr></thead>
+<tbody>
+<tr><td><strong>弾を手前（自機より大きい優先度）</strong></td>
+	<td>弾がどこにあるか見失わない。弾幕系ならこちら</td></tr>
+<tr><td><strong>弾を奥（自機より小さい優先度）</strong></td>
+	<td>自機が弾に隠れない。自機の位置が常に見える</td></tr>
+</tbody>
+</table>
+</div>
+<p>
+<strong>一般には「自機がいちばん手前」が安全です。</strong>
+自機が見えなくなるのは致命的だからです。
+弾が自機の下に隠れても、遊ぶ人はあまり困りません。
+</p>
+<p>
+<strong>大事なのは「なんとなく」で決めないことです。</strong>
+理由を言えるようにしておけば、あとで直すときも判断できます。
+これは <a href="index.html#lv4">LV4</a> の
+「なぜその設計にしたか説明できる」につながる練習です。
+</p>
+		</details>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">07</span>確認</h2>
+		<ol class="prose">
+			<li>優先度が小さいものと大きいもの、先に <code>Update</code> されるのは？</li>
+			<li>手前に描かれるのはどちら？</li>
+			<li>優先度を <code>enum</code> にする理由を2つ。</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>小さいほうが先。</li>
+				<li>大きいほう（あとから描かれるので上に重なる）。</li>
+				<li>数字の意味が分かる／あとから順番を変えやすい。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">08</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="2-05_Lifetime.html"><strong>2-05 DeleteGO とオブジェクトの寿命</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

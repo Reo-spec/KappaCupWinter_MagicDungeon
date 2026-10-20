@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>マルチスレッド① まず壊す</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n5" href="5-09_Ecs.html">← 前 5-09</a>
+			<a class="navchip n5" href="index.html#lv5">LV5 の目次</a>
+			<a class="navchip n5" href="5-11_MutexAtomic.html">次 → 5-11</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l5">
+		<p class="kicker">LV5 最適化 ／ 5-10</p>
+		<h1>マルチスレッド① まず壊す</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span>
+			／ 前提 <a href="5-03_Cpu.html">5-03</a>
+		</p>
+	</header>
+
+	<section class="level l5">
+		<h2><span class="n">01</span>この章でやること</h2>
+		<p class="prose">
+			<strong>正しい書き方を覚える前に、わざと壊します。</strong>
+		</p>
+		<p class="prose">
+			<a href="2-08_DanglingPointer.html">2-08</a> で
+			削除済みオブジェクトにアクセスして壊したのと、同じ方針です。
+			<u>自分で壊した経験がないと、なぜ危ないかが身につきません。</u>
+		</p>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">マルチスレッドのバグは、いちばん厄介な種類です</span>
+			<strong>再現しない。デバッガで止めると起きない。
+			Release でだけ起きる。1000回に1回だけ起きる。</strong><br>
+			<u>だから「動いたから大丈夫」が、まったく通用しません。</u>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">02</span>スレッドとは</h2>
+		<p class="prose">
+			<strong>同じプログラムの中で、同時に走る処理の流れ</strong>です。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th></th><th>共有するもの</th><th>別々に持つもの</th></tr></thead>
+			<tbody>
+				<tr><td>スレッド</td>
+					<td><strong>メモリ（グローバル変数、ヒープ）</strong></td>
+					<td>スタック、レジスタ</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>メモリを共有しているのが、便利であり、危険でもあります。</strong>
+		</p>
+<pre><code>#include &lt;thread&gt;
+
+void Work(int id)
+{
+    for (int i = 0; i &lt; 3; i++) {
+        char buf[64];
+        sprintf_s(buf, "thread %d : %d\n", id, i);
+        OutputDebugStringA(buf);
+    }
+}
+
+void Run()
+{
+    std::thread t1(Work, 1);
+    std::thread t2(Work, 2);
+
+    t1.join();      // ★ 終わるまで待つ
+    t2.join();
+}</code></pre>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h"><code>join()</code> を忘れると、プログラムが落ちます</span>
+			<strong><code>std::thread</code> は、
+			<code>join()</code> も <code>detach()</code> もしないまま破棄されると、
+			<code>std::terminate()</code> が呼ばれます。</strong><br>
+			<u>「なぜか終了時に落ちる」の、よくある原因です。</u>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">03</span>実験1 ― カウンタを壊す</h2>
+<pre><code>#include &lt;thread&gt;
+#include &lt;vector&gt;
+
+int g_counter = 0;      // ★ 共有される
+
+void CountUp()
+{
+    for (int i = 0; i &lt; 1000000; i++) {
+        g_counter++;          // ★ ここが問題
+    }
+}
+
+void BreakCounter()
+{
+    g_counter = 0;
+
+    std::vector&lt;std::thread&gt; threads;
+    for (int i = 0; i &lt; 4; i++) {
+        threads.emplace_back(CountUp);
+    }
+    for (auto&amp; t : threads) { t.join(); }
+
+    char buf[128];
+    sprintf_s(buf, "期待値 4000000 / 実際 %d\n", g_counter);
+    OutputDebugStringA(buf);
+}</code></pre>
+		<p class="prose">
+			<strong>期待値は 4,000,000 です。実行してみてください。</strong>
+		</p>
+<pre><code>期待値 4000000 / 実際 1284713
+期待値 4000000 / 実際 1519022
+期待値 4000000 / 実際 1402886      ← 毎回違う</code></pre>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">04</span>なぜ数が合わないのか</h2>
+		<p class="prose">
+			<code>g_counter++</code> は、1つの命令ではありません。
+			<strong>3段階に分かれています。</strong>
+		</p>
+<pre><code>1. メモリから g_counter を読む     （レジスタへ）
+2. 1 を足す
+3. メモリへ書き戻す</code></pre>
+		<p class="prose">
+			<strong>2つのスレッドが、同時にここを実行すると：</strong>
+		</p>
+<pre><code>            スレッドA              スレッドB           g_counter
+時刻1   読む（100 を得る）                                100
+時刻2                          読む（100 を得る）         100
+時刻3   +1 して 101                                       100
+時刻4                          +1 して 101                100
+時刻5   書き戻す                                          101
+時刻6                          書き戻す                   101   ★ 2回足したのに +1</code></pre>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">これを「データ競合（data race）」といいます</span>
+			<strong>複数のスレッドが、同じ場所に、
+			片方でも書き込みながらアクセスすると起きます。</strong><br>
+			<u>C++ の規格上、データ競合があるプログラムは
+			「何が起きても文句が言えない（未定義動作）」</u>と決められています。<br>
+			<strong>「たまたま正しい値が出た」も、正しさの証明にはなりません。</strong>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">05</span>実験2 ― もっとひどく壊す</h2>
+<pre><code>#include &lt;vector&gt;
+#include &lt;thread&gt;
+
+std::vector&lt;int&gt; g_list;
+
+void PushMany()
+{
+    for (int i = 0; i &lt; 10000; i++) {
+        g_list.push_back(i);        // ★ 絶対にやってはいけない
+    }
+}
+
+void BreakVector()
+{
+    g_list.clear();
+
+    std::thread t1(PushMany);
+    std::thread t2(PushMany);
+    t1.join();
+    t2.join();
+
+    char buf[128];
+    sprintf_s(buf, "期待値 20000 / 実際 %zu\n", g_list.size());
+    OutputDebugStringA(buf);
+}</code></pre>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">これは、たいてい「クラッシュ」します</span>
+			<strong><code>push_back</code> は、容量が足りなくなると
+			<u>新しい領域を確保して、全部コピーして、古いほうを解放します。</u></strong><br><br>
+			その最中に別のスレッドが <code>push_back</code> すると、
+			<strong>解放済みのメモリに書き込みます。</strong><br>
+			<u>数が合わないどころではありません。</u>
+		</div>
+		<p class="prose">
+			<strong>標準ライブラリのコンテナは、
+			複数スレッドからの同時書き込みに対応していません。</strong>
+			<code>std::vector</code>、<code>std::map</code>、
+			<code>std::string</code>、全部そうです。
+		</p>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">06</span>実験3 ― 再現しないことを確かめる</h2>
+<pre><code>void BreakCounterMany()
+{
+    for (int trial = 0; trial &lt; 20; trial++) {
+        g_counter = 0;
+        std::vector&lt;std::thread&gt; threads;
+        for (int i = 0; i &lt; 4; i++) { threads.emplace_back(CountUp); }
+        for (auto&amp; t : threads) { t.join(); }
+
+        char buf[128];
+        sprintf_s(buf, "%2d 回目 : %d\n", trial, g_counter);
+        OutputDebugStringA(buf);
+    }
+}</code></pre>
+		<p class="prose">
+			<strong>20回とも違う値が出るはずです。</strong>
+			そして<u>ときどき、正解に近い値が出ることもあります。</u>
+		</p>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">Debug ビルドだと、正解が出ることがあります</span>
+			<strong>最適化が違うため、タイミングが変わるからです。</strong><br>
+			<u>「Debug では動くが Release で落ちる」というバグの、
+			典型的な原因のひとつがこれです。</u><br><br>
+			<strong>ブレークポイントを置くと再現しなくなるのも同じ理由</strong>です。
+			止めているあいだに、片方のスレッドが終わってしまいます。
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">07</span>ゲームでよくある危ない場所</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>やりたいこと</th><th>危ないところ</th></tr></thead>
+			<tbody>
+				<tr><td>別スレッドでファイルを読む</td>
+					<td><strong>読み終わったあと、<code>NewGO</code> してしまう</strong></td></tr>
+				<tr><td>当たり判定を並列化</td>
+					<td><strong>ヒットしたとき、共有のリストに追加する</strong></td></tr>
+				<tr><td>敵の更新を並列化</td>
+					<td><u>敵が別の敵の状態を読む</u></td></tr>
+				<tr><td>スコア加算を並列化</td>
+					<td>実験1そのもの</td></tr>
+				<tr><td>ログ出力</td>
+					<td><code>OutputDebugStringA</code> は安全だが、
+						<u>自作のログバッファは危ない</u></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">エンジンの関数を、別スレッドから呼ばないでください</span>
+			<strong><code>NewGO</code>、<code>DeleteGO</code>、
+			<code>FindGO</code>、<code>ModelRender</code> の各種関数。</strong><br>
+			<u>k2Engine は、シングルスレッド前提で書かれています。</u><br><br>
+			<strong>別スレッドでやってよいのは、
+			「自分が用意した配列の中だけで完結する計算」だけ</strong>だと
+			考えてください。
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">08</span>演習</h2>
+		<h3>演習1（壊す）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>実験1を動かして、毎回違う値が出ることを確認する。</strong>20回繰り返して記録する。</p>
+
+		<h3>演習2（もっと壊す）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>実験2を動かす。</strong>何が起きたか記録する。<u>Debug と Release で違いがあるか。</u></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>起きること</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>ビルド</th><th>よくある結果</th></tr></thead>
+<tbody>
+<tr><td><strong>Debug</strong></td>
+	<td>アサートで止まる（<code>vector iterators incompatible</code> など）<br>
+		または「ヒープが壊れています」</td></tr>
+<tr><td><strong>Release</strong></td>
+	<td><strong>アクセス違反でクラッシュ</strong><br>
+		または、数が合わないまま動き続ける</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Debug のほうが、親切に壊れます</strong></p>
+<p>
+Visual Studio の Debug ビルドは、
+<strong>標準ライブラリに検査コードを埋め込みます</strong>
+（イテレータデバッグ）。
+<u>だから、おかしいことをすると、その場で教えてくれます。</u>
+</p>
+<p>
+Release にはそれがないので、<strong>壊れたまま走り続けて、
+まったく別の場所で落ちます。</strong>
+</p>
+<div class="note" style="--lv: var(--danger);">
+<span class="h">「Release でだけ落ちる」の理由が、ここにあります</span>
+<strong>Debug で落ちなかったから安全、ではありません。</strong>
+<br><br>
+<u>Debug は検査してくれる。Release は検査しない。
+それだけの違いです。</u>
+<br><br>
+<strong>マルチスレッドのコードは、必ず Release でも長時間動かして
+確認してください。</strong>
+</div>
+<p><strong>もっとひどい壊れ方を見る</strong></p>
+<pre><code>// あらかじめ容量を確保しておくと、再確保が起きなくなる
+g_list.reserve(20000);      // ★ これを入れると…</code></pre>
+<p>
+<strong>クラッシュしなくなることがあります。</strong>
+でも、<u>数は合いません。</u>
+</p>
+<pre><code>期待値 20000 / 実際 13847</code></pre>
+<div class="note" style="--lv: var(--danger);">
+<span class="h">これがいちばん危ない状態です</span>
+<strong>クラッシュしないので、バグに気づけません。</strong>
+<br><br>
+<u>「落ちないから正しい」は、マルチスレッドではまったく成り立ちません。</u>
+<br><br>
+<code>push_back</code> は
+「<code>size</code> を読む → 書き込む → <code>size</code> を増やす」
+という複数の手順なので、<strong>再確保が起きなくても競合します。</strong>
+</div>
+		</details>
+
+		<h3>演習3（探す）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>自分のゲームに、並列化できそうな処理があるか探す。</strong><u>「共有データに書き込まない」処理はどれか。</u><strong>本文には答えがありません。</strong></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>並列化できる条件</strong></p>
+<ol>
+<li><strong>ほかのスレッドが書く場所を、読まない</strong></li>
+<li><strong>ほかのスレッドが読む場所に、書かない</strong></li>
+<li>エンジンの関数を呼ばない</li>
+<li>並列化する価値があるほど重い（<u>目安：1ms 以上</u>）</li>
+</ol>
+<p><strong>自分のゲームでの候補</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>処理</th><th>並列化できる？</th><th>理由</th></tr></thead>
+<tbody>
+<tr><td><strong>弾の位置更新</strong></td><td><strong>できる</strong></td>
+	<td>弾 i は、弾 i のデータしか触らない</td></tr>
+<tr><td><strong>パーティクルの更新</strong></td><td><strong>できる</strong></td>
+	<td>同上。しかも数が多い</td></tr>
+<tr><td>当たり判定（判定だけ）</td><td><strong>できる</strong></td>
+	<td><u>結果の書き込み方に注意</u></td></tr>
+<tr><td>敵のAI（他の敵を見ない場合）</td><td>できる</td><td>—</td></tr>
+<tr><td>敵のAI（他の敵と連携する）</td><td><u>難しい</u></td>
+	<td>互いの状態を読む</td></tr>
+<tr><td>スコア加算</td><td><u>できない</u></td><td>共有変数に書く</td></tr>
+<tr><td><code>NewGO</code> / <code>DeleteGO</code></td>
+	<td><strong>絶対にできない</strong></td>
+	<td>エンジンの内部状態を触る</td></tr>
+<tr><td>描画</td><td><u>できない</u></td>
+	<td>RenderContext は共有</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>「判定だけ並列、結果は後でまとめる」というパターン</strong></p>
+<pre><code>// ★ 危ない：共有のリストに直接追加
+void CheckHitParallel()
+{
+    parallel_for(i) {
+        if (IsHit(i)) {
+            g_hitList.push_back(i);      // ★ データ競合
+        }
+    }
+}
+
+// ○ 安全：スレッドごとの配列に書いて、あとで合流
+void CheckHitParallel()
+{
+    std::vector&lt;std::vector&lt;int&gt;&gt; results(NUM_THREAD);
+
+    parallel_for(t) {
+        for (自分の担当ぶん i) {
+            if (IsHit(i)) {
+                results[t].push_back(i);   // ★ 自分専用の配列
+            }
+        }
+    }
+
+    // 全部終わってから、1スレッドでまとめる
+    for (auto&amp; r : results) {
+        for (int i : r) { OnHit(i); }
+    }
+}</code></pre>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">この「スレッドごとに持って、あとで合流」が定石です</span>
+<strong>ロックを一切使わずに済みます。</strong>
+<br><br>
+<u><a href="5-11_MutexAtomic.html">5-11</a> で mutex を学びますが、
+そもそも共有しないで済むなら、そのほうがずっと速くて安全です。</u>
+</div>
+<div class="note" style="--lv: var(--warn);">
+<span class="h">候補が見つからなくても、それでよいです</span>
+<strong>2Dシューティングで、1ms を超える単一の処理がなければ、
+並列化する意味はありません。</strong>
+<br><br>
+<u>スレッドを起動するだけで、数十マイクロ秒かかります。</u>
+<br><br>
+<strong>0.1ms の処理を並列化しても、遅くなるだけです。</strong>
+</div>
+		</details>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">09</span>確認</h2>
+		<ol class="prose">
+			<li>スレッド間で共有されるものは？</li>
+			<li><code>g_counter++</code> が危ないのはなぜ？</li>
+			<li>データ競合があるプログラムは、C++ の規格上どう扱われる？</li>
+			<li>Debug では動いて Release で落ちるのはなぜ？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>メモリ（グローバル変数、ヒープ）。
+					スタックとレジスタは別々。</li>
+				<li>「読む・足す・書く」の3段階なので、
+					途中で別スレッドが割り込むと結果が失われる。</li>
+				<li>未定義動作。何が起きても文句が言えない。</li>
+				<li>最適化でタイミングが変わる。
+					また Debug には標準ライブラリの検査があるが、Release には無い。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">10</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="5-11_MutexAtomic.html"><strong>5-11 マルチスレッド② mutex と atomic</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

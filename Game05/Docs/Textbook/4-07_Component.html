@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Component ― 機能を部品にする</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n4" href="4-06_ObjectPool.html">← 前 4-06</a>
+			<a class="navchip n4" href="index.html#lv4">LV4 の目次</a>
+			<a class="navchip n4" href="4-08_Observer.html">次 → 4-08</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l4">
+		<p class="kicker">LV4 設計 ／ 4-07</p>
+		<h1>Component ― 機能を部品にする</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span>
+			／ 前提 <a href="4-03_Composition.html">4-03</a>
+		</p>
+	</header>
+
+	<section class="level l4">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>1000行のクラスを、機能ごとに分けられる</strong></li>
+			<li>同じ機能を、複数のクラスで使い回せる</li>
+			<li>Unity の仕組みが、なぜああなっているか分かる</li>
+		</ul>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">02</span>困っている形</h2>
+<pre><code>class Player : public IGameObject {
+private:
+    // 移動
+    Vector3 m_position, m_moveSpeed;
+    float   m_moveAccel;
+    // 描画
+    ModelRender m_modelRender;
+    Quaternion  m_rotation;
+    // アニメーション
+    AnimationClip m_animClips[enAnimClip_Num];
+    float m_animSpeed;
+    // 体力
+    int   m_hp, m_maxHp;
+    float m_invincibleTimer;
+    // 射撃
+    float m_shotTimer;
+    int   m_shotLevel;
+    // 当たり判定
+    float m_radius;
+    // 演出
+    float m_flashTimer;
+    // ...23個
+};</code></pre>
+		<p class="prose">
+			<strong>そして、まったく同じものが <code>Enemy</code> にもあります。</strong>
+			<code>Boss</code> にもあります。
+		</p>
+		<p class="prose">
+			<a href="4-03_Composition.html">4-03</a> では
+			<u>「動き方」だけを部品にしました。</u>
+			この章では、<strong>もっと大きく分けます。</strong>
+		</p>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">03</span>考え方</h2>
+		<p class="prose">
+			<strong>「Player とは、これらの部品を持った入れ物である」</strong>
+			と考え直します。
+		</p>
+<pre><code>Player
+ ├ HealthComponent      // HP、無敵時間、ダメージ処理
+ ├ ShooterComponent     // 射撃、連射間隔、弾のレベル
+ ├ ModelComponent       // モデル表示、アニメーション
+ └ ColliderComponent    // 当たり判定の半径と、当たったかの判定</code></pre>
+		<p class="prose">
+			<strong>すると、<code>Enemy</code> は同じ部品を組み替えるだけで作れます。</strong>
+		</p>
+<pre><code>Enemy
+ ├ HealthComponent      // ★ Player とまったく同じもの
+ ├ ModelComponent       // ★ 同じ
+ ├ ColliderComponent    // ★ 同じ
+ └ MoverComponent       // 敵だけ持つ</code></pre>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">04</span>軽い作り方 ― まず「ただのメンバ」から</h2>
+		<p class="prose">
+			<strong>いきなり Unity のような仕組みを作らないでください。</strong>
+			まずは、ただのメンバ変数として持つだけで充分です。
+		</p>
+<pre><code>// HealthComponent.h
+class HealthComponent {
+public:
+    void Init(int maxHp) { m_maxHp = maxHp; m_hp = maxHp; }
+
+    void Update(float dt)
+    {
+        if (m_invincibleTimer &gt; 0.0f) {
+            m_invincibleTimer -= dt;
+        }
+    }
+
+    /// &lt;returns&gt;実際にダメージが入ったら true&lt;/returns&gt;
+    bool Damage(int amount)
+    {
+        if (m_invincibleTimer &gt; 0.0f || m_hp &lt;= 0) {
+            return false;
+        }
+        m_hp -= amount;
+        if (m_hp &lt; 0) { m_hp = 0; }
+        m_invincibleTimer = INVINCIBLE_TIME;
+        return true;
+    }
+
+    void Heal(int amount);
+    int  GetHp() const     { return m_hp; }
+    int  GetMaxHp() const  { return m_maxHp; }
+    bool IsAlive() const   { return m_hp &gt; 0; }
+    bool IsInvincible() const { return m_invincibleTimer &gt; 0.0f; }
+
+private:
+    int   m_hp = 0;
+    int   m_maxHp = 0;
+    float m_invincibleTimer = 0.0f;
+};</code></pre>
+<pre><code>// Player.h
+class Player : public IGameObject {
+private:
+    HealthComponent  m_health;       // ★ ただのメンバ
+    ShooterComponent m_shooter;
+    ...
+};
+
+// Player.cpp
+bool Player::Start()
+{
+    m_health.Init(100);
+    m_shooter.Init(0.15f);
+    return true;
+}
+
+void Player::Update()
+{
+    const float dt = g_gameTime-&gt;GetFrameDeltaTime();
+    m_health.Update(dt);
+    m_shooter.Update(dt);
+    ...
+}</code></pre>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h">これで充分に効果があります</span>
+			<strong><code>IGameObject</code> を継承していません。
+			仮想関数もありません。リストも登録も要りません。</strong><br>
+			<u>それでも、Player のメンバは23個から5個になり、
+			HP まわりのコードは1ファイルにまとまりました。</u>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">05</span>重い作り方 ― 汎用のコンポーネントシステム</h2>
+		<p class="prose">
+			Unity のように<strong>「実行中に部品を付け外しできる」</strong>形も作れます。
+		</p>
+<pre><code>class IComponent {
+public:
+    virtual ~IComponent() {}
+    virtual void Start(IGameObject&amp; owner) {}
+    virtual void Update(IGameObject&amp; owner, float dt) {}
+};
+
+class ComponentHolder {
+public:
+    template&lt;class T, class... Args&gt;
+    T* AddComponent(Args&amp;&amp;... args)
+    {
+        auto c = std::make_unique&lt;T&gt;(std::forward&lt;Args&gt;(args)...);
+        T* raw = c.get();
+        m_components.push_back(std::move(c));
+        return raw;
+    }
+
+    template&lt;class T&gt;
+    T* GetComponent()
+    {
+        for (auto&amp; c : m_components) {
+            if (T* t = dynamic_cast&lt;T*&gt;(c.get())) {
+                return t;
+            }
+        }
+        return nullptr;
+    }
+
+    void UpdateAll(IGameObject&amp; owner, float dt)
+    {
+        for (auto&amp; c : m_components) { c-&gt;Update(owner, dt); }
+    }
+
+private:
+    std::vector&lt;std::unique_ptr&lt;IComponent&gt;&gt; m_components;
+};</code></pre>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">こちらを選ぶ前に、よく考えてください</span>
+			<div class="tbl-scroll" style="margin-top:8px;">
+			<table class="plain">
+				<thead><tr><th></th><th>ただのメンバ</th><th>汎用システム</th></tr></thead>
+				<tbody>
+					<tr><td>速度</td><td><strong>速い</strong></td>
+						<td><code>dynamic_cast</code> と仮想関数のぶん遅い</td></tr>
+					<tr><td>コンパイル時の検査</td><td><strong>効く</strong></td>
+						<td><u>実行するまで <code>nullptr</code> か分からない</u></td></tr>
+					<tr><td>実行中の付け外し</td><td>できない</td><td><strong>できる</strong></td></tr>
+					<tr><td>コード量</td><td>少ない</td><td>多い</td></tr>
+				</tbody>
+			</table>
+			</div>
+			<strong>実行中に付け外しする必要が本当にあるか</strong>、先に確かめてください。
+			<u>たいていの学生作品には要りません。</u>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">06</span>Unity がなぜああなっているか</h2>
+		<p class="prose">
+			Unity の <code>GameObject</code> は、<strong>ほとんど空の入れ物</strong>です。
+			機能は全部 <code>Component</code> として付けます。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>Unity</th><th>この章の言葉で</th></tr></thead>
+			<tbody>
+				<tr><td><code>GameObject</code></td><td>入れ物</td></tr>
+				<tr><td><code>Transform</code></td><td>位置のコンポーネント</td></tr>
+				<tr><td><code>Rigidbody</code></td><td>物理のコンポーネント</td></tr>
+				<tr><td><code>MonoBehaviour</code> を継承した自作スクリプト</td>
+					<td><strong>自作コンポーネント</strong></td></tr>
+				<tr><td><code>GetComponent&lt;T&gt;()</code></td>
+					<td>上の <code>GetComponent&lt;T&gt;()</code> そのもの</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>Unreal も Godot も、同じ考え方です。</strong>
+			現代のゲームエンジンが揃ってこの形なのは、
+			<a href="4-03_Composition.html">4-03</a> の
+			<u>「継承の掛け算問題」を避けるため</u>です。
+		</p>
+		<div class="note">
+			<span class="h">k2Engine は、あえてそうなっていません</span>
+			<strong><code>IGameObject</code> を継承して <code>Update()</code> を書く、
+			という素朴な作りです。</strong><br>
+			はじめて触るときに分かりやすいからです。
+			<u>そのぶん、規模が大きくなると自分で分ける必要があります。</u>
+			それがこの章です。
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（切り出す）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>HealthComponent</code> を作って、<code>Player</code> と <code>Enemy</code> の両方で使う。</p>
+
+		<h3>演習2（もう1つ）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong><code>ShooterComponent</code></strong> を作る。プレイヤーと敵で、<u>撃つ弾の種類だけ違う</u>ようにする。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>// ShooterComponent.h
+#pragma once
+
+/// &lt;summary&gt;
+/// 一定間隔で弾を撃つ部品。
+/// &lt;/summary&gt;
+/// &lt;remarks&gt;
+/// 「いつ撃つか」だけを持ち、「何を撃つか」は持ち主が決める。
+/// &lt;/remarks&gt;
+class ShooterComponent {
+public:
+    void Init(float interval) { m_interval = interval; m_timer = interval; }
+
+    void Update(float dt) { m_timer += dt; }
+
+    /// &lt;summary&gt;撃てるタイミングなら true を返し、タイマーを戻す。&lt;/summary&gt;
+    bool TryShot()
+    {
+        if (m_timer &lt; m_interval) {
+            return false;
+        }
+        m_timer = 0.0f;
+        return true;
+    }
+
+    void SetInterval(float interval) { m_interval = interval; }
+    float GetInterval() const        { return m_interval; }
+
+private:
+    float m_interval = 0.2f;
+    float m_timer    = 0.0f;
+};</code></pre>
+<p><strong>使い方 ― 撃つものは、持ち主が決める</strong></p>
+<pre><code>// Player.cpp
+void Player::Update()
+{
+    const float dt = g_gameTime-&gt;GetFrameDeltaTime();
+    m_shooter.Update(dt);
+
+    if (g_pad[0]-&gt;IsPress(enButtonA) &amp;&amp; m_shooter.TryShot()) {
+        m_bulletPool-&gt;Fire(m_position, { 0.0f, BULLET_SPEED, 0.0f });
+    }
+}
+
+// Enemy.cpp
+void Enemy::Update()
+{
+    const float dt = g_gameTime-&gt;GetFrameDeltaTime();
+    m_shooter.Update(dt);
+
+    if (m_shooter.TryShot()) {
+        Vector3 toPlayer = GetPlayerDirection();
+        m_enemyBulletPool-&gt;Fire(m_position, toPlayer * ENEMY_BULLET_SPEED);
+    }
+}</code></pre>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">この分け方が、この章でいちばん大事なところです</span>
+<strong><code>ShooterComponent</code> は「弾」を知りません。</strong>
+<code>Bullet</code> も <code>EnemyBullet</code> も <code>BulletPool</code> も、
+<u>インクルードすらしていません。</u>
+<br><br>
+知っているのは<strong>「間隔」と「いま撃てるか」だけ</strong>です。
+だからプレイヤーでも敵でもボスでも、そのまま使えます。
+</div>
+<p><strong>やってはいけない作り方</strong></p>
+<pre><code>// ★ こうすると、使い回せなくなる
+class ShooterComponent {
+public:
+    void Update(float dt)
+    {
+        m_timer += dt;
+        if (m_timer &gt; m_interval) {
+            m_timer = 0.0f;
+            NewGO&lt;Bullet&gt;(enPriority_Bullet, "bullet");   // ★ Bullet を知っている
+        }
+    }
+};</code></pre>
+<p>
+<strong>部品に「相手」を知らせないこと。</strong>
+これは <a href="4-04_Solid.html">4-04</a> の D（依存性逆転）と同じ話です。
+</p>
+<p><strong>発展：レベルアップに対応する</strong></p>
+<pre><code>// パワーアップで連射が速くなる
+void Player::PowerUp()
+{
+    m_shotLevel++;
+    m_shooter.SetInterval(BASE_INTERVAL / (1.0f + m_shotLevel * 0.3f));
+}</code></pre>
+		</details>
+
+		<h3>演習3（数える）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">コンポーネントに分けたあと、<strong><code>Player</code> のメンバ変数が何個になったか</strong>数える。<a href="4-01_ReadYourCode.html">4-01</a> の数字と比べる。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>分けたあとの Player.h は、こうなるはずです</strong></p>
+<pre><code>class Player : public IGameObject {
+public:
+    bool Start()  override;
+    void Update() override;
+    void Render(RenderContext&amp; rc) override;
+
+    void Damage(int amount);
+    const Vector3&amp; GetPosition() const { return m_position; }
+    int  GetHp() const { return m_health.GetHp(); }
+    bool IsAlive() const { return m_health.IsAlive(); }
+
+private:
+    void Move(float dt);
+    void UpdateShot(float dt);
+
+    Vector3 m_position = Vector3::Zero;
+
+    HealthComponent  m_health;
+    ShooterComponent m_shooter;
+    ModelComponent   m_model;
+
+    GOHandle&lt;BulletPool&gt; m_bulletPool;
+};</code></pre>
+<p><strong>メンバ：23個 → 5個</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>測ったもの</th><th>4-01のとき</th><th>いま</th></tr></thead>
+<tbody>
+<tr><td>Player のメンバ変数</td><td>23</td><td><strong>5</strong></td></tr>
+<tr><td>Player.cpp の行数</td><td>420</td><td>150</td></tr>
+<tr><td>いちばん長い関数</td><td>182行</td><td><strong>32行</strong></td></tr>
+<tr><td>ファイル数</td><td>2</td><td><u>8（増えた）</u></td></tr>
+</tbody>
+</table>
+</div>
+<div class="note" style="--lv: var(--warn);">
+<span class="h">ファイル数は増えます。これは代償です</span>
+<strong>「HPの処理を直したい」ときは、<code>HealthComponent.h</code> を
+開けばよいので速くなりました。</strong>
+<br><br>
+一方<u>「プレイヤーの動き全体を把握したい」ときは、
+複数のファイルを開くことになります。</u>
+<br><br>
+<strong>どちらが多いかで、分けるべきかが決まります。</strong>
+100行のクラスを5個に割る必要はありません。
+</div>
+<p><strong>分けすぎの目安</strong></p>
+<ul>
+<li>コンポーネントのメンバが<strong>1〜2個しかない</strong></li>
+<li>そのコンポーネントを使っているクラスが<strong>1つしかない</strong></li>
+<li><code>Update()</code> の中身が<strong>1行</strong></li>
+</ul>
+<p>
+3つとも当てはまるなら、<u>分けずに元のクラスに戻したほうが読みやすい</u>です。
+<strong>戻すのも、立派なリファクタリングです（<a href="4-13_Refactoring.html">4-13</a>）。</strong>
+</p>
+		</details>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li>コンポーネントに分ける、いちばんの利点は？</li>
+			<li>まず「ただのメンバ」から始めるのを勧めるのはなぜ？</li>
+			<li><code>ShooterComponent</code> が <code>Bullet</code> を知らないほうがよいのはなぜ？</li>
+			<li>分けすぎたときのサインは？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>同じ機能を複数のクラスで使い回せること。
+					そして、直す場所が1か所になること。</li>
+				<li>速く、コンパイル時に検査が効き、コード量も少ないから。
+					実行中の付け外しが要らないなら、これで足りる。</li>
+				<li>知ってしまうと、その弾を使うクラスでしか使えなくなるから。</li>
+				<li>メンバが1〜2個、使っているクラスが1つ、
+					<code>Update()</code> が1行。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="4-08_Observer.html"><strong>4-08 Observer</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

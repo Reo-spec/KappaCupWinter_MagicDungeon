@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K2_PROFILE_SCOPE で自分のコードを測る</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n5" href="5-01_ReadProfiler.html">← 前 5-01</a>
+			<a class="navchip n5" href="index.html#lv5">LV5 の目次</a>
+			<a class="navchip n5" href="5-03_Cpu.html">次 → 5-03</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l5">
+		<p class="kicker">LV5 最適化 ／ 5-02</p>
+		<h1>K2_PROFILE_SCOPE で自分のコードを測る</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="5-01_ReadProfiler.html">5-01</a>
+		</p>
+	</header>
+
+	<section class="level l5">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>重い場所を、推測ではなく計測で絞り込める</strong></li>
+			<li>計測そのものが結果を歪めることを知っている</li>
+			<li>Release で正しく測れる</li>
+		</ul>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">02</span>使い方は1行</h2>
+<pre><code>void Player::Update()
+{
+    K2_PROFILE_SCOPE("Player");     // ★ これだけ
+
+    Move();
+    UpdateShot();
+    CheckHit();
+}</code></pre>
+		<p class="prose">
+			<strong>この行から、<code>}</code> を抜けるまでの時間が測られます。</strong>
+			<kbd>F1</kbd> → Profiler パネルに、名前と時間が並びます。
+		</p>
+		<p class="prose">
+			<a href="4-08_Observer.html">4-08</a> で出てきた RAII です。
+			<strong>終了を書き忘れることが、原理的にありません。</strong>
+		</p>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">03</span>入れ子にできる</h2>
+<pre><code>void GameScene::Update()
+{
+    K2_PROFILE_SCOPE("GameScene");
+
+    UpdateEnemies();
+    UpdateBullets();
+    UpdateCollision();
+}
+
+void GameScene::UpdateCollision()
+{
+    K2_PROFILE_SCOPE("Collision");    // ★ GameScene の内側として表示される
+    ...
+}</code></pre>
+		<p class="prose">
+			パネルには、<strong>字下げされて階層で表示されます。</strong>
+		</p>
+<pre><code>GameScene         8.42 ms
+  Enemies         1.20 ms
+  Bullets         0.65 ms
+  Collision       6.10 ms     ← ここが重い</code></pre>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">04</span>絞り込み方 ― 上から半分ずつ</h2>
+		<p class="prose">
+			<strong>いきなり細かいところに入れないでください。</strong>
+		</p>
+		<ol class="prose">
+			<li><strong>まず大きい単位で3〜4か所に入れる</strong>
+				（更新／描画／当たり判定）</li>
+			<li>いちばん重いところを見つける</li>
+			<li><strong>その中を、また3〜4か所に分ける</strong></li>
+			<li>2〜3回繰り返せば、だいたい特定できる</li>
+		</ol>
+		<div class="note">
+			<span class="h">二分探索と同じ考え方です</span>
+			<a href="1-19_BugHunt.html">1-19</a> でバグを探したときと同じです。<br>
+			<strong>範囲を半分に狭めることを繰り返すのが、いちばん速い。</strong>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">05</span>計測そのもののコスト</h2>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">毎フレーム何千回も呼ばれる関数に入れないでください</span>
+			<strong>計測1回にも時間がかかります。</strong>
+			弾1000発それぞれの <code>Update()</code> に入れると、
+			<u>計測のせいで重くなり、計測結果が信用できなくなります。</u>
+		</div>
+<pre><code>// ★ だめ
+void Bullet::Update()
+{
+    K2_PROFILE_SCOPE("Bullet");     // 1000発なら1フレームに1000回
+    ...
+}
+
+// ○ まとめて測る
+void BulletPool::UpdateAll()
+{
+    K2_PROFILE_SCOPE("Bullets");    // 1フレームに1回
+    for (Bullet* b : m_bullets) {
+        b-&gt;Update();
+    }
+}</code></pre>
+		<p class="prose">
+			<code>k2EngineLow/dbg/DebugProfiler.h</code> にも
+			<strong>「1フレームに数十回まで」</strong>と書いてあります。
+			<u>それを超えるなら、測り方を変えてください。</u>
+		</p>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">06</span>Debug と Release</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th></th><th>Debug</th><th>Release</th></tr></thead>
+			<tbody>
+				<tr><td>最適化</td><td>なし</td><td><strong>あり</strong></td></tr>
+				<tr><td>速度</td><td><u>数倍〜10倍遅い</u></td><td>本来の速度</td></tr>
+				<tr><td>インライン化</td><td>されない</td><td><strong>される</strong></td></tr>
+				<tr><td>計測に使えるか</td>
+					<td>比較には使える</td>
+					<td><strong>こちらで測ること</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">Debug の数字で判断すると、間違った結論に至ります</span>
+			<strong>Debug では、小さい関数呼び出しが本当に関数呼び出しになります。</strong>
+			だから<u>「関数呼び出しが重い」という誤った結論</u>が出ます。<br>
+			Release ではインライン展開されて、呼び出し自体が消えます。
+		</div>
+		<p class="prose">
+			<strong>k2Engine では、Release でもデバッグGUIが使えます。</strong>
+			<code>k2EngineLow/dbg/DebugConfig.h</code> の
+			<code>K2_ENABLE_DEBUG_GUI</code> が定義されていれば動きます。
+		</p>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">07</span>測るときの決まりごと</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>やること</th><th>理由</th></tr></thead>
+			<tbody>
+				<tr><td><strong>同じ場面で測る</strong></td>
+					<td>敵の数が違えば、当然結果も違う</td></tr>
+				<tr><td>何回か測って、ばらつきを見る</td>
+					<td><u>1回だけでは、たまたまかもしれない</u></td></tr>
+				<tr><td><strong>ほかのアプリを閉じる</strong></td>
+					<td>ブラウザや動画で、平気で数msずれる</td></tr>
+				<tr><td>電源設定を「高パフォーマンス」に</td>
+					<td>ノートPCは、省電力でCPUの速度を落とす</td></tr>
+				<tr><td><strong>変更は1つずつ</strong></td>
+					<td><strong>2つ変えると、どちらが効いたか分からない</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h">再現できる場面を作っておくと、あとが楽です</span>
+<pre style="margin-top:8px;"><code>// デバッグパネルに、負荷テスト用のボタンを置く
+if (ImGui::Button(U8("敵を200体出す"))) {
+    for (int i = 0; i &lt; 200; i++) {
+        CreateEnemy(enEnemyType_Zako, RandomPosition());
+    }
+}</code></pre>
+			<strong>毎回同じ条件を作れると、比較が正確になります。</strong>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">08</span>演習</h2>
+		<h3>演習1（入れる）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>大きい単位で3か所</strong>に <code>K2_PROFILE_SCOPE</code> を入れて、どこがいちばん重いか見る。</p>
+
+		<h3>演習2（絞る）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">いちばん重かったところの<strong>中をさらに分けて</strong>、原因を1つの関数まで絞り込む。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>段階1 ― 大きく3つ</strong></p>
+<pre><code>void GameScene::Update()
+{
+    { K2_PROFILE_SCOPE("Enemies");   UpdateEnemies();   }
+    { K2_PROFILE_SCOPE("Bullets");   UpdateBullets();   }
+    { K2_PROFILE_SCOPE("Collision"); UpdateCollision(); }
+}</code></pre>
+<pre><code>Enemies      1.20 ms
+Bullets      0.65 ms
+Collision    6.10 ms     ← ここ</code></pre>
+<p><strong>段階2 ― Collision の中を分ける</strong></p>
+<pre><code>void GameScene::UpdateCollision()
+{
+    { K2_PROFILE_SCOPE("Col:PlayerBullet"); CheckPlayerBulletVsEnemy(); }
+    { K2_PROFILE_SCOPE("Col:EnemyBullet");  CheckEnemyBulletVsPlayer(); }
+    { K2_PROFILE_SCOPE("Col:Body");         CheckPlayerVsEnemy();       }
+}</code></pre>
+<pre><code>Collision            6.10 ms
+  Col:PlayerBullet   5.80 ms     ← ここ
+  Col:EnemyBullet    0.22 ms
+  Col:Body           0.05 ms</code></pre>
+<p><strong>段階3 ― 中身を見る</strong></p>
+<pre><code>void GameScene::CheckPlayerBulletVsEnemy()
+{
+    for (Bullet* b : m_bullets) {
+        if (!b-&gt;IsActive()) { continue; }
+
+        for (Enemy* e : m_enemies) {        // ★ 二重ループ
+            if (!e-&gt;IsActive()) { continue; }
+            if (IsHit(b, e)) { ... }
+        }
+    }
+}</code></pre>
+<p>
+<strong>弾200発 × 敵50体 = 10000回。</strong>
+これが原因だと分かりました。
+</p>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">ここまで来れば、対策を選べます</span>
+<div class="tbl-scroll" style="margin-top:8px;">
+<table class="plain">
+<thead><tr><th>対策</th><th>効き方</th><th>章</th></tr></thead>
+<tbody>
+<tr><td><strong>非アクティブを先に弾く</strong></td>
+	<td><strong>まずこれ。タダ</strong></td><td>—</td></tr>
+<tr><td>大まかな範囲で先に除外する</td><td>大きい</td><td>—</td></tr>
+<tr><td>空間分割（グリッド）</td><td>桁で効く</td><td>—</td></tr>
+<tr><td>データの並べ方を変える</td><td>数倍</td>
+	<td><a href="5-06_AosSoa.html">5-06</a></td></tr>
+<tr><td>SIMD でまとめて計算</td><td>数倍</td>
+	<td><a href="5-13_Simd.html">5-13</a></td></tr>
+<tr><td>並列化</td><td>コア数ぶん</td>
+	<td><a href="5-12_JobSystem.html">5-12</a></td></tr>
+</tbody>
+</table>
+</div>
+<strong>上から順に検討してください。</strong>
+<u>下のほうほど、コードが複雑になります。</u>
+</div>
+<div class="note" style="--lv: var(--warn);">
+<span class="h">計測を入れる前と後で、全体の時間が変わっていないか確認を</span>
+<strong>段階2で6個もスコープを入れると、
+それ自体が数十マイクロ秒かかります。</strong>
+<br><br>
+<u>原因が分かったら、細かいスコープは消してください。</u>
+入れっぱなしにすると、ゲーム本体が遅くなります。
+</div>
+		</details>
+
+		<h3>演習3（比べる）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>Debug と Release で、同じ場所の数字を比べる。</strong>何倍違うか。<u>どこがいちばん差が大きいか。</u></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>測り方</strong></p>
+<ol>
+<li>同じ場面を作る（デバッグパネルのボタンで敵200体、など）</li>
+<li>Debug で測って記録</li>
+<li>Release でビルドし直して、同じ場面で測る</li>
+</ol>
+<p><strong>典型的な結果</strong></p>
+<pre><code>                     Debug    Release   倍率
+Frame               52.3 ms   14.8 ms   3.5x
+  Enemies            8.4 ms    1.2 ms   7.0x
+  Bullets            6.1 ms    0.6 ms  10.2x   ★いちばん差が大きい
+  Collision         18.2 ms    6.1 ms   3.0x
+  Render            12.0 ms    5.9 ms   2.0x</code></pre>
+<p><strong>なぜ場所によって倍率が違うのか</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>差が大きい処理</th><th>理由</th></tr></thead>
+<tbody>
+<tr><td><strong>小さい関数を大量に呼ぶ</strong></td>
+	<td><strong>Release でインライン化されて、呼び出しが消える</strong></td></tr>
+<tr><td><code>Vector3</code> の演算が多い</td>
+	<td><u>演算子オーバーロードが全部インライン化される</u></td></tr>
+<tr><td>ループが単純</td><td>ベクトル化されることがある</td></tr>
+<tr><td><code>std::vector</code> の <code>operator[]</code></td>
+	<td>Debug では範囲チェックが入る</td></tr>
+</tbody>
+</table>
+</div>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>差が小さい処理</th><th>理由</th></tr></thead>
+<tbody>
+<tr><td>GPU を待っている時間</td><td>CPU の最適化と無関係</td></tr>
+<tr><td>ファイルの読み込み</td><td>ディスクの速度で決まる</td></tr>
+<tr><td>メモリアクセスが多い処理</td>
+	<td><strong>メモリ待ちは最適化で消えない</strong></td></tr>
+</tbody>
+</table>
+</div>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">最後の行が、LV5 のここから先の話です</span>
+<strong>コンパイラの最適化で速くなるのは、「計算」の部分だけです。</strong>
+<br><br>
+<u>「メモリからデータが届くのを待っている」時間は、
+どれだけ最適化しても減りません。</u>
+<br><br>
+<strong>減らすには、データの置き方を変えるしかありません。</strong>
+それが <a href="5-04_CacheLine.html">5-04</a> からの話です。
+</div>
+<div class="note" style="--lv: var(--warn);">
+<span class="h">Debug で遅くても、気にしすぎないでください</span>
+<strong>Debug が遅いのは、そういうものです。</strong>
+<br><br>
+ただし<u>Debug で遊べないほど遅いと、開発しづらくなります。</u>
+その場合は、Debug でも敵の数を減らす設定を入れるなど、
+<strong>開発しやすさのための工夫</strong>を検討してください。
+</div>
+		</details>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">09</span>確認</h2>
+		<ol class="prose">
+			<li><code>K2_PROFILE_SCOPE</code> は、どこからどこまでを測る？</li>
+			<li>弾1000発それぞれに入れてはいけないのはなぜ？</li>
+			<li>Release で測るべき理由は？</li>
+			<li>絞り込みの進め方は？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>その行から、いま入っている <code>{ }</code> を抜けるまで。</li>
+				<li>計測自体にコストがあり、結果が歪むから。</li>
+				<li>Debug は最適化が切れていて、
+					インライン化されないため誤った結論が出る。</li>
+				<li>大きい単位から入れて、重いところを半分ずつ絞る。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">10</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="5-03_Cpu.html"><strong>5-03 CPUの仕組み</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>敵を出す</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n2" href="2-15_Collision.html">← 前 2-15</a>
+			<a class="navchip n2" href="index.html#lv2">LV2 の目次</a>
+			<a class="navchip n2" href="2-17_DeathTiming.html">次 → 2-17</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l2">
+		<p class="kicker">LV2 基礎 ／ 2-16</p>
+		<h1>敵を出す（スポナー）</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="2-15_Collision.html">2-15</a>
+		</p>
+	</header>
+
+	<section class="level l2">
+		<h2><span class="n">00</span>入場チェック</h2>
+		<ul class="checklist prose">
+			<li>当たり判定を書ける？ → <a href="2-15_Collision.html">2-15</a></li>
+			<li><code>std::vector</code> を使える？ → <a href="1-11_Array.html">1-11</a></li>
+		</ul>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li>敵が時間とともに出てくるようにできる</li>
+			<li><strong>出現パターンをコードの外（ファイル）に出せる</strong></li>
+			<li>調整のたびにビルドし直さなくて済むようになる</li>
+		</ul>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">02</span>まずは単純に</h2>
+		<p class="prose">
+			一定の間隔で敵を出すだけなら、これで動きます。
+		</p>
+<pre><code>class EnemySpawner : public IGameObject {
+public:
+    bool Start() override;
+    void Update() override;
+private:
+    float m_timer = 0.0f;
+    static const float INTERVAL;
+};
+
+const float EnemySpawner::INTERVAL = 1.0f;
+
+void EnemySpawner::Update()
+{
+    m_timer -= g_gameTime-&gt;GetFrameDeltaTime();
+    if (m_timer &gt; 0.0f) {
+        return;
+    }
+    m_timer = INTERVAL;
+
+    Enemy* enemy = NewGO&lt;Enemy&gt;(enPriority_Enemy, "enemy");
+    float x = (float)(rand() % 1600 - 800);      // -800 〜 800 のどこか
+    enemy-&gt;SetPosition({ x, 600.0f, 0.0f });     // 画面の上から
+}</code></pre>
+		<p class="prose">
+			<strong>これで「動くもの」はできます。</strong>
+			まずはここまで作って、遊べる状態にしてください。
+		</p>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">03</span>でも、これでは調整できない</h2>
+		<p class="prose">
+			実際にゲームを作り始めると、こうなります。
+		</p>
+		<ul class="prose">
+			<li>「最初の10秒はもっと少なくしたい」</li>
+			<li>「30秒で強い敵を出したい」</li>
+			<li>「左右対称に3体まとめて出したい」</li>
+		</ul>
+		<p class="prose">
+			これを <code>if</code> で書いていくと、すぐに読めなくなります。
+		</p>
+<pre><code>// こうなっていく
+if (m_time &lt; 10.0f) { ... }
+else if (m_time &lt; 20.0f &amp;&amp; m_count % 3 == 0) { ... }
+else if (m_time &lt; 30.0f) { ... }
+// 100行後...</code></pre>
+		<div class="note">
+			<span class="h">「変わるもの」はコードの外へ</span>
+			<strong>何度も調整する値は、ソースコードに書かないでください。</strong>
+			ビルドに時間がかかるので、1回の調整に何分もかかります。
+			ファイルに出しておけば、<strong>ゲームを起動したまま、または再起動だけで試せます。</strong>
+		</div>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">04</span>出現表をCSVにする</h2>
+		<p class="prose">
+			<code>Assets/data/enemyWave.csv</code> のようなファイルを用意します。
+		</p>
+<pre><code># 出現時刻(秒), 種類, X座標
+1.0, 0, -300
+1.0, 0,  300
+3.0, 0,    0
+5.0, 1, -500
+5.0, 1,  500
+10.0, 2,   0</code></pre>
+
+<pre><code>struct SpawnData {
+    float time;      // 出現時刻
+    int   type;      // 敵の種類
+    float x;         // X座標
+};
+
+class EnemySpawner : public IGameObject {
+public:
+    bool Start() override;
+    void Update() override;
+private:
+    void LoadWaveData(const char* filePath);
+private:
+    std::vector&lt;SpawnData&gt; m_waveData;
+    int   m_nextIndex = 0;      // 次に出す行
+    float m_time = 0.0f;        // ゲーム開始からの秒数
+};</code></pre>
+
+<pre><code>void EnemySpawner::LoadWaveData(const char* filePath)
+{
+    FILE* file = nullptr;
+    if (fopen_s(&amp;file, filePath, "r") != 0 || file == nullptr) {
+        return;
+    }
+    char line[256];
+    while (fgets(line, sizeof(line), file) != nullptr) {
+        if (line[0] == '#' || line[0] == '\n') {
+            continue;                     // コメントと空行は読み飛ばす
+        }
+        SpawnData data;
+        if (sscanf_s(line, "%f,%d,%f", &amp;data.time, &amp;data.type, &amp;data.x) == 3) {
+            m_waveData.push_back(data);
+        }
+    }
+    fclose(file);
+}
+
+void EnemySpawner::Update()
+{
+    m_time += g_gameTime-&gt;GetFrameDeltaTime();
+
+    // 時刻が来た行を、来たぶんだけ出す。
+    while (m_nextIndex &lt; (int)m_waveData.size()
+        &amp;&amp; m_waveData[m_nextIndex].time &lt;= m_time)
+    {
+        const SpawnData&amp; data = m_waveData[m_nextIndex];
+
+        Enemy* enemy = NewGO&lt;Enemy&gt;(enPriority_Enemy, "enemy");
+        enemy-&gt;SetType(data.type);
+        enemy-&gt;SetPosition({ data.x, 600.0f, 0.0f });
+
+        m_nextIndex++;
+    }
+}</code></pre>
+		<div class="note">
+			<span class="h">なぜ <code>while</code> なのか</span>
+			同じ時刻に複数の行があるとき、<code>if</code> だと1体しか出ません。
+			<code>while</code> にすれば、<strong>時刻が来ている行を全部まとめて出せます。</strong>
+			重いフレームで時間が飛んでも、取りこぼしません。
+		</div>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">05</span>動かして確かめる</h2>
+		<ul class="checklist prose">
+			<li>CSVに書いた時刻どおりに敵が出る</li>
+			<li><strong>CSVを書き換えて再起動すると、ビルドせずに出方が変わる</strong></li>
+			<li>同じ時刻の行が、同時にまとめて出る</li>
+			<li>GameObject List で敵の数が増減している</li>
+		</ul>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">06</span>よくあるエラー</h2>
+		<h3>敵が1体も出ない</h3>
+		<p class="prose">
+			<strong>原因1：</strong>ファイルが読めていない。<code>LoadWaveData</code> の
+			<code>fopen_s</code> が失敗しても、このコードは黙って何もしません。<br>
+			<strong>直し方：</strong>読めなかったときに <code>OutputDebugStringA</code> で
+			知らせるようにする。<strong>「黙って失敗する」コードは書かないこと。</strong>
+		</p>
+
+		<h3>敵が一気に全部出る</h3>
+		<p class="prose">
+			<strong>原因：</strong><code>m_nextIndex++</code> を忘れている。<br>
+			<strong>直し方：</strong><code>while</code> の中で必ず進める。無限ループになります。
+		</p>
+
+		<h3>CSVの数字がおかしく読まれる</h3>
+		<p class="prose">
+			<strong>原因：</strong>全角のカンマやスペースが混ざっている。<br>
+			<strong>直し方：</strong>半角で書く。Excelで編集したなら、CSVとして保存し直す。
+		</p>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（まねる）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">CSVから敵を出せるようにする。</p>
+
+		<h3>演習2（調整する）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			CSVだけを書き換えて、<strong>1分間遊べる難易度カーブ</strong>を作る。
+			C++のコードは一行も変えないこと。
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p>
+<strong>正解はありませんが、「難易度カーブ」には定石があります。</strong>
+</p>
+<pre><code># 時刻, 種類, X座標
+
+# 0〜10秒：操作に慣れてもらう。まばらに、避けやすく。
+2.0, 0,    0
+4.0, 0, -400
+6.0, 0,  400
+8.0, 0, -200
+8.5, 0,  200
+
+# 10〜30秒：数を増やす。同時に複数。
+11.0, 0, -600
+11.0, 0,  600
+14.0, 0, -300
+14.0, 0,    0
+14.0, 0,  300
+18.0, 1, -500
+18.0, 1,  500
+
+# 30〜50秒：硬い敵を混ぜる。密度を上げる。
+32.0, 2,    0
+34.0, 0, -700
+34.0, 0,  700
+36.0, 1,    0
+...
+
+# 55秒：ボス
+55.0, 9,    0
+</code></pre>
+<p><strong>作るときのコツ</strong></p>
+<ul>
+<li><strong>最初の10秒は簡単に。</strong>いきなり難しいと、遊ぶ人はやめます</li>
+<li><strong>ときどき「休み」を入れる。</strong>ずっと密度が高いと疲れます。
+	5秒くらい何も出ない時間があると、次の波が引き立ちます</li>
+<li><strong>山を作る。</strong>だんだん難しく、ではなく「難 → 休み → もっと難」
+	のリズムにすると飽きません</li>
+</ul>
+<p>
+<strong>そして、必ず自分で遊んで直してください。</strong>
+これを何回繰り返せるかが、ゲームの出来を決めます。
+CSVにしたのは、その回数を増やすためです。
+</p>
+		</details>
+
+		<h3>演習3（自分で書く）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			CSVに<strong>「動き方の種類」の列を足して</strong>、
+			まっすぐ来る敵と、左右に揺れながら来る敵を出し分ける。
+			<strong>本文には答えがありません。</strong>
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code># 時刻, 種類, X座標, 動き方
+1.0, 0, -300, 0     # 0 = まっすぐ
+1.0, 0,  300, 0
+5.0, 0, -500, 1     # 1 = 左右に揺れる
+5.0, 0,  500, 1</code></pre>
+
+<pre><code>struct SpawnData {
+    float time;
+    int   type;
+    float x;
+    int   moveType;      // ★ 追加
+};
+
+// 読み込み
+if (sscanf_s(line, "%f,%d,%f,%d",
+        &amp;data.time, &amp;data.type, &amp;data.x, &amp;data.moveType) == 4) {
+    m_waveData.push_back(data);
+}
+
+// 出すとき
+enemy-&gt;SetMoveType(data.moveType);</code></pre>
+
+<pre><code>// Enemy.cpp
+void Enemy::Move()
+{
+    const float dt = g_gameTime-&gt;GetFrameDeltaTime();
+    m_timer += dt;
+
+    switch (m_moveType) {
+    case enMove_Straight:
+        m_position.y -= 200.0f * dt;
+        break;
+
+    case enMove_Wave:
+        m_position.y -= 150.0f * dt;
+        m_position.x = m_startX + sinf(m_timer * 3.0f) * 200.0f;
+        break;
+    }
+}</code></pre>
+<p><strong>気をつけるところ</strong></p>
+<ul>
+<li><code>sscanf_s</code> の戻り値を <code>== 4</code> に直すのを忘れない。
+	<code>3</code> のままだと1行も読めません</li>
+<li>揺れる動きは、<strong>出現したときのXを <code>m_startX</code> に覚えておいて</strong>、
+	そこからの差で計算します。そうしないと、毎回画面中央を基準に揺れてしまいます</li>
+<li><code>switch</code> が増えてきたら、それは
+	<a href="index.html#ch4-09">LV4-09（Strategyパターン）</a>の出番です。
+	<strong>いまは <code>switch</code> で構いません</strong></li>
+</ul>
+		</details>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li>出現パターンをCSVに出すと、何が良い？</li>
+			<li><code>if</code> ではなく <code>while</code> で出すのはなぜ？</li>
+			<li>ファイルが読めなかったとき、黙って何もしないのはなぜダメ？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>ビルドせずに調整できる。調整の回数を何倍もこなせる。</li>
+				<li>同じ時刻の行をまとめて出すため。重いフレームでの取りこぼしも防げる。</li>
+				<li>原因が分からないまま「なぜか出ない」状態になるから。失敗は必ず知らせる。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="2-17_DeathTiming.html"><strong>2-17 撃破処理と DeleteGO のタイミング設計</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

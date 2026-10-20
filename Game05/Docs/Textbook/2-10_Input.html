@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>入力を受け取る</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n2" href="2-09_GOHandle.html">← 前 2-09</a>
+			<a class="navchip n2" href="index.html#lv2">LV2 の目次</a>
+			<a class="navchip n2" href="2-11_SpriteRender.html">次 → 2-11</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l2">
+		<p class="kicker">LV2 基礎 ／ 2-10</p>
+		<h1>入力を受け取る（<code>g_pad</code>）</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="2-03_MyGameObject.html">2-03</a>
+		</p>
+	</header>
+
+	<section class="level l2">
+		<h2><span class="n">00</span>入場チェック</h2>
+		<ul class="checklist prose">
+			<li><code>Update()</code> はいつ呼ばれる？ → 答えられないなら <a href="2-01_GameLoop.html">2-01</a> へ戻る</li>
+		</ul>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li>ボタンとスティックの入力を読める</li>
+			<li><strong>「押した瞬間」と「押しっぱなし」を使い分けられる</strong></li>
+			<li>パッドが無くてもキーボードで動かせることを知っている</li>
+		</ul>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">02</span>基本の書き方</h2>
+		<p class="prose">
+			入力は <code>g_pad[0]</code> から読みます。<code>[0]</code> は1Pのことです。
+			（4人まで <code>g_pad[0]</code> 〜 <code>g_pad[3]</code> が使えます）
+		</p>
+<pre><code>void Player::Update()
+{
+    // 押した瞬間だけ true
+    if (g_pad[0]-&gt;IsTrigger(enButtonA)) {
+        Jump();
+    }
+
+    // 押している間ずっと true
+    if (g_pad[0]-&gt;IsPress(enButtonB)) {
+        Shoot();
+    }
+
+    // スティックは -1.0 〜 1.0
+    float x = g_pad[0]-&gt;GetLStickXF();
+    float y = g_pad[0]-&gt;GetLStickYF();
+}</code></pre>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">03</span>IsTrigger と IsPress の違い</h2>
+		<p class="prose">
+			<strong>ここを間違えると、必ずおかしな動きになります。</strong>
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>関数</th><th>いつ true</th><th>使う場面</th></tr></thead>
+			<tbody>
+				<tr><td><code>IsTrigger()</code></td>
+					<td><strong>押した瞬間の1フレームだけ</strong></td>
+					<td>ジャンプ、決定、メニューを開く</td></tr>
+				<tr><td><code>IsPress()</code></td>
+					<td>押している間ずっと</td>
+					<td>移動、連射、ためる</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">よくある事故</span>
+			決定ボタンに <code>IsPress</code> を使うと、
+			<strong>1回押しただけでメニューが何十個も進みます。</strong>
+			（60fpsなら、0.5秒押しただけで30回反応します）<br>
+			逆に、移動に <code>IsTrigger</code> を使うと、1回しか動きません。
+		</div>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">04</span>使えるボタン</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>定数</th><th>キーボード（パッドが無いとき）</th></tr></thead>
+			<tbody>
+				<tr><td><code>enButtonUp</code> / <code>Down</code> / <code>Left</code> / <code>Right</code></td><td>矢印キー</td></tr>
+				<tr><td><code>enButtonA</code> / <code>B</code> / <code>X</code> / <code>Y</code></td><td>Z / X / C / V など</td></tr>
+				<tr><td><code>enButtonStart</code> / <code>enButtonSelect</code></td><td>Enter / Space など</td></tr>
+				<tr><td><code>enButtonLB1</code>〜<code>LB3</code> / <code>enButtonRB1</code>〜<code>RB3</code></td><td>肩ボタン・トリガー</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>キーボードの割り当ては環境によって違うことがあります。</strong>
+			自分の環境で実際に押して確かめてください。
+			パッドをつなぐのがいちばん確実です。
+		</p>
+		<p class="prose">そのほか、こんな関数もあります。</p>
+<pre><code>g_pad[0]-&gt;IsPressAnyKey();                   // 何か押されている？
+g_pad[0]-&gt;SetVibration(0.5f, 1.0f);          // 0.5秒ふるえる（強さ0〜1）
+g_pad[0]-&gt;GetRStickXF();                     // 右スティック</code></pre>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">05</span>スティックで動かす</h2>
+<pre><code>void Player::Update()
+{
+    const float dt = g_gameTime-&gt;GetFrameDeltaTime();
+    const float SPEED = 500.0f;    // 1秒で500進む
+
+    float x = g_pad[0]-&gt;GetLStickXF();
+    float y = g_pad[0]-&gt;GetLStickYF();
+
+    m_position.x += x * SPEED * dt;
+    m_position.y += y * SPEED * dt;
+
+    m_spriteRender.SetPosition(m_position);
+    m_spriteRender.Update();
+}</code></pre>
+		<p class="prose">
+			スティックは <strong>-1.0 〜 1.0</strong> を返します。
+			倒していなければ 0 なので、<code>if</code> は要りません。
+			<strong>デルタタイムを掛けるのを忘れないこと</strong>（<a href="2-02_DeltaTime.html">2-02</a>）。
+		</p>
+		<div class="note">
+			<span class="h">斜めが速くなる問題</span>
+			上と右を同時に倒すと、まっすぐより <strong>約1.41倍</strong>速く動きます。
+			（三平方の定理です）
+			気になるなら、移動ベクトルを <code>Normalize()</code> してから速さを掛けてください。
+			<a href="2-15_Collision.html">2-15</a> でベクトルを扱います。
+		</div>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">06</span>動かして確かめる</h2>
+<pre><code>void Game::Update()
+{
+    if (g_pad[0]-&gt;IsTrigger(enButtonA)) {
+        OutputDebugStringA("A を押した瞬間\n");
+    }
+    if (g_pad[0]-&gt;IsPress(enButtonA)) {
+        OutputDebugStringA("A を押している\n");
+    }
+}</code></pre>
+		<ul class="checklist prose">
+			<li>Aを押しっぱなしにすると、「押した瞬間」は1回だけ出る</li>
+			<li>「押している」は出続ける</li>
+		</ul>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（まねる）<span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">スティックでスプライトを上下左右に動かす。</p>
+
+		<h3>演習2（違いを見る）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			Aボタンを押すたびにカウンタが1増えるようにする。
+			<code>IsTrigger</code> と <code>IsPress</code> の両方で試して、違いを確かめる。
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>void Game::Update()
+{
+    if (g_pad[0]-&gt;IsTrigger(enButtonA)) {
+        m_triggerCount++;
+    }
+    if (g_pad[0]-&gt;IsPress(enButtonA)) {
+        m_pressCount++;
+    }
+
+    wchar_t text[256];
+    swprintf_s(text, 256, L"Trigger %d / Press %d", m_triggerCount, m_pressCount);
+    m_fontRender.SetText(text);
+}</code></pre>
+<p><strong>結果</strong></p>
+<ul>
+<li>Aを1回押して離す → <code>Trigger</code> は <strong>1</strong> だけ増える</li>
+<li>Aを1秒押しっぱなし → <code>Press</code> は <strong>約60</strong> 増える</li>
+</ul>
+<p>
+決定ボタンに <code>IsPress</code> を使うと、
+<strong>0.5秒押しただけでメニューが30個進む</strong>のは、この数字のとおりです。
+</p>
+		</details>
+
+		<h3>演習3（自分で書く）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			<strong>Aボタンを長押ししたら強い攻撃、短く押したら弱い攻撃</strong>になるようにする。
+			<code>IsTrigger</code> で押し始めた時刻を覚えて、離したときに判定します。
+			<strong>本文には答えがありません。</strong>
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>// Player.h
+private:
+    bool  m_isCharging = false;
+    float m_chargeTime = 0.0f;
+    static const float STRONG_ATTACK_TIME;   // 何秒で強攻撃になるか
+
+// Player.cpp
+const float Player::STRONG_ATTACK_TIME = 0.5f;
+
+void Player::UpdateAttack()
+{
+    const float dt = g_gameTime-&gt;GetFrameDeltaTime();
+
+    // 押し始めた
+    if (g_pad[0]-&gt;IsTrigger(enButtonA)) {
+        m_isCharging = true;
+        m_chargeTime = 0.0f;
+    }
+
+    if (m_isCharging == false) {
+        return;
+    }
+    m_chargeTime += dt;
+
+    // 離した
+    if (g_pad[0]-&gt;IsPress(enButtonA) == false) {
+        if (m_chargeTime &gt;= STRONG_ATTACK_TIME) {
+            ShootStrong();
+        }
+        else {
+            ShootWeak();
+        }
+        m_isCharging = false;
+    }
+}</code></pre>
+<p><strong>ポイント</strong></p>
+<ul>
+<li><code>IsTrigger</code> で「押し始め」を捉え、<code>IsPress</code> が
+	<code>false</code> になった瞬間で「離した」を捉える</li>
+<li>フレーム数ではなく<strong>秒</strong>で数える（<a href="2-02_DeltaTime.html">2-02</a>）</li>
+<li><strong>ためている間、見た目で分かるようにすると親切です。</strong>
+	自機を光らせる、ゲージを出すなど</li>
+</ul>
+		</details>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li>ジャンプに使うのは <code>IsTrigger</code> と <code>IsPress</code> のどちら？</li>
+			<li>スティックの値の範囲は？</li>
+			<li>スティックの値に何を掛けて位置に足す？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li><code>IsTrigger</code>。<code>IsPress</code> だと押している間ずっとジャンプしてしまう。</li>
+				<li>-1.0 〜 1.0。</li>
+				<li>速さ（1秒あたりの距離）とデルタタイム。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="2-11_SpriteRender.html"><strong>2-11 スプライトを表示する</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

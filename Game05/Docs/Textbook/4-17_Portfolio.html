@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ポートフォリオと技術面接</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n4" href="4-16_Redesign.html">← 前 4-16</a>
+			<a class="navchip n4" href="index.html#lv4">LV4 の目次</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l4">
+		<p class="kicker">LV4 設計 ／ 4-17</p>
+		<h1>ポートフォリオと技術面接</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="4-16_Redesign.html">4-16</a>
+		</p>
+	</header>
+
+	<section class="level l4">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>設計の理由を90秒で説明できる</strong></li>
+			<li>ポートフォリオに何を載せるべきか分かる</li>
+			<li>技術面接で聞かれることの見当がつく</li>
+		</ul>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">この章は、教材の中でいちばん賞味期限が短いです</span>
+			<strong>採用の傾向は変わります。</strong>
+			会社によっても違います。<br>
+			<u>「こういう観点で見られる」という目安として読んでください。</u>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">02</span>何が見られているのか</h2>
+		<p class="prose">
+			<strong>「すごいものを作れるか」ではありません。</strong>
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>見られていること</th><th>なぜ</th></tr></thead>
+			<tbody>
+				<tr><td><strong>一緒に働けそうか</strong></td>
+					<td>技術より、こちらが先に見られます</td></tr>
+				<tr><td><strong>自分で調べて解決できるか</strong></td>
+					<td>教えることはできるが、手取り足取りは無理</td></tr>
+				<tr><td>最後まで作りきれるか</td>
+					<td><u>途中でやめる人が、思った以上に多い</u></td></tr>
+				<tr><td>他人のコードを読めるか</td>
+					<td>入社後、書くより読む時間のほうが長い</td></tr>
+				<tr><td>判断の理由を言えるか</td>
+					<td><strong>ここで差がつきます</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h">LV4 でやったことは、全部ここに効きます</span>
+			<strong>ゲームの出来より、
+			<a href="4-16_Redesign.html">4-16</a> の <code>REFACTOR_LOG.md</code>
+			のほうが刺さる</strong>ことは珍しくありません。<br>
+			<u>「動くものを作った」人は大勢います。
+			「動くものを、壊さずに作り替えた」人は多くありません。</u>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">03</span>ポートフォリオに載せるもの</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>載せる</th><th>備考</th></tr></thead>
+			<tbody>
+				<tr><td><strong>動画（30秒〜1分）</strong></td>
+					<td><strong>最初に見られる。いちばん大事</strong></td></tr>
+				<tr><td>実行ファイル一式</td>
+					<td><u>ダブルクリックで動くこと。これができていない人が多い</u></td></tr>
+				<tr><td>ソースコード（Git）</td><td>履歴も見られます</td></tr>
+				<tr><td><strong>1枚の技術資料</strong></td>
+					<td><strong>設計図、工夫した点、苦労した点</strong></td></tr>
+				<tr><td>操作説明</td><td>1枚。動かせないと評価できません</td></tr>
+				<tr><td>素材のクレジット</td>
+					<td><a href="assets-guide.html">素材の用意のしかた</a></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">「動かない」が、いちばんもったいない落とし方です</span>
+			<strong>必ず、自分の開発マシン以外で動かして確認してください。</strong>
+			<div class="tbl-scroll" style="margin-top:8px;">
+			<table class="plain">
+				<thead><tr><th>よくある原因</th><th>対策</th></tr></thead>
+				<tbody>
+					<tr><td><strong>Assets フォルダを入れ忘れ</strong></td>
+						<td>Release フォルダごと固める</td></tr>
+					<tr><td>Debug ビルドを配布</td>
+						<td><strong>Release にする。Debug は動かない環境がある</strong></td></tr>
+					<tr><td>VC++ 再頒布パッケージが無い</td>
+						<td>readme に必要なものを書く</td></tr>
+					<tr><td>絶対パスでファイルを読んでいる</td>
+						<td><u><code>C:\Users\自分\...</code> を探す</u></td></tr>
+				</tbody>
+			</table>
+			</div>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">04</span>技術資料に書くこと</h2>
+		<p class="prose">
+			<strong>1〜2枚で充分です。</strong>長いものは読まれません。
+		</p>
+<pre><code># ○○（ゲーム名）技術資料
+
+## 概要
+C++ / DirectX12（k2Engine）/ 個人制作 / 制作期間3か月
+
+## 全体構成
+（クラス図を1枚。ツールは何でもよい。手描きでも可）
+
+## 工夫した点（3つまで）
+
+### 1. 敵の追加を、表に1行書くだけにした
+種類ごとにクラスをコピペしていて、敵を1体足すのに
+3ファイル触る必要があり、追加漏れのバグを出していた。
+移動と攻撃を Strategy として切り出し、敵の定義をテーブルにした。
+結果、追加作業が40分から3分になった。
+
+### 2. 弾をプールにして、1000発でも60FPSを維持した
+毎フレーム NewGO/DeleteGO していたため、弾幕時に22FPSまで落ちていた。
+Profiler で Shot 関数に 0.42ms かかっていることを確認し、
+200発のプールを用意して Activate/Deactivate で使い回す形に変更。
+0.03ms になり、1000発でも60FPSを維持できるようになった。
+
+## 苦労した点
+
+Observer パターンを導入したとき、購読を解除せずに
+オブジェクトを削除してしまい、再現性のないクラッシュに数日悩んだ。
+デストラクタで自動的に解除される RAII のクラスを作って解決した。
+
+## やらなかったこと
+
+汎用のコンポーネントシステムは作らなかった。
+実行中に機能を付け外しする必要が無く、
+dynamic_cast のコストと、コンパイル時の検査が効かなくなる点が
+割に合わないと判断したため。</code></pre>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h">「数字」と「やらなかったこと」が効きます</span>
+			<strong>数字があると、測ったことが伝わります。</strong><br>
+			<strong>やらなかったことがあると、判断したことが伝わります。</strong><br>
+			<u>どちらも、ただ作っただけでは書けません。</u>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">05</span>90秒で説明する練習</h2>
+		<p class="prose">
+			<strong>「このゲームで工夫したところを教えてください」</strong>
+			— 必ず聞かれます。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>配分</th><th>話すこと</th></tr></thead>
+			<tbody>
+				<tr><td>15秒</td><td><strong>何に困っていたか</strong></td></tr>
+				<tr><td>15秒</td><td>どう調べ、どう判断したか</td></tr>
+				<tr><td>30秒</td><td>何をしたか</td></tr>
+				<tr><td><strong>20秒</strong></td>
+					<td><strong>結果（数字で）</strong></td></tr>
+				<tr><td>10秒</td><td>残った課題</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">「困っていたこと」から始めてください</span>
+			<strong>「Strategy パターンを使いました」から始めると、
+			『なぜ？』と聞き返されます。</strong><br>
+			<u>「敵を足すのに3ファイル触る必要があって、
+			追加漏れのバグを出したんです」から始めると、
+			聞き手が納得した状態で解決策を聞けます。</u>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">06</span>よく聞かれること</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>質問</th><th>関連する章</th></tr></thead>
+			<tbody>
+				<tr><td>ポインタと参照の違いは</td>
+					<td><a href="1-14_Pointer.html">1-14</a></td></tr>
+				<tr><td><strong>仮想関数はどう実現されているか</strong></td>
+					<td><a href="4-03_Composition.html">4-03</a>、
+						<a href="5-03_Cpu.html">5-03</a></td></tr>
+				<tr><td>Singletonの何が悪いのか</td>
+					<td><strong><a href="4-12_Singleton.html">4-12</a></strong></td></tr>
+				<tr><td>継承とコンポジションの使い分け</td>
+					<td><a href="4-03_Composition.html">4-03</a></td></tr>
+				<tr><td><code>std::vector</code> と <code>std::list</code> の違い</td>
+					<td><a href="5-04_CacheLine.html">5-04</a></td></tr>
+				<tr><td><strong>キャッシュを意識したことは</strong></td>
+					<td><a href="5-05_AccessOrder.html">5-05</a>、
+						<a href="5-06_AosSoa.html">5-06</a></td></tr>
+				<tr><td>重いとき、どう調べるか</td>
+					<td><strong><a href="5-01_ReadProfiler.html">5-01</a></strong></td></tr>
+				<tr><td>メモリリークをどう見つけるか</td>
+					<td><a href="5-14_CrashDump.html">5-14</a></td></tr>
+				<tr><td>チーム開発の経験は</td>
+					<td><a href="4-15_Teamwork.html">4-15</a></td></tr>
+				<tr><td><strong>直近で読んだ技術書・記事は</strong></td>
+					<td>—</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note">
+			<span class="h">最後の質問は、意外と落とし穴です</span>
+			<strong>答えられないと「学び続ける人ではない」と見られます。</strong><br>
+			<u>1冊でも1記事でもよいので、直近のものを1つ持っておいてください。</u>
+			この教材でも構いません。
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">07</span>答えられないときの答え方</h2>
+		<p class="prose">
+			<strong>知らないことは必ず聞かれます。</strong>
+			そこで何を見られているかというと、<u>知識ではなく態度</u>です。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>だめ</th><th>よい</th></tr></thead>
+			<tbody>
+				<tr><td>（黙る）</td>
+					<td><strong>「分かりません。〜だとは思うのですが」</strong></td></tr>
+				<tr><td>知ったかぶりをする</td>
+					<td>「使ったことはありませんが、〜という理解です」</td></tr>
+				<tr><td>「勉強不足です」で終わる</td>
+					<td><strong>「調べてみます。どのあたりから見るとよいですか」</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">知ったかぶりは、ほぼ確実にばれます</span>
+			<strong>面接官は、その分野の専門家です。</strong>
+			一段深く聞かれた瞬間に分かります。<br>
+			<u>「知らない」と言える人のほうが、一緒に働きやすいと判断されます。</u>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">08</span>演習</h2>
+		<h3>演習1（まとめる）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><a href="4-16_Redesign.html">4-16</a> の <code>REFACTOR_LOG.md</code> をもとに、<strong>技術資料を1〜2枚</strong>書く。</p>
+
+		<h3>演習2（話す）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>工夫した点を、90秒で声に出して説明する。</strong>録音して聞き返す。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>やり方</strong></p>
+<ol>
+<li>スマホで録音する</li>
+<li>原稿を見ずに話す</li>
+<li><strong>聞き返す</strong>（ここがつらいが、いちばん効く）</li>
+<li>3回繰り返す</li>
+</ol>
+<p><strong>聞き返すときのチェック</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>チェック</th><th>よくある失敗</th></tr></thead>
+<tbody>
+<tr><td><strong>90秒に収まっているか</strong></td>
+	<td>3分話している。<u>長い＝要点が絞れていない</u></td></tr>
+<tr><td>困っていたことから始まっているか</td>
+	<td>いきなり「Strategy パターンを使って」から始めている</td></tr>
+<tr><td><strong>数字が入っているか</strong></td>
+	<td>「速くなりました」だけ。<strong>何msから何msか</strong></td></tr>
+<tr><td>専門用語を説明なしで使っていないか</td>
+	<td>相手が別分野の人のこともある</td></tr>
+<tr><td>「えーと」「なんか」が多くないか</td>
+	<td>2回目以降、自然に減ります</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>90秒の例</strong></p>
+<blockquote style="border-left:3px solid var(--line-strong);padding-left:16px;margin:16px 0;">
+<p>
+弾幕を撃つと、フレームレートが22まで落ちる問題がありました。【困っていたこと・15秒】
+</p>
+<p>
+まず推測で直そうとしたんですが、
+先に測るべきだと思って Profiler を入れました。
+そうしたら、描画ではなく Shot 関数に 0.42ms かかっていて、
+毎フレーム弾を生成・破棄しているのが原因だと分かりました。【調べ方・20秒】
+</p>
+<p>
+そこで、起動時に200発ぶん作っておいて、
+使い回すオブジェクトプールを作りました。
+k2Engine に Activate / Deactivate があったので、
+削除する代わりに非アクティブにして、貸出待ちに戻す形にしています。【やったこと・30秒】
+</p>
+<p>
+結果、Shot 関数が 0.03ms になって、
+1000発出しても60FPSを維持できるようになりました。【結果・15秒】
+</p>
+<p>
+ただ、使っていない弾もメモリを占有し続けるので、
+プールのサイズをどう決めるかは、まだ勘で決めています。【残った課題・10秒】
+</p>
+</blockquote>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">「まず推測で直そうとした」を入れているところ</span>
+<strong>失敗を1つ挟むと、話に厚みが出ます。</strong>
+<br><br>
+<u>「最初から正しくやりました」より、
+「間違えて、気づいて、直しました」のほうが信用されます。</u>
+実際の仕事も、そういうものだからです。
+</div>
+<div class="note" style="--lv: var(--warn);">
+<span class="h">「残った課題」を必ず入れてください</span>
+<strong>これがあると、自分の成果を客観的に見られる人だと伝わります。</strong>
+<br><br>
+そして<u>面接官が次の質問をしやすくなります。</u>
+会話が続くほうが、印象は良くなります。
+</div>
+		</details>
+
+		<h3>演習3（確かめる）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>他人のPCで、自分のゲームを動かす。</strong>手順書だけ渡して、何も説明せずに遊んでもらう。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>これは、想像よりずっと重要な演習です。</strong></p>
+<p><strong>よく見つかること</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>見つかること</th><th>頻度</th></tr></thead>
+<tbody>
+<tr><td><strong>そもそも起動しない</strong></td><td><strong>かなり多い</strong></td></tr>
+<tr><td>Assets が無くて落ちる</td><td>多い</td></tr>
+<tr><td>操作が分からない</td><td><strong>非常に多い</strong></td></tr>
+<tr><td>ゲームパッドが無いと遊べない</td><td>多い</td></tr>
+<tr><td>解像度が合わない／画面外に出る</td><td>たまに</td></tr>
+<tr><td>最初のステージが難しすぎる</td><td><strong>ほぼ必ず</strong></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>配布物のチェックリスト</strong></p>
+<pre><code>□ Release ビルドである
+□ Assets フォルダが入っている
+□ dxcompiler.dll / dxil.dll など、必要な DLL が入っている
+□ 絶対パス（C:\Users\...）でファイルを読んでいない
+□ readme.txt に操作方法が書いてある
+□ readme.txt に必要な環境が書いてある
+   （Windows 10 以降 / DirectX12 対応GPU / VC++ 再頒布パッケージ）
+□ ゲームパッドが無くてもキーボードで遊べる
+□ 素材のクレジットを書いた
+□ 解凍してすぐ exe をダブルクリックで動く</code></pre>
+<p><strong>渡し方</strong></p>
+<pre><code>MyGame_v1.0.zip
+├ MyGame.exe
+├ readme.txt          ← 操作方法・必要環境
+├ CREDITS.txt         ← 素材の出どころ
+├ Assets/
+└ (必要な dll)</code></pre>
+<div class="note" style="--lv: var(--danger);">
+<span class="h">説明せずに渡してください</span>
+<strong>横で「あ、そこはこう操作するんだけど」と言った瞬間に、
+この演習の意味が消えます。</strong>
+<br><br>
+面接官は、あなたが横にいない状態で動かすかもしれません。
+<u>readme.txt だけで伝わるかを試すのが目的です。</u>
+</div>
+<p><strong>遊んでもらったら、聞くこと</strong></p>
+<ul>
+<li>最初の30秒で、何をすればいいか分かったか</li>
+<li>どこで詰まったか</li>
+<li><strong>いちばん面白かったところはどこか</strong></li>
+<li>やめようと思ったのはいつか</li>
+</ul>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">最後の質問が、いちばん残酷で、いちばん役に立ちます</span>
+<strong>自分が時間をかけた部分と、
+遊ぶ人が面白いと感じる部分は、たいてい一致しません。</strong>
+<br><br>
+<u>それを知ってから作るかどうかで、次の作品が変わります。</u>
+</div>
+		</details>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">09</span>LV4 を終えて</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>できるようになったこと</th><th>章</th></tr></thead>
+			<tbody>
+				<tr><td>自分のコードの問題を、言葉にできる</td>
+					<td><a href="4-01_ReadYourCode.html">4-01</a>、
+						<a href="4-04_Solid.html">4-04</a></td></tr>
+				<tr><td><strong>変更に強い形で書ける</strong></td>
+					<td><a href="4-05_State.html">4-05</a>〜
+						<a href="4-11_Command.html">4-11</a></td></tr>
+				<tr><td><strong>動いているコードを、壊さずに作り替えられる</strong></td>
+					<td><a href="4-13_Refactoring.html">4-13</a>、
+						<a href="4-16_Redesign.html">4-16</a></td></tr>
+				<tr><td>人と一緒に作れる</td>
+					<td><a href="4-15_Teamwork.html">4-15</a></td></tr>
+				<tr><td>判断の理由を説明できる</td>
+					<td>この章</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>LV4 で一貫して聞いてきたのは
+			「なぜそう書いたのか」という問いでした。</strong>
+		</p>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h">次は LV5 です</span>
+			LV4 の判断基準は<strong>「読みやすさ」と「変更しやすさ」</strong>でした。<br>
+			LV5 の判断基準は<strong>「速さ」</strong>です。
+			そして<u>この2つは、しばしば対立します。</u><br><br>
+			<strong>LV4 できれいに分けたコードが、
+			LV5 では「遅い原因」として出てきます。</strong><br>
+			どちらが正しいという話ではありません。
+			<u>両方を知ったうえで、場面ごとに選べるようになるのが目標です。</u>
+		</div>
+		<ul class="prose">
+			<li><a href="5-01_ReadProfiler.html"><strong>5-01 計測せずに最適化するな</strong></a></li>
+			<li><a href="index.html">目次に戻る</a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

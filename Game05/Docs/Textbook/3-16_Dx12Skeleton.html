@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DirectX12の骨格を読む</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n3" href="3-15_GpuDebug.html">← 前 3-15</a>
+			<a class="navchip n3" href="index.html#lv3">LV3 の目次</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l3">
+		<p class="kicker">LV3 表現 ／ 3-16</p>
+		<h1>DirectX12の骨格を読む</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span>
+			／ 前提 <a href="3-15_GpuDebug.html">3-15</a>
+		</p>
+	</header>
+
+	<section class="level l3">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>エンジンが隠していたものが、何だったか</strong>分かる</li>
+			<li>DirectX12 の用語が出てきても、話についていける</li>
+			<li>エンジンのコードを、自分で読み進められる</li>
+		</ul>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">この章は「書く」章ではなく「読む」章です</span>
+			<strong>DirectX12 をゼロから書けるようになる必要はありません。</strong>
+			エンジンの中で何が起きているかを知り、<u>用語を怖がらなくなる</u>のが目的です。
+		</div>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">02</span>DirectX12 が難しいと言われる理由</h2>
+		<p class="prose">
+			ひとことで言うと、<strong>ドライバがやってくれていたことを、
+			全部自分でやるようになったから</strong>です。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th></th><th>DirectX 11 まで</th><th>DirectX 12</th></tr></thead>
+			<tbody>
+				<tr><td>描画命令</td><td>その場でGPUに送られる（ように見える）</td>
+					<td><strong>リストに積んで、まとめて送る</strong></td></tr>
+				<tr><td>状態の設定</td><td>1つずつ変えられる</td>
+					<td><strong>まとめて1つの塊にして、事前に作っておく</strong></td></tr>
+				<tr><td>同期</td><td>ドライバ任せ</td><td><strong>自分でやる</strong></td></tr>
+				<tr><td>メモリ</td><td>ドライバ任せ</td><td>自分で管理</td></tr>
+				<tr><td>結果</td><td>書きやすい／遅い</td>
+					<td>書きにくい／<strong>速い・予測しやすい</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>k2Engine は、この面倒な部分を全部引き受けています。</strong>
+			だから <code>m_spriteRender.Draw(rc)</code> の1行で絵が出るのです。
+		</p>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">03</span>4つの登場人物</h2>
+
+		<figure>
+			<svg viewBox="0 0 740 400" role="img"
+			     aria-label="DirectX12の主要な4要素の図。コマンドリストに描画命令を積み、コマンドキューへ送るとGPUが実行する。パイプラインステートオブジェクトは描き方の設定をまとめた塊で事前に作っておく。ルートシグネチャはシェーダが使うリソースの受け口の定義。フェンスはGPUの完了をCPUが待つための仕組み">
+				<g class="fig-head" color="currentColor">
+					<defs>
+						<marker id="dx-arrow" viewBox="0 0 10 10" refX="9" refY="5"
+						        markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+							<path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+						</marker>
+					</defs>
+
+					<text class="fig-t sm" x="20" y="22">CPU 側</text>
+
+					<rect class="fig-box b3" x="20" y="36" width="200" height="86" rx="6"/>
+					<text class="fig-t sm c3" x="120" y="60" text-anchor="middle">コマンドリスト</text>
+					<text class="fig-m" x="120" y="82" text-anchor="middle">描画命令を積んでいく</text>
+					<text class="fig-m" x="120" y="100" text-anchor="middle">「この設定で」「これを描け」</text>
+					<text class="fig-m" x="120" y="116" text-anchor="middle">＝ RenderContext の正体</text>
+
+					<rect class="fig-box b2" x="270" y="36" width="200" height="86" rx="6"/>
+					<text class="fig-t sm" x="370" y="60" text-anchor="middle">パイプラインステート</text>
+					<text class="fig-m" x="370" y="82" text-anchor="middle">どのシェーダ・ブレンド・深度</text>
+					<text class="fig-m" x="370" y="100" text-anchor="middle">まとめて1つの塊（PSO）</text>
+					<text class="fig-m" x="370" y="116" text-anchor="middle">起動時に作っておく</text>
+
+					<rect class="fig-box b2" x="520" y="36" width="200" height="86" rx="6"/>
+					<text class="fig-t sm" x="620" y="60" text-anchor="middle">ルートシグネチャ</text>
+					<text class="fig-m" x="620" y="82" text-anchor="middle">シェーダが使うリソースの</text>
+					<text class="fig-m" x="620" y="100" text-anchor="middle">受け口の定義</text>
+					<text class="fig-m" x="620" y="116" text-anchor="middle">b0 / b1 / t0 …の対応表</text>
+
+					<path class="fig-line" d="M 270 79 L 226 79" marker-end="url(#dx-arrow)"/>
+					<path class="fig-line" d="M 520 132 C 430 168, 200 150, 124 130" marker-end="url(#dx-arrow)"/>
+
+					<path class="fig-line" d="M 120 128 L 120 186" marker-end="url(#dx-arrow)"/>
+					<text class="fig-m" x="132" y="162">1フレーム分を積み終えたら</text>
+
+					<rect class="fig-box b4" x="20" y="194" width="200" height="60" rx="6"/>
+					<text class="fig-t sm c4" x="120" y="218" text-anchor="middle">コマンドキュー</text>
+					<text class="fig-m" x="120" y="240" text-anchor="middle">GPU へ丸ごと投げる</text>
+
+					<path class="fig-line" d="M 226 224 L 294 224" marker-end="url(#dx-arrow)"/>
+
+					<text class="fig-t sm" x="300" y="186">GPU 側</text>
+					<rect class="fig-box b5" x="300" y="194" width="190" height="60" rx="6"/>
+					<text class="fig-t sm c5" x="395" y="229" text-anchor="middle">GPU が順に実行する</text>
+
+					<path class="fig-line" d="M 496 224 L 534 224" marker-end="url(#dx-arrow)"/>
+
+					<rect class="fig-warn" x="540" y="194" width="180" height="60" rx="6"/>
+					<text class="fig-t sm cwarn" x="630" y="218" text-anchor="middle">フェンス</text>
+					<text class="fig-m cwarn" x="630" y="240" text-anchor="middle">CPU が GPU の完了を待つ</text>
+
+					<path class="fig-dash" d="M 630 258 L 630 288 L 120 288 L 120 262"/>
+					<path class="fig-line" d="M 120 276 L 120 258" marker-end="url(#dx-arrow)"/>
+					<text class="fig-m" x="375" y="308" text-anchor="middle">終わったと分かってから、次のフレームを積み始める</text>
+
+					<rect class="fig-box b1" x="20" y="324" width="700" height="62" rx="6"/>
+					<text class="fig-t sm" x="370" y="348" text-anchor="middle">CPU と GPU は別々に走っている。だから「投げる」と「待つ」が要る</text>
+					<text class="fig-m" x="370" y="370" text-anchor="middle">これを間違えると、まだ GPU が使っているメモリを CPU が壊す ―― 原因の分からないクラッシュになる</text>
+				</g>
+			</svg>
+			<figcaption>
+				<strong>DirectX12 の骨格。</strong>
+				用語は多いですが、やっていることは
+				「命令をリストに積む → GPU に投げる → 終わるのを待つ」だけです。
+			</figcaption>
+		</figure>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">04</span>RenderContext の正体</h2>
+		<p class="prose">
+			LV2 からずっと使ってきた <code>RenderContext&amp; rc</code>。
+			<strong>これはコマンドリストの包み紙です。</strong>
+		</p>
+<pre><code>// あなたが書いてきたコード
+m_spriteRender.Draw(rc);
+
+// その中で、最終的にこうなっている
+rc.SetPipelineState(...);        // どう描くか
+rc.SetRootSignature(...);        // 何を渡すか
+rc.SetVertexBuffer(...);         // 何を描くか
+rc.SetIndexBuffer(...);
+rc.DrawIndexed(...);             // 描け</code></pre>
+		<p class="prose">
+			<strong>「描け」と言った時点では、まだ何も描かれていません。</strong>
+			リストに積まれただけです。
+			1フレームぶん積み終えてから、まとめてGPUに送ります。
+		</p>
+		<div class="note">
+			<span class="h">これで、3-15 の疑問が解けます</span>
+			GPUデバッガが<strong>「描画コマンドの一覧」</strong>を出せたのは、
+			<u>本当にそういうリストが存在するから</u>です。<br>
+			あれは、このコマンドリストの中身そのものでした。
+		</div>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">05</span>エンジンのどこを読むか</h2>
+		<p class="prose">
+			<strong>読む順番が大事です。</strong>いきなり初期化から読むと挫折します。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>順番</th><th>ファイル</th><th>見るもの</th></tr></thead>
+			<tbody>
+				<tr><td>1</td><td><code>k2EngineLow/graphics/RenderContext.h</code></td>
+					<td><strong>まずここ。関数名を眺めるだけでよい</strong></td></tr>
+				<tr><td>2</td><td><code>k2EngineLow/graphics/Sprite.cpp</code> の
+					<code>Draw()</code></td>
+					<td>いちばん短い「描く」の実装</td></tr>
+				<tr><td>3</td><td><code>Sprite.cpp</code> の <code>Init()</code></td>
+					<td><strong>PSO とルートシグネチャを作っている</strong></td></tr>
+				<tr><td>4</td><td><code>k2EngineLow/graphics/GraphicsEngine.cpp</code> の
+					<code>BeginRender/EndRender</code></td>
+					<td>フレームの開始と終了。<strong>フェンスがここ</strong></td></tr>
+				<tr><td>5</td><td><code>GraphicsEngine.cpp</code> の <code>Init()</code></td>
+					<td>最後でよい。ここがいちばん長い</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">全部理解しようとしないでください</span>
+			<strong>1回読んで分からないのが普通です。</strong>
+			必要になったときに、また戻ってくればいい。<br>
+			<u>「そういえばあのあたりに書いてあった」</u>と思い出せるだけで、
+			充分に価値があります。
+		</div>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">06</span>知っておくと役に立つ用語</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>用語</th><th>ひとことで</th></tr></thead>
+			<tbody>
+				<tr><td>デバイス（Device）</td><td>GPU そのもの。何かを作るときは必ず通る</td></tr>
+				<tr><td>スワップチェイン</td>
+					<td><strong>画面に出すバッファの管理。</strong>
+						裏で描いて表と入れ替える</td></tr>
+				<tr><td>ディスクリプタヒープ</td>
+					<td>「このテクスチャはここ」という<strong>住所録</strong></td></tr>
+				<tr><td>リソースバリア</td>
+					<td>「このテクスチャは、いまから読む用に使う」という宣言</td></tr>
+				<tr><td>レンダーターゲット</td>
+					<td>描き先（<a href="3-08_PostEffect.html">3-08</a>）</td></tr>
+				<tr><td>ドローコール</td>
+					<td>「描け」の命令1回
+						（<a href="2-23_MyDebugPanel.html">2-23</a> の Profiler）</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>リソースバリアは、DX12 らしさが出ている概念です。</strong>
+			GPU の中でも処理は並行して進むので、
+			<u>「いま書き込み中のテクスチャを、別の処理が読んでしまう」</u>
+			ことが起こりえます。
+			それを防ぐために、用途が変わるたびに宣言しているのです。
+		</p>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（読む）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>k2EngineLow/graphics/Sprite.cpp</code> の <code>Draw()</code> を読む。<strong><code>rc.</code> で始まる行だけを、順番に書き出してみる。</strong></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p>
+書き出すと、だいたいこうなります（バージョンによって前後します）。
+</p>
+<pre><code>rc.SetPipelineState(...)        // どう描くか
+rc.SetPrimitiveTopology(...)    // 三角形として描く
+rc.SetVertexBuffer(...)         // 頂点
+rc.SetIndexBuffer(...)          // 頂点のつなぎ方
+rc.SetDescriptorHeap(...)       // テクスチャ等の住所録
+rc.DrawIndexed(...)             // 描け</code></pre>
+<p><strong>気づいてほしいこと</strong></p>
+<ul>
+<li><strong>「描け」は最後の1行だけ</strong>。残りは全部「準備」</li>
+<li>準備の順番は、だいたい決まっている</li>
+<li><code>DrawIndexed</code> に <code>K2_COUNT_DRAW_CALL</code> が入っている
+	（<a href="2-23_MyDebugPanel.html">2-23</a> で数えていたのはここ）</li>
+</ul>
+<div class="note">
+<span class="h">3D のモデル描画も、同じ形をしています</span>
+<code>ModelRender</code> はもっと長いですが、
+<strong>やっていることは「準備 → 描け」の繰り返し</strong>です。
+メッシュの数だけ繰り返しているだけ。
+<br><br>
+<u>だからモデルの数を減らすとドローコールが減り、軽くなります。</u>
+</div>
+		</details>
+
+		<h3>演習2（対応させる）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose"><a href="3-15_GpuDebug.html">3-15</a> でキャプチャした<strong>描画コマンドの一覧</strong>と、<code>Sprite::Draw()</code> のコードを<strong>突き合わせる。</strong></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p>
+GPUデバッガに並んでいるコマンドと、
+<code>Sprite::Draw()</code> の <code>rc.</code> の行が
+<strong>一対一で対応している</strong>のが見えるはずです。
+</p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>C++ のコード</th><th>デバッガでの表示（おおよそ）</th></tr></thead>
+<tbody>
+<tr><td><code>rc.SetPipelineState</code></td><td>SetPipelineState</td></tr>
+<tr><td><code>rc.SetVertexBuffer</code></td><td>IASetVertexBuffers</td></tr>
+<tr><td><code>rc.SetIndexBuffer</code></td><td>IASetIndexBuffer</td></tr>
+<tr><td><code>rc.DrawIndexed</code></td><td>DrawIndexedInstanced</td></tr>
+</tbody>
+</table>
+</div>
+<p>
+<strong><code>RenderContext</code> は、DirectX12 の関数に
+分かりやすい名前を付け直しているだけ</strong>だと分かります。
+（<code>IA</code> は Input Assembler の略です）
+</p>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">ここが LV3 のゴールです</span>
+<strong>自分が書いた1行が、GPU に届くところまで追えた。</strong>
+<br><br>
+<code>m_spriteRender.Draw(rc)</code> と書いたとき、
+その先で何が起きているか、もう分かります。
+<u>エンジンはブラックボックスではなくなりました。</u>
+</div>
+		</details>
+
+		<h3>演習3（調べる）<span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span></h3>
+		<p class="prose"><strong>「なぜ DirectX12 はコマンドリスト方式なのか」</strong>を調べて、自分の言葉で説明してみる。<strong>本文には答えがありません。</strong></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>いちばん大きな理由：複数のスレッドで同時に準備できるから</strong></p>
+<p>
+DirectX11 では、描画命令を出せるのは実質1つのスレッドだけでした。
+CPU のコアが8つあっても、<u>描画の準備には1つしか使えなかった</u>のです。
+</p>
+<pre><code>スレッド1 ―― 描画命令を全部積む ―――――――――――→ 遅い
+スレッド2〜8 ―― 暇</code></pre>
+<p>
+DX12 では、<strong>コマンドリストをスレッドごとに作れます。</strong>
+</p>
+<pre><code>スレッド1 ―― コマンドリストA（背景）  ┐
+スレッド2 ―― コマンドリストB（敵）    ├→ まとめてキューへ
+スレッド3 ―― コマンドリストC（UI）    ┘</code></pre>
+<p><strong>ほかの理由</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>理由</th><th>説明</th></tr></thead>
+<tbody>
+<tr><td>ドライバの負担が減る</td>
+	<td>DX11 はドライバが裏で最適化していた。
+		<strong>その処理が読めず、性能が予測できなかった</strong></td></tr>
+<tr><td>再利用できる</td>
+	<td>毎フレーム同じ描画なら、リストを使い回せる</td></tr>
+<tr><td>PSO を事前に作れる</td>
+	<td>DX11 は描画中に状態の組み合わせを見てシェーダを再コンパイルしていた。
+		<u>これが突然のカクつきの原因だった</u></td></tr>
+</tbody>
+</table>
+</div>
+<div class="note">
+<span class="h">「明示的にする」という思想です</span>
+DX12 の設計は、一貫して
+<strong>「隠して自動でやる」のをやめて「書かせる」</strong>方向です。
+<br><br>
+書く量は増えますが、<u>性能が読めるようになり、
+遅い理由が自分のコードの中に見えるようになりました。</u>
+<br><br>
+これは Vulkan や Metal も同じ方向です。
+<strong>2010年代半ばのグラフィックスAPIは、揃ってこの選択をしました。</strong>
+</div>
+<p><strong>そして k2Engine は、その面倒さを引き受けています。</strong></p>
+<p>
+<code>RenderContext</code> も <code>SpriteRender</code> も、
+<u>DX12 の明示性を、また隠し直したもの</u>です。
+学習用エンジンとしては正しい判断ですが、
+<strong>隠されているものが何かを知った今なら、必要なときに自分で外せます。</strong>
+</p>
+		</details>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li><code>RenderContext</code> の正体は？</li>
+			<li><code>rc.DrawIndexed()</code> を呼んだ瞬間、絵は描かれる？</li>
+			<li>PSO（パイプラインステートオブジェクト）とは？</li>
+			<li>フェンスは何のためにある？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>コマンドリストの包み紙。DirectX12 の関数を使いやすくしたもの。</li>
+				<li>描かれない。リストに積まれるだけ。
+					フレームの終わりにまとめてGPUへ送られる。</li>
+				<li>どのシェーダ・ブレンド・深度設定で描くかを、
+					まとめて1つにした塊。事前に作っておく。</li>
+				<li>CPU が GPU の処理の完了を待つため。
+					使用中のリソースを壊さないように。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">09</span>LV3 を終えて</h2>
+		<p class="prose">
+			<strong>LV3 の始まりは、<kbd>F1</kbd> を押してスライダーを動かすことでした。</strong>
+			終わりは、GPU に届く命令を読むことです。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>できるようになったこと</th><th>章</th></tr></thead>
+			<tbody>
+				<tr><td>シェーダを自分で書き換える</td>
+					<td><a href="3-03_FirstShader.html">3-03</a></td></tr>
+				<tr><td>C++ からシェーダへ値を送る</td>
+					<td><a href="3-04_ConstantBuffer.html">3-04</a></td></tr>
+				<tr><td>3Dのゲームを作る</td>
+					<td><a href="3-09_ModelRender.html">3-09</a>〜
+						<a href="3-14_Make3D.html">3-14</a></td></tr>
+				<tr><td><strong>絵が出ない理由を、観測して突き止める</strong></td>
+					<td><a href="3-15_GpuDebug.html">3-15</a></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>最初の課題だった「かゆいところに手が届かない」は、
+			もう問題ではありません。</strong>
+			手を伸ばす方法を知ったからです。
+		</p>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h">次は LV4 です</span>
+			LV3 では<strong>「できることを増やす」</strong>ことをしました。<br>
+			LV4 でやるのは、<strong>「増えたものを、壊れないように組み立てる」</strong>
+			ことです。<br><br>
+			<a href="3-14_Make3D.html">3-14</a> で
+			<u>「あちこち書き換えるはめになった」</u>感覚を覚えているなら、
+			LV4 はその答え合わせになります。
+		</div>
+		<ul class="prose">
+			<li><a href="index.html"><strong>→ 目次に戻る</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>章のひな形</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n2" href="index.html">目次にもどる</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<div class="note" style="--lv: var(--warn); margin-top: 24px;">
+		<span class="h">これは章を書く人のためのひな形です</span>
+		このファイルをコピーして、<code>Docs/Textbook/2-09_GOHandle.html</code> のような名前で
+		保存してから中身を書き換えてください。
+		<strong>下の内容は「2-09 GOHandleで安全に参照する」を例として埋めたもの</strong>で、
+		そのまま章の書き方の見本になっています。
+	</div>
+
+	<header class="masthead level l2">
+		<p class="kicker">LV2 基礎 ／ 2-09</p>
+		<h1><code>GOHandle</code> で安全に参照する</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span>
+			／ 前提 <a href="index.html#ch2-08">2-08</a>
+		</p>
+	</header>
+
+	<section class="level l2">
+		<h2><span class="n">00</span>入場チェック</h2>
+		<p class="prose">この章に入る前に、次の質問に答えられますか。</p>
+		<ul class="checklist prose">
+			<li><code>DeleteGO()</code> を呼んだ直後、そのオブジェクトのメモリはどうなっている？ → 答えられないなら <a href="index.html#ch2-05">2-05</a> へ戻る</li>
+			<li>クラッシュしたとき、コールスタックのどこを見る？ → 答えられないなら <a href="index.html#ch1-18">1-18</a> へ戻る</li>
+		</ul>
+		<p class="prose"><strong>分からないまま進まないでください。</strong>ここを飛ばすと必ずあとで詰まります。</p>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li>生ポインタをメンバ変数に持たずに、他のオブジェクトを覚えておける</li>
+			<li>相手が死んでいるかどうかを、毎回安全に確認できる</li>
+		</ul>
+		<p class="prose"><em>（ここに完成イメージのスクリーンショットかGIFを置く）</em></p>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">02</span>なぜこれが必要なのか</h2>
+		<p class="prose">
+			いきなり書き方から入らず、<strong>「こういう場面で困る」→「だからこの仕組みがある」</strong>
+			の順で説明します。
+		</p>
+		<p class="prose">
+			前の章で、<code>DeleteGO()</code> はその場ではメモリを解放せず、
+			<strong>「死亡予約」をするだけ</strong>だと分かりました。
+			実際に <code>delete</code> されるのは次のフレームの頭です。
+			この「ズレ」が事故の正体です。
+		</p>
+
+		<figure>
+			<svg viewBox="0 0 820 250" role="img"
+			     aria-label="DeleteGOを呼んでから実際にメモリが解放されるまでの時間差を示す図。フレームNでDeleteGOを呼ぶと死亡フラグが立つだけでメモリは生きており、フレームN+1の更新処理の先頭で本当に削除される。その間は生ポインタが動いてしまうため事故に気づけない">
+				<defs>
+					<marker id="ah3" viewBox="0 0 10 10" refX="9" refY="5"
+					        markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+						<path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+					</marker>
+				</defs>
+				<g class="fig-head" color="currentColor">
+					<!-- フレームの区切り -->
+					<text class="fig-m" x="110" y="26" text-anchor="middle">フレーム N</text>
+					<text class="fig-m" x="600" y="26" text-anchor="middle">フレーム N+1</text>
+					<path class="fig-dash" d="M 400 36 L 400 224"/>
+
+					<!-- メモリの状態を表す帯 -->
+					<rect class="fig-box" x="40" y="96" width="140" height="34" rx="4"/>
+					<text class="fig-t sm" x="110" y="118" text-anchor="middle">正常</text>
+
+					<rect class="fig-warn" x="180" y="96" width="290" height="34" rx="4"/>
+					<text class="fig-t sm cwarn" x="325" y="118" text-anchor="middle">DEAD だがメモリはまだ生きている</text>
+
+					<rect class="fig-danger" x="470" y="96" width="310" height="34" rx="4"/>
+					<text class="fig-t sm cdanger" x="625" y="118" text-anchor="middle">解放済み。触ると未定義動作</text>
+
+					<!-- 出来事のしるし -->
+					<text class="fig-t sm" x="180" y="48" text-anchor="middle">DeleteGO(enemy)</text>
+					<text class="fig-m" x="180" y="68" text-anchor="middle">死亡フラグが立つだけ</text>
+					<path class="fig-line" d="M 180 76 L 180 92" marker-end="url(#ah3)"/>
+
+					<text class="fig-t sm" x="470" y="48" text-anchor="middle">ExecuteUpdate の先頭</text>
+					<text class="fig-m" x="470" y="68" text-anchor="middle">ここで本当に delete</text>
+					<path class="fig-line" d="M 470 76 L 470 92" marker-end="url(#ah3)"/>
+
+					<!-- 下：生ポインタで触ったらどうなるか -->
+					<text class="fig-m" x="40" y="164">生ポインタ <tspan class="fig-n">m_enemy</tspan> で触ると…</text>
+
+					<path class="fig-line" d="M 325 138 L 325 166" marker-end="url(#ah3)"/>
+					<text class="fig-t sm cwarn" x="325" y="188" text-anchor="middle">動いてしまう</text>
+					<text class="fig-m cwarn" x="325" y="208" text-anchor="middle">（だから気づけない）</text>
+
+					<path class="fig-line" d="M 625 138 L 625 166" marker-end="url(#ah3)"/>
+					<text class="fig-t sm cdanger" x="625" y="188" text-anchor="middle">落ちる…こともある</text>
+					<text class="fig-m cdanger" x="625" y="208" text-anchor="middle">（落ちないこともある）</text>
+				</g>
+			</svg>
+			<figcaption>
+				<strong>このバグが怖いのは、クラッシュしないことがあるからです。</strong>
+				解放されたメモリがまだ上書きされていなければ、何事もなく動いてしまいます。
+				そして、まったく関係ない場所で、何日か経ってからクラッシュします。
+				「昨日は動いてたのに」の正体はこれです。
+			</figcaption>
+		</figure>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">03</span>書いてみる</h2>
+		<p class="prose">コードは省略せず全文を載せます。<strong>コピペではなく、必ず打ってください。</strong></p>
+
+		<h3>ダメな書き方</h3>
+<pre><code>class Missile : public IGameObject {
+    Enemy* m_target = nullptr;      // 生ポインタで敵を覚えておく
+};
+
+void Missile::Update()
+{
+    // 敵がすでに DeleteGO されていたら、ここで事故る
+    HomingTo(m_target-&gt;GetPosition());
+}</code></pre>
+
+		<h3>良い書き方</h3>
+<pre><code>class Missile : public IGameObject {
+    GOHandle&lt;Enemy&gt; m_target;       // ハンドルで敵を覚えておく
+};
+
+void Missile::Update()
+{
+    Enemy* target = m_target.Get();     // 毎回取り直す
+    if (target == nullptr) {
+        // 敵はもういない。自分も消える。
+        DeleteGO(this);
+        return;
+    }
+    HomingTo(target-&gt;GetPosition());
+}</code></pre>
+
+		<h3>何をしているのか</h3>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>コード</th><th>説明</th></tr></thead>
+			<tbody>
+				<tr><td><code>GOHandle&lt;Enemy&gt; m_target;</code></td><td>ポインタではなく<strong>インスタンスID</strong>を覚える</td></tr>
+				<tr><td><code>m_target.Get()</code></td><td>GameObjectManagerに「このIDのオブジェクトはまだ生きている？」と問い合わせる</td></tr>
+				<tr><td><code>if (target == nullptr)</code></td><td>死んでいれば必ず <code>nullptr</code> が返るので、ここで気づける</td></tr>
+			</tbody>
+		</table>
+		</div>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">04</span>動かして確かめる</h2>
+		<ul class="checklist prose">
+			<li>敵を倒したあともミサイルがクラッシュしない</li>
+			<li>GameObject List パネルで、敵が消えた次のフレームにミサイルも消える</li>
+		</ul>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">05</span>よくあるエラー</h2>
+		<p class="prose">毎年、学生が実際に出したものをここに追記していきます。</p>
+
+		<h3><code>error C2664: 'GOHandle&lt;Enemy&gt;::Reset': 引数 1 を...</code></h3>
+		<p class="prose">
+			<strong>原因：</strong><code>Reset()</code> に <code>IGameObject*</code> を渡している。<br>
+			<strong>直し方：</strong><code>FindGO&lt;Enemy&gt;("enemy")</code> のように、型を指定して取得する。
+		</p>
+
+		<h3><code>Get()</code> がいつも <code>nullptr</code> を返す</h3>
+		<p class="prose">
+			<strong>原因：</strong><code>Reset()</code> を呼び忘れているか、渡した相手がすでに死んでいる。<br>
+			<strong>直し方：</strong>GameObject List パネルで、相手が本当に生きているか確認する。
+		</p>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">06</span>演習</h2>
+		<h3>演習1（まねる）<span class="diff"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">本文どおりにミサイルを書き換えて、敵を倒しても落ちないことを確認する。</p>
+
+		<h3>演習2（数字を変える）<span class="diff"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">敵が死んだときミサイルも消すのではなく、まっすぐ飛び続けるように変えてみる。</p>
+
+		<h3>演習3（自分で書く）<span class="diff"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			敵が死んだら、いちばん近い別の敵に狙いを切り替えるようにする。
+			<strong>本文には答えがありません。</strong>
+		</p>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">07</span>確認</h2>
+		<p class="prose">次の質問に、<strong>声に出して説明できますか。</strong></p>
+		<ol class="prose">
+			<li><code>GOHandle</code> はポインタの代わりに何を覚えている？</li>
+			<li>なぜ <code>GOHandle</code> には <code>-&gt;</code> 演算子が用意されていない？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>インスタンスID。<code>NewGO</code> のときに割り振られる、使い回されない番号。</li>
+				<li><code>m_target-&gt;Update()</code> と書けてしまうと、nullチェックを忘れるから。
+					<code>Get()</code> でポインタを受け取るしかない形にして、確認を強制している。</li>
+			</ol>
+		</details>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">08</span>完成プロジェクト</h2>
+		<p class="prose">
+			<code>Docs/Textbook/projects/2-09_GOHandle/Goal/</code>
+		</p>
+		<p class="prose">
+			自分のコードと見比べて、<strong>違うところがあれば「なぜ違うのか」を考えてください。</strong>
+			答えが同じでも、書き方が違えば学びがあります。
+		</p>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="index.html#ch2-10">2-10 入力（<code>g_pad</code>）</a> — 次に進む章</li>
+			<li><a href="index.html#ch2-07">2-07 FindGO / FindGOs / QueryGOs</a> — 関連する章</li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) { /* file:// などで使えないことがあるので握りつぶす */ }
+
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) {
+			now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+		}
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) { /* 保存できなくても動く */ }
+	});
+})();
+</script>
+
+</body>
+</html>

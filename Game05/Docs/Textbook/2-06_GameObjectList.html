@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GameObject List で寿命を見る</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n2" href="2-05_Lifetime.html">← 前 2-05</a>
+			<a class="navchip n2" href="index.html#lv2">LV2 の目次</a>
+			<a class="navchip n2" href="2-07_FindGO.html">次 → 2-07</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l2">
+		<p class="kicker">LV2 基礎 ／ 2-06</p>
+		<h1><span class="tag tag-gui">GUI</span>GameObject List で寿命を見る</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="2-05_Lifetime.html">2-05</a>
+		</p>
+	</header>
+
+	<section class="level l2">
+		<h2><span class="n">00</span>入場チェック</h2>
+		<ul class="checklist prose">
+			<li><code>DeleteGO()</code> を呼んだ瞬間、メモリはどうなっている？ → 答えられないなら <a href="2-05_Lifetime.html">2-05</a> へ戻る</li>
+			<li>本当に <code>delete</code> されるのはいつ？ → 同上</li>
+		</ul>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li>いま生きているゲームオブジェクトを、画面で一覧できる</li>
+			<li><strong>「消し忘れ」を数字で見つけられる</strong></li>
+			<li>前の章で学んだ「死亡予約 → 実際の破棄」のズレを、目で確認できる</li>
+		</ul>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">02</span>開き方</h2>
+		<p class="prose">
+			ゲームを実行すると、画面のいちばん上に黒いメニューバーが出ています。
+			<kbd>F1</kbd> キーで表示・非表示が切り替わります。
+		</p>
+		<ol class="prose">
+			<li>メニューバーの <strong>GameObject</strong> をクリック</li>
+			<li><strong>GameObject List</strong> を選ぶ</li>
+		</ol>
+
+		<figure>
+			<img src="assets/img/gameobject-list.png"
+			     alt="GameObject List パネルのスクリーンショット。上部に Alive : 2 と Dead(waiting) : 0 が表示され、その下にフィルタと表示切り替えのチェックボックス、さらに下に priority 0 のグループで ID・Name・Prio・State・Action の表が並んでいる。">
+			<figcaption>
+				実際の <strong>GameObject List</strong> パネル。
+				いま <code>Alive : 2</code> なので、生きているゲームオブジェクトは2個です。
+				ウィンドウは <strong>ドラッグで移動・端をつまんでサイズ変更</strong>できます。
+				位置は <code>imgui.ini</code> に自動保存されるので、次に起動しても同じ場所に出ます。
+			</figcaption>
+		</figure>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">03</span>表の読み方</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>列</th><th>意味</th></tr></thead>
+			<tbody>
+				<tr><td><strong>ID</strong></td><td>インスタンスID。<code>NewGO</code> のときに割り振られる、<strong>使い回されない番号</strong>。2-09で重要になります</td></tr>
+				<tr><td><strong>Name</strong></td><td><code>NewGO</code> の第2引数で付けた名前</td></tr>
+				<tr><td><strong>Prio</strong></td><td>優先度。処理順・描画順がこの順番で決まる</td></tr>
+				<tr><td><strong>State</strong></td><td>下の表を参照</td></tr>
+				<tr><td><strong>Action</strong></td><td>その場で <code>Deactivate</code> / <code>DeleteGO</code> を試せるボタン</td></tr>
+			</tbody>
+		</table>
+		</div>
+
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>State</th><th>意味</th></tr></thead>
+			<tbody>
+				<tr><td><span class="cok" style="color: var(--ok); font-weight: 700;">Alive</span></td><td>普通に動いている</td></tr>
+				<tr><td><span style="color: var(--warn); font-weight: 700;">Starting</span></td><td><code>Start()</code> がまだ <code>true</code> を返していない</td></tr>
+				<tr><td><span style="color: var(--ink-3); font-weight: 700;">Inactive</span></td><td><code>Deactivate()</code> されている。<code>Update</code>/<code>Render</code> が呼ばれない</td></tr>
+				<tr><td><span style="color: var(--danger); font-weight: 700;">DEAD</span></td><td><code>DeleteGO()</code> 済み。<strong>まだメモリは残っている</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+
+		<p class="prose">
+			パネルの上には、生きている数と削除待ちの数が出ています。
+		</p>
+<pre><code>Alive : 128        Dead(waiting) : 3</code></pre>
+		<p class="prose">
+			<code>Dead(waiting)</code> は、<strong>「<code>DeleteGO</code> されたけど、まだ本当には消えていない」</strong>
+			オブジェクトの数です。前の章でやった、あのズレの期間にいるオブジェクトです。
+		</p>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">04</span>実験1 ― 1フレームだけ DEAD になるのを見る</h2>
+		<p class="prose">
+			前の章で学んだ「死亡予約 → 次のフレームで破棄」を、目で確認します。
+		</p>
+		<ol class="prose">
+			<li>ゲームを実行して <code>GameObject List</code> を開く</li>
+			<li>どれかの行の <strong>DeleteGO</strong> ボタンを押す</li>
+			<li>その行が<strong>赤い DEAD</strong> になり、<strong>次の瞬間に行ごと消える</strong></li>
+		</ol>
+		<p class="prose">
+			速すぎて見えない場合は、<code>Show dead</code> のチェックが入っているか確認してください。
+			それでも一瞬です。<strong>それが正常です。</strong>
+			1フレーム（60分の1秒）しか存在しない状態だからです。
+		</p>
+
+		<div class="note">
+			<span class="h">ゆっくり見たいときは</span>
+			ブレークポイントを <code>Enemy</code> の <code>Update()</code> に置いて、
+			<kbd>F10</kbd> で1フレームずつ進めてください。
+			止めるたびにパネルの表示も更新されます。
+			<a href="1-18_Debugger.html">1-18 デバッガを使う</a> でやった操作です。
+		</div>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">05</span>実験2 ― 消し忘れを見つける</h2>
+		<p class="prose">
+			<strong>これがこのパネルのいちばんの使いどころです。</strong>
+			わざと消し忘れたコードを書いて、数字が増えていくのを見ます。
+		</p>
+<pre><code>void Bullet::Update()
+{
+    m_position.y += m_speed * g_gameTime-&gt;GetFrameDeltaTime();
+
+    // わざと消し忘れる。画面の外に出ても DeleteGO しない。
+    // if (m_position.y &gt; 600.0f) {
+    //     DeleteGO(this);
+    //     return;
+    // }
+}</code></pre>
+		<p class="prose">
+			この状態で弾を撃ち続けて、パネルの <code>Alive</code> を見てください。
+		</p>
+		<ul class="checklist prose">
+			<li>撃つたびに <code>Alive</code> が増える</li>
+			<li>画面から弾が消えても、<strong>数字は減らない</strong></li>
+			<li><code>Filter</code> に <code>bullet</code> と打つと、弾だけが並んで、その多さが分かる</li>
+		</ul>
+		<p class="prose">
+			コメントアウトを戻すと、画面外に出た弾がちゃんと消えて、
+			<code>Alive</code> が一定のところで落ち着きます。
+		</p>
+
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">「なんか重い」の正体はだいたいこれです</span>
+			見えないだけで、消し忘れたオブジェクトは <code>Update</code> され続けています。
+			<strong>ゲームが重いと感じたら、まず <code>Alive</code> を見てください。</strong>
+			増え続けていたら、それが原因です。
+		</div>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">06</span>そのほかの使い方</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>やりたいこと</th><th>やり方</th></tr></thead>
+			<tbody>
+				<tr><td>特定の種類だけ見たい</td><td><code>Filter</code> に名前の一部を打つ（例：<code>enemy</code>）</td></tr>
+				<tr><td>優先度ごとの数を見たい</td><td><code>Group by prio</code> にチェック。見出しに個数が出る</td></tr>
+				<tr><td>あるオブジェクトだけ動きを止めたい</td><td><strong>Deactivate</strong> ボタン。消さずに <code>Update</code> だけ止まる</td></tr>
+				<tr><td>消したときの挙動を試したい</td><td><strong>DeleteGO</strong> ボタン。コードを書かずに試せる</td></tr>
+			</tbody>
+		</table>
+		</div>
+
+		<div class="note">
+			<span class="h">Deactivate と DeleteGO の違い</span>
+			<strong>Deactivate は一時停止、DeleteGO は削除です。</strong>
+			<code>Deactivate()</code> されたオブジェクトは <code>Update</code>/<code>Render</code> が止まるだけで、
+			メモリにはそのまま残り、<code>Activate()</code> で復活できます。
+			「ポーズ中だけ敵を止めたい」ようなときに使います。
+		</div>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">07</span>演習</h2>
+
+		<h3>演習1（まねる）<span class="diff"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			実験2をやって、消し忘れたときと直したときで <code>Alive</code> がどう変わるかを見る。
+		</p>
+
+		<h3>演習2（数字を変える）<span class="diff"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			自機を <strong>Deactivate</strong> してみる。動かなくなるが、画面からも消えるはず。
+			なぜ消えるのか、<code>IGameObject</code> の <code>RenderWrapper()</code> を読んで確かめる。
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p>
+<strong>画面からも消えます。</strong>理由は <code>IGameObject</code> にあります。
+</p>
+<pre><code>void RenderWrapper(RenderContext&amp; renderContext)
+{
+    if (m_isActive &amp;&amp; m_isStart &amp;&amp; !m_isDead) {   // ← m_isActive を見ている
+        Render(renderContext);
+    }
+}</code></pre>
+<p>
+<code>Deactivate()</code> は <code>m_isActive</code> を <code>false</code> にします。
+<code>UpdateWrapper()</code> と <code>RenderWrapper()</code> の両方が
+このフラグを見ているので、<strong>動かなくなると同時に、描かれなくもなります。</strong>
+</p>
+<p>
+「動きだけ止めて、絵は出したままにしたい」（ポーズ画面など）場合は、
+<code>Deactivate()</code> ではなく<strong>自分でフラグを持って
+<code>Update()</code> の中身をスキップ</strong>してください。
+</p>
+		</details>
+
+		<h3>演習3（自分で書く）<span class="diff"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			自分のゲームを1分間遊んで、<code>Alive</code> が<strong>増え続けていないこと</strong>を確認する。
+			増えていたら、どのオブジェクトが残っているかを <code>Filter</code> で特定して直す。
+			<strong>本文には答えがありません。</strong>
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p>
+<strong>手順はこうです。</strong>
+</p>
+<ol>
+<li>GameObject List を開いたまま1分遊ぶ</li>
+<li><code>Alive</code> が増え続けていたら、<code>Filter</code> に思い当たる名前を打つ
+	（<code>bullet</code>、<code>enemy</code>、<code>effect</code> など）</li>
+<li>数が増え続けている種類が犯人</li>
+<li>そのクラスの <code>Update()</code> に「消える条件」が書いてあるか確認する</li>
+</ol>
+<p><strong>よくある犯人</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>種類</th><th>消し忘れの原因</th></tr></thead>
+<tbody>
+<tr><td>弾</td><td>画面外の判定がない／判定の値が広すぎる</td></tr>
+<tr><td>敵</td><td>画面の下に抜けたあと消していない</td></tr>
+<tr><td>エフェクト</td><td>ループ再生になっている</td></tr>
+<tr><td>サウンド</td><td><code>Play(true)</code> で鳴らして消していない</td></tr>
+</tbody>
+</table>
+</div>
+<p>
+<strong>増えていなければ、それが正解です。</strong>
+「問題が無いことを確認できた」も立派な結果です。
+</p>
+		</details>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li><code>Alive</code> が遊んでいるうちに増え続けていたら、何を疑う？</li>
+			<li><code>Dead(waiting)</code> はどういう状態のオブジェクトの数？</li>
+			<li><code>Deactivate</code> と <code>DeleteGO</code> の違いは？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li><code>DeleteGO</code> の消し忘れ。画面から見えなくても動き続けている。</li>
+				<li><code>DeleteGO</code> されたが、まだ <code>delete</code> されていないもの。
+					次のフレームの先頭で消える。</li>
+				<li><code>Deactivate</code> は一時停止（メモリは残り、復活できる）。
+					<code>DeleteGO</code> は削除（次のフレームで消える）。</li>
+			</ol>
+		</details>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="2-07_FindGO.html"><strong>2-07 FindGO でオブジェクトを探す</strong></a></li>
+			<li><a href="2-08_DanglingPointer.html">2-08 事故を起こしてみる</a>
+				— この「ズレ」でクラッシュさせてみます</li>
+		</ul>
+		<p class="prose">
+			パネル全体の説明は <a href="../DebugGui.html">デバッグGUI と GOHandle</a> にもあります。
+		</p>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ヘッダとcppの分け方</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n1" href="1-12_Class.html">← 前 1-12</a>
+			<a class="navchip n1" href="index.html#lv1">LV1 の目次</a>
+			<a class="navchip n1" href="1-14_Pointer.html">次 → 1-14</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l1">
+		<p class="kicker">LV1 入門 ／ 1-13</p>
+		<h1>ヘッダと cpp の分け方</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="1-12_Class.html">1-12</a>
+		</p>
+	</header>
+
+	<section class="level l1">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><code>.h</code> と <code>.cpp</code> の役割を説明できる</li>
+			<li><code>#pragma once</code> が何のためにあるか分かる</li>
+			<li>自分で新しいクラスのファイルを作れる</li>
+		</ul>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">02</span><code>#include</code> は「貼り付け」</h2>
+		<p class="prose">
+			まず、これを知ってください。
+			<strong><code>#include "Enemy.h"</code> は、
+			そのファイルの中身をその場に丸ごと貼り付ける、という意味です。</strong>
+		</p>
+
+		<figure>
+			<svg viewBox="0 0 700 260" role="img"
+			     aria-label="includeの仕組みを示す図。Enemy.hの中身が、それをincludeしているEnemy.cppとGame.cppの両方に丸ごと貼り付けられる。宣言だけを書くので、貼り付けられても重複しない">
+				<defs>
+					<marker id="ahI" viewBox="0 0 10 10" refX="9" refY="5"
+					        markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+						<path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+					</marker>
+				</defs>
+				<g class="fig-head" color="currentColor">
+					<rect class="fig-box b2" x="20" y="90" width="180" height="76" rx="6"/>
+					<text class="fig-n c2" x="36" y="114">Enemy.h</text>
+					<text class="fig-t sm" x="36" y="136">「こういうクラスがある」</text>
+					<text class="fig-m" x="36" y="155">宣言だけ</text>
+
+					<path class="fig-line" d="M 200 110 L 300 60" marker-end="url(#ahI)"/>
+					<path class="fig-line" d="M 200 146 L 300 196" marker-end="url(#ahI)"/>
+					<text class="fig-m" x="240" y="74" text-anchor="middle">貼り付け</text>
+					<text class="fig-m" x="240" y="192" text-anchor="middle">貼り付け</text>
+
+					<rect class="fig-box" x="300" y="26" width="200" height="76" rx="6"/>
+					<text class="fig-n" x="316" y="50">Enemy.cpp</text>
+					<text class="fig-t sm" x="316" y="72">貼り付けられた宣言</text>
+					<text class="fig-t sm c2" x="316" y="91">＋ 中身（定義）</text>
+
+					<rect class="fig-box" x="300" y="154" width="200" height="76" rx="6"/>
+					<text class="fig-n" x="316" y="178">Game.cpp</text>
+					<text class="fig-t sm" x="316" y="200">貼り付けられた宣言</text>
+					<text class="fig-t sm" x="316" y="219">＋ Enemy を使うコード</text>
+
+					<path class="fig-line" d="M 500 64 L 560 110" marker-end="url(#ahI)"/>
+					<path class="fig-line" d="M 500 192 L 560 146" marker-end="url(#ahI)"/>
+
+					<rect class="fig-box b2" x="560" y="100" width="120" height="56" rx="6"/>
+					<text class="fig-t sm" x="620" y="124" text-anchor="middle">リンク</text>
+					<text class="fig-m" x="620" y="144" text-anchor="middle">Game.exe</text>
+				</g>
+			</svg>
+			<figcaption>
+				<strong><code>.h</code> は何度も貼り付けられます。</strong>
+				だから <code>.h</code> には<strong>「宣言」だけ</strong>を書きます。
+				中身（定義）を書くと、同じものが2つできてしまい、
+				リンクのときに「どっちを使えばいいの？」とエラーになります。
+			</figcaption>
+		</figure>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">03</span>何をどちらに書くか</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th></th><th><code>.h</code>（ヘッダ）</th><th><code>.cpp</code>（ソース）</th></tr></thead>
+			<tbody>
+				<tr><td>役割</td><td><strong>説明書</strong>（何があるか）</td><td><strong>中身</strong>（どう動くか）</td></tr>
+				<tr><td>クラスの形</td><td>書く</td><td>—</td></tr>
+				<tr><td>メンバ変数</td><td>書く</td><td>—</td></tr>
+				<tr><td>関数</td><td><strong>宣言だけ</strong>（<code>void Move();</code>）</td>
+					<td><strong>中身</strong>（<code>void Enemy::Move() { ... }</code>）</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			ただし、<strong>1〜2行の短い関数は <code>.h</code> に書いてしまってもよい</strong>
+			決まりになっています。
+		</p>
+<pre><code>// Enemy.h
+class Enemy {
+public:
+    int  GetHp() const { return m_hp; }    // 短いので .h に書いてよい
+    void Move();                            // 長いので .cpp に
+private:
+    int m_hp = 100;
+};</code></pre>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">04</span><code>#pragma once</code></h2>
+		<p class="prose">
+			<code>.h</code> のいちばん上には、必ずこれを書きます。
+		</p>
+<pre><code>#pragma once</code></pre>
+		<p class="prose">
+			意味は<strong>「このファイルは、1回だけ貼り付けてください」</strong>です。
+		</p>
+		<p class="prose">
+			無いとどうなるか。
+			<code>Game.cpp</code> が <code>Enemy.h</code> と <code>Player.h</code> を読み込み、
+			<code>Player.h</code> も <code>Enemy.h</code> を読み込んでいたら、
+			<strong><code>Enemy</code> クラスの定義が2回貼り付けられます。</strong>
+			「同じ名前のクラスが2つある」とエラーになります。
+		</p>
+		<div class="note">
+			<span class="h">忘れてもすぐ気づけます</span>
+			<code>error C2011: 'Enemy': 'class' 型の再定義</code> というエラーが出ます。
+			<strong><code>#pragma once</code> を書き忘れたな、と思ってください。</strong>
+		</div>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">05</span><code>.cpp</code> の書き出し</h2>
+<pre><code>// Enemy.cpp
+#include "stdafx.h"      // ★ 必ず、いちばん最初の行
+#include "Enemy.h"
+
+void Enemy::Move()
+{
+    ...
+}</code></pre>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h"><code>#include "stdafx.h"</code> は必ず1行目</span>
+			2行目以降に書くと、
+			<code>fatal error C1010: プリコンパイル済みヘッダーを検索中に
+			予期しない EOF が見つかりました</code>
+			という、意味の分からないエラーが出ます。<br>
+			<strong>新しく <code>.cpp</code> を作ったら、まずこの1行。</strong>
+		</div>
+		<p class="prose">
+			<code>stdafx.h</code> は<strong>プリコンパイル済みヘッダ</strong>といって、
+			よく使うものをまとめて先に用意しておく仕組みです。
+			これのおかげでビルドが速くなっています。
+		</p>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">06</span>新しいクラスを作る手順</h2>
+		<ol class="prose">
+			<li>ソリューションエクスプローラーの <strong>Game</strong> を右クリック</li>
+			<li>追加 → 新しい項目 → <strong>ヘッダー ファイル (.h)</strong> → <code>Enemy.h</code></li>
+			<li>同じく <strong>C++ ファイル (.cpp)</strong> → <code>Enemy.cpp</code></li>
+			<li><code>Enemy.h</code> に <code>#pragma once</code> とクラス定義</li>
+			<li><code>Enemy.cpp</code> に <code>#include "stdafx.h"</code> と
+				<code>#include "Enemy.h"</code></li>
+			<li>使う側で <code>#include "Enemy.h"</code></li>
+		</ol>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">07</span>よくあるエラー</h2>
+		<h3><code>C1010</code> 予期しない EOF</h3>
+		<p class="prose">
+			<strong>原因：</strong><code>#include "stdafx.h"</code> が無い、または1行目ではない。
+		</p>
+
+		<h3><code>C2011</code> 型の再定義</h3>
+		<p class="prose">
+			<strong>原因：</strong><code>#pragma once</code> の書き忘れ。
+		</p>
+
+		<h3><code>LNK2005</code> シンボルが既に定義されています</h3>
+		<p class="prose">
+			<strong>原因：</strong><code>.h</code> に関数の<strong>中身</strong>を書いてしまった
+			（クラスの外に）。<br>
+			<strong>直し方：</strong><code>.cpp</code> に移す。
+		</p>
+
+		<h3><code>C2065</code> 定義されていない識別子（クラス名）</h3>
+		<p class="prose">
+			<strong>原因：</strong><code>#include</code> を忘れている。
+		</p>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">08</span>演習</h2>
+		<h3>演習1（まねる）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>Enemy.h</code> と <code>Enemy.cpp</code> を新しく作って、<code>Game.cpp</code> から使う。</p>
+
+		<h3>演習2（壊して確かめる）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>Enemy.h</code> から <code>#pragma once</code> を消して、<code>Game.cpp</code> で2回 <code>#include "Enemy.h"</code> する。<strong>どんなエラーが出るか</strong>見る。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>// Game.cpp
+#include "stdafx.h"
+#include "Enemy.h"
+#include "Enemy.h"      // わざと2回</code></pre>
+<pre><code>error C2011: 'Enemy': 'class' 型の再定義です</code></pre>
+<p>
+<strong>「同じクラスが2つある」と怒られます。</strong>
+</p>
+<p>
+<code>#pragma once</code> を戻すと、2回書いても何も起きません。
+<strong>2回目以降は無視されるからです。</strong>
+</p>
+<div class="note">
+<span class="h">実際には、こんな直接的な形では起きません</span>
+<code>A.h</code> が <code>C.h</code> を、<code>B.h</code> も <code>C.h</code> を読み込んでいて、
+<code>Game.cpp</code> が <code>A.h</code> と <code>B.h</code> を読み込む。
+<strong>こういう形で、知らないうちに2回読み込まれます。</strong><br>
+だから <code>#pragma once</code> は<strong>例外なく全部の <code>.h</code> に</strong>書きます。
+</div>
+		</details>
+
+		<h3>演習3（調べる）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>Enemy.h</code> を1文字だけ書き換えて、ビルドにかかる時間を測る。次に <code>Enemy.cpp</code> を1文字書き換えて、同じように測る。<strong>どちらが速いか、なぜか。</strong></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p>
+<strong><code>.cpp</code> を変えたほうが、圧倒的に速いはずです。</strong>
+</p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>変えたもの</th><th>作り直されるファイル</th></tr></thead>
+<tbody>
+<tr><td><code>Enemy.cpp</code></td><td><strong><code>Enemy.cpp</code> だけ</strong></td></tr>
+<tr><td><code>Enemy.h</code></td>
+	<td><strong><code>Enemy.h</code> を <code>#include</code> している
+	<u>すべての</u> <code>.cpp</code></strong></td></tr>
+</tbody>
+</table>
+</div>
+<p>
+<code>.h</code> は「貼り付けられる」ものなので、
+<strong>貼り付け先を全部作り直す必要があります。</strong>
+</p>
+<div class="note">
+<span class="h">だから「.h には最小限しか書かない」</span>
+大規模なゲーム開発では、<strong>ヘッダを1つ直すとビルドに30分</strong>
+ということが実際に起こります。<br>
+だから現場では、
+<ul style="margin-bottom:0;">
+<li><code>.h</code> に <code>#include</code> を書きすぎない</li>
+<li>代わりに<strong>前方宣言</strong>（<code>class Enemy;</code> とだけ書く）を使う</li>
+</ul>
+といった工夫をします。<strong>この話は
+<a href="5-15_BuildTime.html">LV5-15 ビルド時間を短くする</a> で扱います。</strong>
+</div>
+		</details>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">09</span>確認</h2>
+		<ol class="prose">
+			<li><code>#include</code> は何をしている？</li>
+			<li><code>#pragma once</code> は何のため？</li>
+			<li><code>.cpp</code> の1行目に必ず書くものは？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>そのファイルの中身を、その場に丸ごと貼り付ける。</li>
+				<li>同じヘッダが2回以上貼り付けられるのを防ぐため。</li>
+				<li><code>#include "stdafx.h"</code>。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">10</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="1-14_Pointer.html"><strong>1-14 ポインタと参照</strong></a>
+				— <strong>LV1 の山場です。</strong>時間をかけてください</li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

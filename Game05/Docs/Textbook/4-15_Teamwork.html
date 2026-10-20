@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>チームで作る</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n4" href="4-14_Testable.html">← 前 4-14</a>
+			<a class="navchip n4" href="index.html#lv4">LV4 の目次</a>
+			<a class="navchip n4" href="4-16_Redesign.html">次 → 4-16</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l4">
+		<p class="kicker">LV4 設計 ／ 4-15</p>
+		<h1>チームで作る</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span>
+			／ 前提 <a href="1-03_Git.html">1-03</a>
+		</p>
+	</header>
+
+	<section class="level l4">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>ブランチを切って作業し、プルリクエストを出せる</strong></li>
+			<li>コンフリクトを解決できる</li>
+			<li>人のコードをレビューできる／されても凹まない</li>
+		</ul>
+		<div class="note">
+			<span class="h">1人でも、この章は役に立ちます</span>
+			<strong>ブランチとコミットの習慣は、1人開発でも効きます。</strong>
+			<u>「昨日の自分」は、他人と同じくらい何も覚えていません。</u>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">02</span>ブランチを切る</h2>
+<pre><code># いまの状態を確認
+git status
+
+# main から新しいブランチを作って移動
+git switch -c feature/boss-second-phase
+
+# ...作業...
+
+git add .
+git commit -m "ボスの第2形態を追加"
+git push -u origin feature/boss-second-phase</code></pre>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>ブランチ名の例</th><th>意味</th></tr></thead>
+			<tbody>
+				<tr><td><code>feature/boss-second-phase</code></td><td>機能追加</td></tr>
+				<tr><td><code>fix/bullet-not-deleted</code></td><td>バグ修正</td></tr>
+				<tr><td><code>refactor/enemy-mover</code></td><td>リファクタリング</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h"><code>main</code> に直接コミットしないでください</span>
+			<strong>チームでは、これが最大のルールです。</strong>
+			誰かが壊したとき、全員が止まります。<br>
+			<u>ブランチなら、壊れているのは本人だけです。</u>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">03</span>コミットメッセージ</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>だめ</th><th>よい</th></tr></thead>
+			<tbody>
+				<tr><td><code>修正</code></td>
+					<td><code>弾が画面外で消えないバグを修正</code></td></tr>
+				<tr><td><code>いろいろ</code></td>
+					<td><code>敵の移動を IMover に切り出し</code></td></tr>
+				<tr><td><code>aaa</code></td>
+					<td><code>ボスの第2形態を追加</code></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>「何をしたか」ではなく「なぜしたか」が書けるとさらに良いです。</strong>
+		</p>
+<pre><code>弾のプール化
+
+毎フレーム NewGO/DeleteGO していたため、弾幕時に
+フレーム落ちしていた。200発のプールを作って使い回す形に変更。
+Profiler で 0.42ms → 0.03ms を確認。</code></pre>
+		<div class="note">
+			<span class="h">「何をしたか」は差分を見れば分かります</span>
+			<strong>差分から分からないのは「なぜ」だけです。</strong><br>
+			<u>半年後の自分が読むのは、この「なぜ」です。</u>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">04</span>コンフリクト</h2>
+		<p class="prose">
+			<strong>同じ行を2人が変えると起きます。</strong>怖がる必要はありません。
+		</p>
+<pre><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+    m_hp = 100;
+=======
+    m_hp = 150;
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; feature/balance</code></pre>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>記号</th><th>意味</th></tr></thead>
+			<tbody>
+				<tr><td><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</code> の下</td>
+					<td><strong>いま自分がいるブランチの内容</strong></td></tr>
+				<tr><td><code>=======</code> の下</td>
+					<td>取り込もうとしている側の内容</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>どちらかを選ぶか、両方を合わせて、記号を全部消します。</strong>
+			判断に迷ったら、相手に聞いてください。
+		</p>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">コンフリクトを減らすいちばんの方法</span>
+			<strong>こまめに <code>main</code> を取り込むことです。</strong>
+<pre style="margin-top:8px;"><code>git switch main
+git pull
+git switch feature/my-work
+git merge main</code></pre>
+			<u>1週間ぶんためると、解決不能になります。</u>
+			毎日やってください。
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">05</span>ゲーム開発ならではの問題 ― バイナリファイル</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>ファイル</th><th>マージできる？</th></tr></thead>
+			<tbody>
+				<tr><td><code>.cpp</code> <code>.h</code></td><td><strong>できる</strong></td></tr>
+				<tr><td><code>.txt</code>（ステージデータ）</td><td>できる</td></tr>
+				<tr><td><strong><code>.dds</code> <code>.tkm</code> <code>.wav</code></strong></td>
+					<td><strong>できない。どちらか一方を選ぶしかない</strong></td></tr>
+				<tr><td><code>.vcxproj</code></td>
+					<td><u>できるが、壊れやすい</u></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">2人が同じファイルをプロジェクトに追加すると、よく壊れます</span>
+			<strong><code>.vcxproj</code> は XML なので、
+			マージできるように見えて、順番が入れ替わって壊れます。</strong><br>
+			<u>ファイルの追加をするときは、事前に声をかけてください。</u><br>
+			壊れたら、<strong>片方を採用して、もう片方が手動でファイルを追加し直す</strong>
+			のがいちばん速いです。
+		</div>
+		<p class="prose">
+			<a href="4-10_Factory.html">4-10</a> でステージをテキストにしたのは、
+			ここでも効きます。<strong>テキストならマージできます。</strong>
+		</p>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">06</span>プルリクエストとレビュー</h2>
+		<p class="prose">
+			<strong>プルリクエスト（PR）＝「この変更を取り込んでください」という依頼</strong>です。
+		</p>
+		<p class="prose">
+			<strong>出す側が書くこと</strong>
+		</p>
+<pre><code>## 何をしたか
+敵の移動処理を IMover として切り出しました。
+
+## なぜ
+敵の種類ごとにクラスをコピペしていて、
+移動以外を直すときに全部直すはめになっていたため。
+
+## 確認したこと
+- 4種類すべての敵が、以前と同じ動きをすること
+- テストパネルが全部 OK
+
+## 見てほしいところ
+ZigzagMover の m_baseX の持ち方が、これで良いか自信がありません。</code></pre>
+		<p class="prose">
+			<strong>レビューする側が見ること</strong>
+		</p>
+		<ul class="prose">
+			<li>動くか（できれば実際に動かす）</li>
+			<li><strong>半年後に読めるか</strong></li>
+			<li>同じことを2か所に書いていないか</li>
+			<li>危ない書き方はないか（<code>nullptr</code> チェック、寿命）</li>
+		</ul>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">レビューは「人」ではなく「コード」に対してするもの</span>
+			<div class="tbl-scroll" style="margin-top:8px;">
+			<table class="plain">
+				<thead><tr><th>だめな言い方</th><th>よい言い方</th></tr></thead>
+				<tbody>
+					<tr><td>なんでこんな書き方したの</td>
+						<td><strong>ここ、〜だと読みやすいと思いました。どうでしょう</strong></td></tr>
+					<tr><td>これはバグる</td>
+						<td>この場合に <code>nullptr</code> になりませんか？</td></tr>
+					<tr><td>（何も言わない）</td>
+						<td><strong>ここの分け方、良いと思いました</strong></td></tr>
+				</tbody>
+			</table>
+			</div>
+			<strong>良いところも書いてください。</strong>
+			<u>指摘だけが並ぶと、出すのが怖くなります。</u>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">07</span>作業を分けるコツ</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>分け方</th><th>ぶつかりやすさ</th></tr></thead>
+			<tbody>
+				<tr><td><strong>クラス単位で担当を分ける</strong></td>
+					<td><strong>低い。おすすめ</strong></td></tr>
+				<tr><td>機能単位（「敵担当」「UI担当」）</td><td>低い</td></tr>
+				<tr><td>2人で同じクラスを触る</td><td><u>高い</u></td></tr>
+				<tr><td>片方がリファクタリング中に、もう片方が機能追加</td>
+					<td><strong>最悪。地獄を見ます</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>LV4 でやってきた設計は、ここで効いてきます。</strong>
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>やったこと</th><th>チームでの効果</th></tr></thead>
+			<tbody>
+				<tr><td><a href="4-07_Component.html">Component に分ける</a></td>
+					<td><strong>同時に別のファイルを触れる</strong></td></tr>
+				<tr><td><a href="4-08_Observer.html">Observer</a></td>
+					<td>反応を足すのに、相手のファイルを触らない</td></tr>
+				<tr><td><a href="4-09_Strategy.html">Strategy</a></td>
+					<td><strong>新しい敵＝新しいファイル。ぶつからない</strong></td></tr>
+				<tr><td><a href="4-10_Factory.html">データ化</a></td>
+					<td>プログラマ以外がステージを作れる</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h">良い設計とは、結局「分担しやすい設計」です</span>
+			<strong>1人で書いていると、設計の良し悪しはピンときません。</strong><br>
+			<u>3人で同じファイルを触ってコンフリクトを起こすと、
+			一瞬で理解できます。</u>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">08</span>演習</h2>
+		<h3>演習1（慣れる）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>1人でも構わないので</strong>、ブランチを切って作業し、<code>main</code> にマージするまでを3回やる。</p>
+
+		<h3>演習2（ぶつける）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>わざとコンフリクトを起こして、解決する。</strong>（2つのブランチで、同じ行を別々に変える）</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>起こし方</strong></p>
+<pre><code># ブランチA
+git switch -c test/conflict-a
+# Player.cpp の MOVE_SPEED を 300 → 400 に変更
+git commit -am "移動速度を上げた"
+git switch main
+git merge test/conflict-a        # ここは普通にマージできる
+
+# ブランチB（main から切る）
+git switch -c test/conflict-b
+# 同じ行を 400 → 250 に変更
+git commit -am "移動速度を下げた"
+
+# さらに main 側でも同じ行を変えておく
+git switch main
+# 400 → 500 に変更
+git commit -am "移動速度をもっと上げた"
+
+# ここでコンフリクト
+git merge test/conflict-b</code></pre>
+<pre><code>Auto-merging Player.cpp
+CONFLICT (content): Merge conflict in Player.cpp
+Automatic merge failed; fix conflicts and then commit the result.</code></pre>
+<p><strong>解決</strong></p>
+<pre><code>// Player.cpp を開くと
+&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+const float MOVE_SPEED = 500.0f;
+=======
+const float MOVE_SPEED = 250.0f;
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; test/conflict-b</code></pre>
+<pre><code>// 記号を全部消して、採用する値だけ残す
+const float MOVE_SPEED = 350.0f;    // 話し合って、間を取った</code></pre>
+<pre><code>git add Player.cpp
+git commit          # メッセージは自動で入る
+git status          # クリーンになっていることを確認</code></pre>
+<div class="note" style="--lv: var(--danger);">
+<span class="h">記号を消し忘れると、コンパイルエラーになります</span>
+<code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> <code>=======</code> <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code>
+の3つを<strong>全部</strong>消してください。
+<br><br>
+<strong>解決したら、必ずビルドしてから commit してください。</strong>
+<u>壊れたままコミットすると、チーム全員が止まります。</u>
+</div>
+<p><strong>やめたくなったら</strong></p>
+<pre><code>git merge --abort       # マージを取り消して、元の状態に戻る</code></pre>
+<p>
+<strong>これを知っているだけで、かなり気が楽になります。</strong>
+コンフリクトが怖いのは、<u>「途中でやめられない」と思っているから</u>です。
+</p>
+<p><strong>Visual Studio を使う手もあります</strong></p>
+<p>
+[Git 変更] ウィンドウから<strong>「マージ エディターを開く」</strong>と、
+左右に並べて、チェックボックスで選べます。
+<u>記号の消し忘れが起きないので、慣れないうちはこちらが安全です。</u>
+</p>
+		</details>
+
+		<h3>演習3（レビューする）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>友達のコードを1つレビューする</strong>（または、自分の1か月前のコードを、他人だと思ってレビューする）。<u>指摘3つ、良かったところ1つ。</u></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>レビューの観点（上から順に見る）</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>優先</th><th>見るところ</th><th>例</th></tr></thead>
+<tbody>
+<tr><td><strong>1</strong></td><td><strong>壊れる可能性</strong></td>
+	<td><code>nullptr</code> チェック、配列の範囲、寿命</td></tr>
+<tr><td>2</td><td>意図が読めるか</td>
+	<td>関数名、変数名、マジックナンバー</td></tr>
+<tr><td>3</td><td>重複</td><td>同じ処理が2か所にないか</td></tr>
+<tr><td><u>4</u></td><td><u>好みの問題</u></td>
+	<td><u>波かっこの位置、空行の数 → 指摘しない</u></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>書き方の例</strong></p>
+<pre><code>【良かったところ】
+Enemy の移動を IMover に分けているのが分かりやすかったです。
+新しい敵を足すとき、どこを書けばいいか一目で分かりました。
+
+【1】Enemy.cpp:45
+FindGO&lt;Player&gt;("player") の戻り値を nullptr チェックせずに
+使っています。プレイヤーが死んだ後のフレームで落ちませんか？
+
+【2】Bullet.cpp:28
+「300.0f」が3か所に出てきます。定数にまとめると、
+弾速を調整するとき1か所で済むと思います。
+
+【3】Boss.cpp:112
+UpdatePhase2() が140行あって、読むのがつらかったです。
+攻撃の種類ごとに分けられそうに見えました。</code></pre>
+<div class="note">
+<span class="h">指摘は「命令」ではなく「質問」の形にすると角が立ちません</span>
+<strong>「〜しませんか？」「〜に見えました」「〜だと思います」</strong>
+<br><br>
+<u>自分が見落としている事情があるかもしれない</u>、
+という前提で書くと、相手も答えやすくなります。
+実際、理由があってそう書いていることは、よくあります。
+</div>
+<p><strong>レビューされる側の心構え</strong></p>
+<ul>
+<li><strong>コードへの指摘であって、自分への評価ではありません</strong></li>
+<li>納得できないときは、<u>理由を説明して議論してよい</u></li>
+<li>「直します」と「直しません、理由は〜」の<strong>どちらも正しい返事</strong>です</li>
+<li>指摘が多いのは、<u>丁寧に読んでもらえた</u>ということ</li>
+</ul>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">1か月前の自分のコードをレビューするのも、強くおすすめします</span>
+<strong>他人のコードだと思って読むと、驚くほど指摘が出ます。</strong>
+<br><br>
+そして<u>「なぜこう書いたのか思い出せない」</u>という体験が、
+コメントとコミットメッセージの価値を教えてくれます。
+</div>
+		</details>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">09</span>確認</h2>
+		<ol class="prose">
+			<li>チームでの最大のルールは？</li>
+			<li>コンフリクトを減らすいちばんの方法は？</li>
+			<li>コミットメッセージに書くべき、差分から分からないことは？</li>
+			<li>マージを途中でやめるコマンドは？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li><code>main</code> に直接コミットしない。</li>
+				<li>こまめに <code>main</code> を自分のブランチへ取り込む。</li>
+				<li>「なぜそうしたか」。</li>
+				<li><code>git merge --abort</code>。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">10</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="4-16_Redesign.html"><strong>4-16【制作課題】自分のシューティングを設計し直す</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

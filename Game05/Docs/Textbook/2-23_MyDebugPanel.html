@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>自分のデバッグパネルを作る</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n2" href="2-22_Boss.html">← 前 2-22</a>
+			<a class="navchip n2" href="index.html#lv2">LV2 の目次</a>
+			<a class="navchip n2" href="2-24_Complete.html">次 → 2-24</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l2">
+		<p class="kicker">LV2 基礎 ／ 2-23</p>
+		<h1><span class="tag tag-gui">GUI</span>自分のデバッグパネルを作る</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="2-13_PlayerMove.html">2-13</a>
+		</p>
+	</header>
+
+	<section class="level l2">
+		<h2><span class="n">00</span>入場チェック</h2>
+		<ul class="checklist prose">
+			<li>ラムダ式 <code>[](){}</code> を見たことがある？ → <a href="1-10_Function.html">1-10</a></li>
+			<li>GameObject List パネルを使ったことがある？ → <a href="2-06_GameObjectList.html">2-06</a></li>
+		</ul>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>ゲームを動かしたまま、数値を調整できる</strong></li>
+			<li>ボスの状態やHPを画面で確認できる</li>
+			<li>RAII（デストラクタで後片づけ）の考え方が使える</li>
+		</ul>
+		<div class="note">
+			<span class="h">これは「あとで楽をするための投資」です</span>
+			自機の速度を調整するのに、毎回コードを直してビルドしていたら、
+			1回の調整に何分もかかります。
+			<strong>スライダーにしておけば、遊びながら1秒で試せます。</strong>
+			調整の回数が10倍こなせれば、ゲームの出来も変わります。
+		</div>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">02</span>いちばん短い例</h2>
+<pre><code>DebugGui::RegisterPanel("Game", "Score", []() {
+    ImGui::Text("score = %d", g_score);
+});</code></pre>
+		<ul class="prose">
+			<li>第1引数：メニューバーでの分類名（好きな名前でよい）</li>
+			<li>第2引数：パネルの名前（ウィンドウのタイトルになる）</li>
+			<li>第3引数：中身を描画する関数</li>
+		</ul>
+		<p class="prose">
+			<code>ImGui::Begin()</code> / <code>End()</code> は書かなくて大丈夫です。エンジンがやります。
+			<kbd>F1</kbd> → 分類名 → パネル名 で開けます。
+		</p>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">03</span>ゲームオブジェクトの中から作る</h2>
+		<p class="prose">
+			<strong>ここが大事です。</strong>
+			<code>this</code> をキャプチャしたラムダ式を登録したまま、
+			そのゲームオブジェクトが死ぬと、
+			<strong>削除済みのメンバ変数を触ってクラッシュします。</strong>
+			<a href="2-08_DanglingPointer.html">2-08</a> でやった事故と、まったく同じ形です。
+		</p>
+		<p class="prose">
+			<code>DebugGuiPanel</code> をメンバ変数として持つと、
+			<strong>デストラクタで自動的に登録が解除されます。</strong>
+		</p>
+<pre><code>// Player.h
+class Player : public IGameObject {
+public:
+    bool Start() override;
+    void Update() override;
+private:
+    float m_speed = 600.0f;
+    Vector3 m_position = Vector3::Zero;
+    bool  m_isInvincible = false;
+
+    DebugGuiPanel m_debugPanel;      // ★ メンバ変数として持つ
+};</code></pre>
+
+<pre><code>// Player.cpp
+bool Player::Start()
+{
+    m_spriteRender.Init("Assets/sprite/player.dds", 64.0f, 64.0f);
+
+    m_debugPanel.Register("Game", "Player", [this]() {
+        ImGui::Text("pos  = %.1f, %.1f", m_position.x, m_position.y);
+        ImGui::SliderFloat("speed", &amp;m_speed, 100.0f, 2000.0f);
+        ImGui::Checkbox("invincible", &amp;m_isInvincible);
+        if (ImGui::Button("reset position")) {
+            m_position = { 0.0f, -350.0f, 0.0f };
+        }
+    });
+    return true;
+}</code></pre>
+		<div class="note">
+			<span class="h">RAII という考え方</span>
+			<strong>「持っているものが死ぬときに、自動で後片づけをする」</strong>
+			— これを RAII と呼びます。C++では非常によく使われます。<br>
+			あなたはすでに、<code>GOHandle</code> と <code>DebugGuiPanel</code> という
+			2つの例を見ています。<a href="index.html#lv5">LV5</a> の
+			<code>K2_PROFILE_SCOPE</code> も同じ仕組みです。
+		</div>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">04</span>よく使う部品</h2>
+<pre><code>ImGui::Text("hp = %d", hp);                         // 文字
+ImGui::SliderFloat("speed", &amp;speed, 0.0f, 2000.0f); // スライダー
+ImGui::DragFloat3("position", &amp;pos.x, 1.0f);        // 座標（3つまとめて）
+ImGui::Checkbox("invincible", &amp;isInvincible);       // チェックボックス
+ImGui::ColorEdit3("color", &amp;color.x);               // 色
+if (ImGui::Button("respawn")) { Respawn(); }        // ボタン
+ImGui::Separator();                                 // 区切り線
+ImGui::SameLine();                                  // 次を同じ行に置く</code></pre>
+		<p class="prose">
+			<strong>どんな部品があるか全部見たいときは、メニューの
+			<code>Debug</code> → <code>ImGui Demo</code></strong> を開いてください。
+			使える部品のカタログになっています。
+			気になった部品の名前で <code>imgui_demo.cpp</code> を検索すれば、
+			書き方がそのまま載っています。
+		</p>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">05</span>日本語を出したいとき</h2>
+		<p class="prose">
+			ImGui に渡す文字列は UTF-8 でなければなりません。
+			Visual Studio で作ったソースはたいてい Shift-JIS なので、そのままだと文字化けします。
+		</p>
+<pre><code>ImGui::Text("敵の数 = %d", num);        // 文字化けする
+ImGui::Text(U8("敵の数 = %d"), num);    // 正しく表示される</code></pre>
+		<p class="prose">
+			<code>U8()</code> で囲んでください。
+			英数字だけの文字列は素通しされるので、付けておいても害はありません。
+		</p>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">06</span>作っておくと便利なパネル</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>パネル</th><th>中身</th></tr></thead>
+			<tbody>
+				<tr><td>Player</td><td>速度・連射間隔のスライダー、無敵チェック、位置リセット</td></tr>
+				<tr><td>Boss</td><td>いまの状態（<code>Enter</code>/<code>AttackA</code>...）、HPスライダー、状態を強制的に変えるボタン</td></tr>
+				<tr><td>Debug</td><td>当たり判定の表示ON/OFF、敵の出現を止めるチェック</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>とくに「ボスの状態を強制的に変えるボタン」は、作っておくと劇的に楽になります。</strong>
+			第2形態の調整のために毎回ボスのHPを半分まで削るのは、時間の無駄です。
+		</p>
+<pre><code>m_debugPanel.Register("Game", "Boss", [this]() {
+    const char* stateNames[] = { "Enter", "AttackA", "AttackB", "Dying" };
+    ImGui::Text("state = %s", stateNames[m_state]);
+    ImGui::Text("timer = %.2f", m_stateTimer);
+    ImGui::SliderInt("hp", &amp;m_hp, 0, m_maxHp);
+
+    ImGui::Separator();
+    if (ImGui::Button("-&gt; AttackB")) { ChangeState(enState_AttackB); }
+    ImGui::SameLine();
+    if (ImGui::Button("-&gt; Dying"))   { ChangeState(enState_Dying); }
+});</code></pre>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">07</span>提出のときに消す</h2>
+		<p class="prose">
+			デバッグ機能を丸ごと消したいときは、
+			<code>k2EngineLow/dbg/DebugConfig.h</code> の定義をコメントアウトします。
+		</p>
+<pre><code>//#define K2_ENABLE_DEBUG_GUI</code></pre>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">だから <code>ImGui::</code> は登録した関数の中だけに書く</span>
+			<code>Update()</code> の中などに直接 <code>ImGui::</code> を書くと、
+			この定義を消したときにクラッシュします。
+			<strong>必ず <code>Register()</code> で登録した関数の中に書いてください。</strong>
+		</div>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">08</span>演習</h2>
+		<h3>演習1（まねる）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">自機の速度をスライダーで変えられるようにする。</p>
+
+		<h3>演習2（増やす）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			無敵チェックボックスを作って、当たり判定を無効にできるようにする。
+			ボスの調整がとても楽になります。
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>// Player.h
+private:
+    bool m_isInvincible = false;
+    DebugGuiPanel m_debugPanel;
+
+public:
+    bool IsInvincible() const { return m_isInvincible; }
+
+// Player.cpp
+bool Player::Start()
+{
+    ...
+    m_debugPanel.Register("Game", "Player", [this]() {
+        ImGui::SliderFloat("speed", &amp;m_speed, 100.0f, 2000.0f);
+        ImGui::Checkbox("invincible", &amp;m_isInvincible);
+        ImGui::SetItemTooltip("%s", U8("チェックを入れると被弾しなくなる"));
+    });
+    return true;
+}</code></pre>
+<p>被弾する側で、このフラグを見ます。</p>
+<pre><code>void Player::TakeDamage(int damage)
+{
+    if (m_isInvincible) {
+        return;              // 無敵なので何もしない
+    }
+    ...
+}</code></pre>
+<div class="note">
+<span class="h">これは本当に効きます</span>
+ボスの第2形態を調整するのに、毎回やられ直すのは時間の無駄です。
+<strong>無敵チェックひとつで、調整の速さが何倍にもなります。</strong><br>
+ついでに「敵の出現を止める」チェックも作っておくと、
+ボスだけを何度も試せるようになります。
+</div>
+		</details>
+
+		<h3>演習3（自分で書く）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			<strong>当たり判定の円を表示するON/OFF</strong>を、パネルから切り替えられるようにする。
+			<strong>本文には答えがありません。</strong>
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p>
+<strong>表示のON/OFFは、全部のオブジェクトで共通にしたいので、
+グローバルな変数か <code>static</code> メンバにします。</strong>
+</p>
+<pre><code>// DebugFlags.h
+#pragma once
+
+/// &lt;summary&gt;
+/// デバッグ表示の切り替え。
+/// K2_ENABLE_DEBUG_GUI を消しても、変数は残るので問題ない。
+/// &lt;/summary&gt;
+struct DebugFlags {
+    static bool isShowCollision;    // 当たり判定を表示する
+    static bool isStopSpawner;      // 敵の出現を止める
+};
+
+// DebugFlags.cpp
+bool DebugFlags::isShowCollision = false;
+bool DebugFlags::isStopSpawner   = false;</code></pre>
+
+<pre><code>// GameScene.cpp — パネルは1か所でまとめて登録する
+bool GameScene::Start()
+{
+    ...
+    m_debugPanel.Register("Game", "Debug", []() {
+        ImGui::Checkbox("show collision", &amp;DebugFlags::isShowCollision);
+        ImGui::Checkbox("stop spawner",   &amp;DebugFlags::isStopSpawner);
+    });
+    return true;
+}</code></pre>
+
+<pre><code>// Enemy.cpp — 使う側
+void Enemy::Render(RenderContext&amp; rc)
+{
+    m_spriteRender.Draw(rc);
+
+    if (DebugFlags::isShowCollision) {
+        m_debugCircle.Draw(rc);
+    }
+}
+
+// EnemySpawner.cpp
+void EnemySpawner::Update()
+{
+    if (DebugFlags::isStopSpawner) {
+        return;
+    }
+    ...
+}</code></pre>
+<p><strong>ポイント</strong></p>
+<ul>
+<li>フラグは<strong>1か所にまとめる</strong>。あちこちに <code>static bool</code> を
+	置くと、どこにあるか分からなくなります</li>
+<li>パネルの登録も<strong>1か所だけ</strong>。敵1体ごとに登録すると、
+	同じパネルが何十個も作られてしまいます</li>
+<li><code>DebugFlags</code> はデバッグGUIが無効でもコンパイルが通ります。
+	<code>ImGui::</code> を使っているのはパネルの中だけだからです</li>
+</ul>
+<div class="note">
+<span class="h">グローバルな変数を使ってよいのか？</span>
+<strong>デバッグ用に限れば、これでよいです。</strong>
+<a href="index.html#ch4-12">LV4-12</a> で「なぜグローバルが嫌われるのか」を学びますが、
+そこで扱うのは<strong>ゲームのロジック</strong>の話です。
+デバッグ用のフラグは、製品には残らないので事情が違います。
+</div>
+		</details>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">09</span>確認</h2>
+		<ol class="prose">
+			<li>ゲームオブジェクトの中でパネルを登録するとき、何を使う？ なぜ？</li>
+			<li><code>ImGui::</code> を <code>Update()</code> に直接書いてはいけないのはなぜ？</li>
+			<li>日本語を表示するには？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li><code>DebugGuiPanel</code>。オブジェクトが死ぬときに、
+					デストラクタで自動的に登録を解除してくれるから。</li>
+				<li>デバッグ機能を無効にしたときに、コンテキストが無い状態で呼ばれてクラッシュするから。</li>
+				<li><code>U8("...")</code> で囲む。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">10</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="2-24_Complete.html"><strong>2-24 【制作課題】2Dシューティングを完成させる</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

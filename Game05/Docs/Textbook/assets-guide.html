@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>素材の用意のしかた</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n2" href="index.html">目次にもどる</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l2">
+		<p class="kicker">共通</p>
+		<h1>素材の用意のしかた</h1>
+		<p class="lead">
+			画像・音・エフェクトは、<strong>この教材には付いていません。</strong>
+			自分で用意してください。その探し方と、置き場所と、
+			<strong>必ず守らなければいけないルール</strong>をまとめます。
+		</p>
+	</header>
+
+	<div class="note" style="--lv: var(--danger);">
+		<span class="h">この教材に素材は入っていません</span>
+		本文のコードに出てくる <code>player.dds</code> や <code>bgm.wav</code> は、
+		<strong>ファイル名の例であって、実物はありません。</strong>
+		自分で用意しないと、画面には何も出ませんし、音も鳴りません。
+	</div>
+
+	<section class="level l2">
+		<h2><span class="n">01</span>必要になるもの</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>種類</th><th>形式</th><th>置き場所</th><th>使う章</th></tr></thead>
+			<tbody>
+				<tr><td>画像（スプライト）</td><td><code>.dds</code></td>
+					<td><code>Game/Assets/sprite/</code></td>
+					<td><a href="2-11_SpriteRender.html">2-11</a></td></tr>
+				<tr><td>音（BGM・効果音）</td><td><code>.wav</code></td>
+					<td><code>Game/Assets/sound/</code></td>
+					<td><a href="2-19_Sound.html">2-19</a></td></tr>
+				<tr><td>エフェクト</td><td><code>.efk</code></td>
+					<td><code>Game/Assets/effect/</code></td>
+					<td><a href="2-20_Effect.html">2-20</a></td></tr>
+				<tr><td>3Dモデル</td><td><code>.tkm</code></td>
+					<td><code>Game/Assets/modelData/</code></td>
+					<td><a href="index.html#lv3">LV3</a></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			フォルダが無ければ自分で作ってください。
+			<strong>パスは <code>"Assets/sprite/player.dds"</code> のように書きます。</strong>
+			<code>"../"</code> や <code>"C:/..."</code> で書くと、
+			他のPCに持っていったときに読めなくなります。
+		</p>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">02</span>まずはエンジンに入っているもので動かす</h2>
+		<p class="prose">
+			素材を集めるのは、思ったより時間がかかります。
+			<strong>先に「動く」ところまで確認してから、素材を探すほうが早いです。</strong>
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>ほしいもの</th><th>どこにあるか</th></tr></thead>
+			<tbody>
+				<tr><td>画像</td><td><code>Sample/Sample_06/Game/Assets/sprite/</code></td></tr>
+				<tr><td>音</td><td><code>Sample/Sample_13/Game/Assets/sound/</code></td></tr>
+				<tr><td>エフェクト</td><td><code>Sample/Sample_17/Game/Assets/effect/</code></td></tr>
+				<tr><td>3Dモデル</td><td><code>GameTemplate/Game/Assets/modelData/</code></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			これらを自分のプロジェクトの <code>Assets/</code> にコピーして、まず表示させてみてください。
+			<strong>「出た」ことを確認してから、本番の素材に差し替える</strong>のが安全です。
+		</p>
+		<div class="note">
+			<span class="h">真っ白な四角でも、ゲームは作れます</span>
+			絵が用意できないうちは、<strong>単色の四角い画像1枚</strong>で全部済ませてかまいません。
+			自機は白、敵は赤、弾は黄色。それで <a href="2-24_Complete.html">2-24</a> の
+			完成条件は全部満たせます。
+			<strong>絵が無いことを、作らない言い訳にしないでください。</strong>
+		</div>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">03</span>自分で探す</h2>
+		<p class="prose">
+			本番の素材は、次のどれかで用意します。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>方法</th><th>良いところ</th><th>気をつけること</th></tr></thead>
+			<tbody>
+				<tr><td><strong>自分で作る</strong></td>
+					<td>権利の問題がまったく無い。ポートフォリオでも強い</td>
+					<td>時間がかかる</td></tr>
+				<tr><td><strong>フリー素材サイト</strong></td>
+					<td>すぐ手に入る。質も高い</td>
+					<td><strong>利用規約を必ず読む</strong></td></tr>
+				<tr><td><strong>学校が用意したもの</strong></td>
+					<td>使ってよいことがはっきりしている</td>
+					<td>先生に確認する</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			探すときのキーワードの例です。<strong>サイト名を覚えるより、
+			規約を読む習慣をつけてください。</strong>サイトの条件は変わります。
+		</p>
+<pre><code>フリー素材 効果音 ゲーム
+フリー素材 BGM 商用利用可
+CC0 game assets sprite
+free game sprites public domain</code></pre>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">04</span>ライセンスの確認 ― ここは必ず読む</h2>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">拾ってきた画像や音を、確認せずに使ってはいけません</span>
+			学校の課題だから大丈夫、ということはありません。
+			<strong>作品をポートフォリオとして公開したり、就職活動で見せたりするなら、なおさらです。</strong>
+		</div>
+		<p class="prose">素材をダウンロードする前に、その素材の規約で次の4つを確認してください。</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>確認すること</th><th>なぜ</th></tr></thead>
+			<tbody>
+				<tr><td><strong>ゲームに使ってよいか</strong></td>
+					<td>「個人の鑑賞のみ」という素材もある</td></tr>
+				<tr><td><strong>クレジット表記が必要か</strong></td>
+					<td>必要なら、ゲーム内かREADMEに必ず書く</td></tr>
+				<tr><td><strong>改変してよいか</strong></td>
+					<td>色を変える・切り抜くのも改変にあたることがある</td></tr>
+				<tr><td><strong>公開・配布してよいか</strong></td>
+					<td>ポートフォリオサイトや動画で公開するなら必要</td></tr>
+			</tbody>
+		</table>
+		</div>
+
+		<h3>やってはいけないこと</h3>
+		<ul class="prose">
+			<li>市販ゲームやアニメの画像・音楽を使う</li>
+			<li>検索して出てきた画像を、出どころを確かめずに使う</li>
+			<li>規約を読まずに「フリー素材」と書いてあるだけで使う</li>
+			<li>友達が持ってきた素材を、出どころを聞かずに使う</li>
+		</ul>
+
+		<h3>やっておくこと</h3>
+		<p class="prose">
+			<strong>使った素材の一覧を、プロジェクトに残してください。</strong>
+			<code>Game/Assets/CREDITS.txt</code> のようなファイルを作って、こう書いておきます。
+		</p>
+<pre><code>■ 使用素材
+
+[効果音]
+shot.wav      : ○○○（サイト名） https://...
+                ライセンス: 商用利用可・クレジット表記不要
+explosion.wav : 同上
+
+[画像]
+player.dds    : 自作
+enemy.dds     : △△△（サイト名） https://...
+                ライセンス: CC BY 4.0（クレジット表記が必要）
+
+[BGM]
+bgm.wav       : □□□（サイト名） https://...
+                ライセンス: 商用利用可・クレジット表記必要
+</code></pre>
+		<p class="prose">
+			<strong>あとから「これどこで拾ったっけ」となると、もう調べようがありません。</strong>
+			ダウンロードしたその場で書いてください。1行で済みます。
+		</p>
+		<div class="note">
+			<span class="h">就職活動で効きます</span>
+			ポートフォリオに <code>CREDITS.txt</code> が入っていると、
+			<strong>「権利のことを分かっている人だ」</strong>と伝わります。
+			逆に、明らかに権利が怪しい素材が入っていると、
+			作品の出来に関係なく評価が下がります。
+		</div>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">05</span>形式を変換する</h2>
+
+		<h3>画像 → <code>.dds</code></h3>
+		<p class="prose">
+			k2Engine が読めるのは <code>.dds</code> です。PNGやJPGはそのままでは読めません。
+			変換には、Microsoft が配布している <strong>DirectXTex</strong> の
+			<code>texconv</code> というツールなどを使います。
+		</p>
+		<ul class="prose">
+			<li><strong>透明にしたい部分は、αチャンネルを透明にしておく</strong></li>
+			<li>大きさは2の累乗（64, 128, 256...）にしておくと安全</li>
+			<li>変換後、必ず一度ゲームに出して確認する</li>
+		</ul>
+
+		<h3>音 → <code>.wav</code></h3>
+		<p class="prose">
+			mp3 や ogg は読めません。音声編集ソフト（Audacityなど）で <code>.wav</code> に変換します。
+		</p>
+		<ul class="prose">
+			<li>BGMは長いとファイルが大きくなる。ループ前提で30秒〜1分程度にする</li>
+			<li>効果音は短く。長いと連射したとき重なって聞きづらい</li>
+		</ul>
+
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">変換前のファイルも残しておく</span>
+			<code>.dds</code> や <code>.wav</code> に変換したあと、
+			<strong>元のPNGや元の音源も別フォルダに残しておいてください。</strong>
+			あとで「もう少し明るくしたい」となったとき、変換後のファイルからでは戻せません。
+			<code>SourceAssets/</code> のようなフォルダを作るとよいでしょう。
+		</div>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">06</span>チェックリスト</h2>
+		<ul class="checklist prose">
+			<li>使う素材の規約を全部読んだ</li>
+			<li>クレジット表記が必要なものは、書く場所を決めた</li>
+			<li><code>CREDITS.txt</code> に、素材の出どころとライセンスを書いた</li>
+			<li>変換前の元ファイルを残してある</li>
+			<li>パスが <code>"Assets/..."</code> から始まっている（絶対パスでない）</li>
+			<li>別のPCにコピーしても、画像と音が出る</li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

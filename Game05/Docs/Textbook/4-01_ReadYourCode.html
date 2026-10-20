@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>自分のコードを読み返す</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n4" href="index.html#lv4">LV4 の目次</a>
+			<a class="navchip n4" href="4-02_Encapsulation.html">次 → 4-02</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l4">
+		<p class="kicker">LV4 設計 ／ 4-01</p>
+		<h1>自分のコードを読み返す</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="2-24_Complete.html">2-24</a>
+		</p>
+	</header>
+
+	<section class="level l4">
+		<h2><span class="n">01</span>LV4 は何をするところか</h2>
+		<p class="prose">
+			LV2 で<strong>動くゲーム</strong>を作りました。
+			LV3 で<strong>見栄えのするゲーム</strong>にしました。
+		</p>
+		<p class="prose">
+			LV4 でやるのは<strong>「壊れにくく作り直す」</strong>ことです。
+			同じゲームを、3回目に作ります。
+		</p>
+		<div class="note">
+			<span class="h">新しい機能は、ほとんど作りません</span>
+			<strong>LV4 で身につくのは「変更に強い書き方」です。</strong><br>
+			地味です。でも、<u>2か月後の自分が助かるかどうか</u>はここで決まります。
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">02</span>まず、自分のコードを開いてください</h2>
+		<p class="prose">
+			この章に読み物はほとんどありません。
+			<strong>自分が書いたコードを測ることが、この章の中身です。</strong>
+		</p>
+		<p class="prose">
+			LV2〜LV3 で作ったゲームの <code>Player.cpp</code> を開いてください。
+			<u>半年前でなくても構いません。</u>1週間前のコードでも、たいてい忘れています。
+		</p>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">03</span>測る ― 4つの数字</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>測るもの</th><th>やり方</th><th>ひとつの目安</th></tr></thead>
+			<tbody>
+				<tr><td><strong>いちばん長い関数の行数</strong></td>
+					<td>数える</td>
+					<td><strong>50行を超えたら黄信号</strong></td></tr>
+				<tr><td>いちばんメンバ変数が多いクラス</td>
+					<td><code>.h</code> の <code>private:</code> を数える</td>
+					<td>15個を超えたら黄信号</td></tr>
+				<tr><td><code>if</code> のネストの深さ</td>
+					<td>いちばん深いところ</td>
+					<td><strong>3段を超えたら黄信号</strong></td></tr>
+				<tr><td><code>FindGO</code> を書いた回数</td>
+					<td>プロジェクト全体で検索</td>
+					<td>多いほど、つながりが見えにくい</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">「目安」であって「ルール」ではありません</span>
+			<strong>80行の関数が、いつも悪いわけではありません。</strong>
+			単純な初期化が80行並んでいるだけなら、分ける必要はありません。<br>
+			数字は<u>「ここを見てみようか」という合図</u>として使ってください。
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">04</span>嫌なにおい（コードスメル）</h2>
+		<p class="prose">
+			<strong>「バグではないが、あとで困る書き方」</strong>には、名前が付いています。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>名前</th><th>どういうものか</th><th>あとで何に困るか</th></tr></thead>
+			<tbody>
+				<tr><td><strong>長すぎる関数</strong></td>
+					<td>1つの関数が何もかもやっている</td>
+					<td>読めない。一部だけ直せない</td></tr>
+				<tr><td><strong>重複したコード</strong></td>
+					<td>コピペした似たコードが何か所にもある</td>
+					<td><strong>直すとき、1か所直し忘れる</strong></td></tr>
+				<tr><td>巨大なクラス</td>
+					<td>1つのクラスが何もかも持っている</td>
+					<td>どこを触っても、どこかに影響する</td></tr>
+				<tr><td><strong>マジックナンバー</strong></td>
+					<td><code>if (m_hp &lt; 30)</code> の <code>30</code></td>
+					<td>何の数字か分からない。変え忘れる</td></tr>
+				<tr><td>長い引数リスト</td>
+					<td>引数が6個も7個もある</td>
+					<td>順番を間違えても、コンパイルが通る</td></tr>
+				<tr><td><strong>フラグ引数</strong></td>
+					<td><code>Attack(true)</code></td>
+					<td><u>呼び出し側を見ても、何が起きるか分からない</u></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>いちばん厄介なのは「重複したコード」です。</strong>
+			仕様が変わったとき、<u>3か所のうち2か所だけ直す</u>という事故が起きます。
+			しかもコンパイルは通るので、気づきません。
+		</p>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">05</span>マジックナンバーだけは、いま直せます</h2>
+		<p class="prose">
+			ほかのにおいは、この先の章で道具を手に入れてから直します。
+			<strong>マジックナンバーだけは、いますぐ直せます。</strong>
+		</p>
+<pre><code>// 直す前
+void Player::Update()
+{
+    if (m_hp &lt; 30) {
+        // 何かする
+    }
+    m_position.x += 300.0f * g_gameTime-&gt;GetFrameDeltaTime();
+
+    if (m_shotTimer &gt; 0.15f) { Shot(); }
+}</code></pre>
+<pre><code>// 直したあと（Player.cpp の先頭あたり）
+namespace {
+    const int   PINCH_HP        = 30;      // これ以下でピンチ演出
+    const float MOVE_SPEED      = 300.0f;  // 1秒あたりの移動量
+    const float SHOT_INTERVAL   = 0.15f;   // 連射の間隔（秒）
+}
+
+void Player::Update()
+{
+    if (m_hp &lt; PINCH_HP) {
+        // 何かする
+    }
+    m_position.x += MOVE_SPEED * g_gameTime-&gt;GetFrameDeltaTime();
+
+    if (m_shotTimer &gt; SHOT_INTERVAL) { Shot(); }
+}</code></pre>
+		<div class="note">
+			<span class="h">無名 namespace に置く理由</span>
+			<code>namespace { ... }</code> の中に書くと、
+			<strong>その <code>.cpp</code> の中だけで見える定数</strong>になります。<br>
+			別のファイルの同じ名前とぶつかりません。
+			<u><code>static const</code> と書くのと同じ効果ですが、こちらが今の書き方です。</u>
+		</div>
+		<p class="prose">
+			<strong>いちばんの効果は、調整が速くなることです。</strong>
+			数字が先頭に並んでいれば、
+			ゲームバランスを触るときに <code>Update()</code> を読み返さずに済みます。
+		</p>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">06</span>この先の章と、においの対応</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>におい</th><th>効く章</th></tr></thead>
+			<tbody>
+				<tr><td>メンバが全部 public</td>
+					<td><a href="4-02_Encapsulation.html">4-02 カプセル化</a></td></tr>
+				<tr><td>継承しすぎて破綻</td>
+					<td><a href="4-03_Composition.html">4-03 コンポジション</a></td></tr>
+				<tr><td><strong>巨大な <code>Update()</code></strong></td>
+					<td><a href="4-04_Solid.html">4-04 SOLID</a>、
+						<a href="4-05_State.html">4-05 State</a>、
+						<a href="4-07_Component.html">4-07 Component</a></td></tr>
+				<tr><td><code>FindGO</code> だらけ</td>
+					<td><a href="4-08_Observer.html">4-08 Observer</a></td></tr>
+				<tr><td>コピペした似たクラス</td>
+					<td><a href="4-09_Strategy.html">4-09 Strategy</a></td></tr>
+				<tr><td>散らばった <code>switch</code></td>
+					<td><a href="4-10_Factory.html">4-10 Factory</a></td></tr>
+				<tr><td>直すと別が壊れる</td>
+					<td><a href="4-13_Refactoring.html">4-13 リファクタリング</a>、
+						<a href="4-14_Testable.html">4-14 テストしやすい設計</a></td></tr>
+			</tbody>
+		</table>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（測る）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">自分のコードの<strong>4つの数字</strong>を測って、メモに書き出す。<a href="4-16_Redesign.html">4-16</a> で、もう一度測って比べます。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p>
+テキストファイルに残しておいてください。
+</p>
+<pre><code>== 2026-01-15 リファクタ前 ==
+いちばん長い関数   : Player::Update()      182行
+いちばん多いメンバ : Player                23個
+いちばん深いネスト : Player::Update()      5段
+FindGO の回数      : 31回
+ビルド時間         : 1分12秒</code></pre>
+<p><strong>数え方（Visual Studio）</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>測るもの</th><th>やり方</th></tr></thead>
+<tbody>
+<tr><td>関数の行数</td>
+	<td>関数の頭と終わりで、左下に出る<strong>行番号</strong>の差を見る</td></tr>
+<tr><td>メンバの数</td><td><code>.h</code> を開いて <code>m_</code> を数える</td></tr>
+<tr><td><code>FindGO</code> の回数</td>
+	<td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> で
+		<code>FindGO&lt;</code> をソリューション全体検索。
+		<strong>結果の件数が出ます</strong></td></tr>
+<tr><td>ビルド時間</td>
+	<td>出力ウィンドウの最後の行に出ます
+		（<a href="5-15_BuildTime.html">5-15</a> で詳しく）</td></tr>
+</tbody>
+</table>
+</div>
+<div class="note">
+<span class="h">数字が悪くても、落ち込まないでください</span>
+<strong>ここで数字が良い人は、LV4 を読む必要がありません。</strong>
+悪いほど、これから伸びる幅が大きいというだけです。
+<br><br>
+プロが書いたコードにも、同じにおいはあります。
+違うのは<u>「におうと分かっていて、いつ直すか決めている」</u>ことです。
+</div>
+		</details>
+
+		<h3>演習2（探す）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">自分のコードから<strong>マジックナンバーを10個</strong>見つけて、名前の付いた定数に置き換える。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>探し方のコツ</strong></p>
+<ul>
+<li><code>if</code> の右側に出てくる数字</li>
+<li><code>&lt;</code> <code>&gt;</code> の隣の数字</li>
+<li><code>0.0f</code> <code>1.0f</code> <strong>以外</strong>の小数</li>
+<li>配列のサイズ</li>
+</ul>
+<p><strong>置き換えなくてよいもの</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>そのままでよい</th><th>理由</th></tr></thead>
+<tbody>
+<tr><td><code>0</code> <code>1</code> <code>-1</code></td>
+	<td>意味が自明。<code>i &lt; 0</code> を定数にしても読みにくくなるだけ</td></tr>
+<tr><td><code>2.0f</code>（半分にする割り算など）</td>
+	<td>数式の一部として読める</td></tr>
+<tr><td><code>1.0f / 60.0f</code></td>
+	<td><u>そう書いてあるほうが分かりやすい</u></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>やりすぎた例</strong></p>
+<pre><code>const int ZERO = 0;              // ★ これは意味がない
+const float HALF = 0.5f;         // ★ これも微妙
+if (m_hp &lt; ZERO) { ... }</code></pre>
+<p>
+<strong>判断のしかた：「この数字を後で変えたくなるか？」</strong>
+変えたくなるなら定数に、変えないなら数字のままで構いません。
+</p>
+<div class="note">
+<span class="h">名前を付けられない数字は、要注意です</span>
+<code>if (m_timer &gt; 2.7f)</code> の <code>2.7</code> に
+<strong>名前を付けようとして、思いつかないことがあります。</strong>
+<br><br>
+それは<u>「自分でも、なぜその値なのか分かっていない」</u>という合図です。
+コメントに「試して、これがいちばん良かった」とだけでも書いてください。
+</div>
+		</details>
+
+		<h3>演習3（数える）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>同じような処理が2回以上書かれている場所</strong>を探す。直さなくてよい。<u>どこにあるかだけ、メモしておく。</u></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>シューティングでよくある重複</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>重複しがちな場所</th><th>効く章</th></tr></thead>
+<tbody>
+<tr><td>プレイヤーの弾と、敵の弾</td>
+	<td><a href="4-09_Strategy.html">4-09</a></td></tr>
+<tr><td>敵A・敵B・敵Cの、ほぼ同じ <code>Update()</code></td>
+	<td><a href="4-03_Composition.html">4-03</a>、
+		<a href="4-09_Strategy.html">4-09</a></td></tr>
+<tr><td>画面外に出たら消す処理（各所にコピペ）</td>
+	<td><a href="4-07_Component.html">4-07</a></td></tr>
+<tr><td>当たり判定（距離を計算する数行）</td>
+	<td>関数に切り出すだけでよい</td></tr>
+<tr><td>スコア加算のたびの <code>FindGO&lt;Score&gt;</code></td>
+	<td><a href="4-08_Observer.html">4-08</a></td></tr>
+<tr><td>敵の種類ごとの <code>switch</code></td>
+	<td><a href="4-10_Factory.html">4-10</a></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>探し方：コピペした記憶をたどる</strong></p>
+<p>
+<u>「あのクラスをコピーして作ったな」</u>と覚えている場所が、
+たいてい重複しています。
+検索より記憶のほうが速いです。
+</p>
+<p><strong>メモの書き方</strong></p>
+<pre><code>== 重複メモ ==
+1. Enemy.cpp / Enemy2.cpp / Boss.cpp の Move()
+   → ほぼ同じ。速度が違うだけ
+2. Bullet.cpp / EnemyBullet.cpp
+   → 当たる相手が違うだけで、あとは同じ
+3. 画面外判定 4か所（Bullet, EnemyBullet, Item, Effect）</code></pre>
+<div class="note" style="--lv: var(--warn);">
+<span class="h">いま直そうとしないでください</span>
+道具を持たずに直そうとすると、<strong>たいてい余計に複雑になります。</strong>
+<br><br>
+<a href="4-16_Redesign.html">4-16</a> で、このメモを見ながらまとめて直します。
+それまでは<u>「におう場所の地図」</u>として持っておいてください。
+</div>
+		</details>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li>いちばん困るコードスメルは？ なぜ？</li>
+			<li>マジックナンバーを定数にする、いちばんの利点は？</li>
+			<li>LV4 で作るのは、何回目のゲーム？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>重複したコード。仕様変更のとき一部だけ直し忘れ、
+					しかもコンパイルが通るので気づけないから。</li>
+				<li>数字が1か所に集まり、調整が速くなる。意味も分かる。</li>
+				<li>3回目。1回目は動かすため、2回目は見せるため、
+					3回目は壊れにくくするため。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="4-02_Encapsulation.html"><strong>4-02 カプセル化</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

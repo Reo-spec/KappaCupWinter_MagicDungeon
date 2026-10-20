@@ -1,0 +1,687 @@
+@charset "UTF-8";
+/* ===========================================================================
+   k2Engine 教材 共通スタイル
+
+   ・学校のPCでオフラインでも開けるように、外部のフォントやCDNは使わない。
+   ・Windowsに標準で入っているフォントと、Visual Studio に付いてくる
+     Cascadia Code / Consolas だけで組んでいる。
+   =========================================================================== */
+
+:root {
+	/* 面と文字 --------------------------------------------------------- */
+	--bg:          #f6f7f9;
+	--surface:     #ffffff;
+	--surface-2:   #f0f2f6;
+	--ink:         #15171c;
+	--ink-2:       #5c6373;
+	--ink-3:       #8a91a1;
+	--line:        #e3e6ec;
+	--line-strong: #cdd2dc;
+	--accent:      #1f5fd0;
+
+	/* レベルの色。teal → blue → indigo → purple → magenta と
+	   段階的に変化させて、LV1からLV5への進行そのものを表している。 */
+	--lv1: #0f8e86;
+	--lv2: #1f6fc4;
+	--lv3: #5a50c2;
+	--lv4: #8c44ae;
+	--lv5: #b93b7e;
+
+	/* 各セクションが --lv を上書きして使う。 */
+	--lv: var(--accent);
+
+	--font-body: "Yu Gothic UI", "Yu Gothic", YuGothic,
+	             "Hiragino Kaku Gothic ProN", Meiryo, system-ui, sans-serif;
+	--font-display: "Yu Mincho", YuMincho, "Hiragino Mincho ProN",
+	                "MS PMincho", serif;
+	--font-mono: "Cascadia Mono", "Cascadia Code", Consolas,
+	             "BIZ UDGothic", "MS Gothic", monospace;
+
+	--radius: 6px;
+	--maxw: 1180px;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme="light"]) {
+		--bg:          #111318;
+		--surface:     #181b22;
+		--surface-2:   #1f232c;
+		--ink:         #e7e9ee;
+		--ink-2:       #a3aab9;
+		--ink-3:       #737b8c;
+		--line:        #272c36;
+		--line-strong: #39404e;
+		--accent:      #6f9df0;
+
+		--lv1: #35bdb2;
+		--lv2: #5b9df0;
+		--lv3: #8f86ea;
+		--lv4: #bd78d8;
+		--lv5: #e276ab;
+	}
+}
+
+:root[data-theme="dark"] {
+	--bg:          #111318;
+	--surface:     #181b22;
+	--surface-2:   #1f232c;
+	--ink:         #e7e9ee;
+	--ink-2:       #a3aab9;
+	--ink-3:       #737b8c;
+	--line:        #272c36;
+	--line-strong: #39404e;
+	--accent:      #6f9df0;
+
+	--lv1: #35bdb2;
+	--lv2: #5b9df0;
+	--lv3: #8f86ea;
+	--lv4: #bd78d8;
+	--lv5: #e276ab;
+}
+
+/* --------------------------------------------------------------------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--ink);
+	font-family: var(--font-body);
+	font-size: 16px;
+	line-height: 1.8;
+	font-feature-settings: "palt" 1;
+}
+
+img { max-width: 100%; height: auto; }
+
+a { color: var(--accent); text-underline-offset: 2px; }
+a:focus-visible,
+button:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+	border-radius: 3px;
+}
+
+code {
+	font-family: var(--font-mono);
+	font-size: 0.88em;
+	background: var(--surface-2);
+	border: 1px solid var(--line);
+	border-radius: 4px;
+	padding: 0.05em 0.34em;
+}
+
+/* === 上部のバー ======================================================== */
+
+.topbar {
+	position: sticky;
+	top: env(safe-area-inset-top, 0px);
+	z-index: 20;
+	background: color-mix(in srgb, var(--bg) 88%, transparent);
+	backdrop-filter: blur(8px);
+	border-bottom: 1px solid var(--line);
+}
+.topbar-inner {
+	max-width: var(--maxw);
+	margin: 0 auto;
+	padding: 8px 20px;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+.topbar .home {
+	font-weight: 700;
+	text-decoration: none;
+	color: var(--ink);
+	letter-spacing: 0.02em;
+	margin-right: 4px;
+}
+.navchips { display: flex; gap: 6px; flex-wrap: wrap; }
+.navchip {
+	font-family: var(--font-mono);
+	font-size: 12px;
+	text-decoration: none;
+	color: var(--ink-2);
+	border: 1px solid var(--line-strong);
+	border-radius: 999px;
+	padding: 2px 10px;
+	white-space: nowrap;
+}
+.navchip:hover { color: var(--lvc); border-color: var(--lvc); }
+.navchip.n1 { --lvc: var(--lv1); }
+.navchip.n2 { --lvc: var(--lv2); }
+.navchip.n3 { --lvc: var(--lv3); }
+.navchip.n4 { --lvc: var(--lv4); }
+.navchip.n5 { --lvc: var(--lv5); }
+
+.themetoggle {
+	margin-left: auto;
+	font-family: var(--font-body);
+	font-size: 12px;
+	color: var(--ink-2);
+	background: transparent;
+	border: 1px solid var(--line-strong);
+	border-radius: 999px;
+	padding: 3px 12px;
+	cursor: pointer;
+}
+.themetoggle:hover { color: var(--ink); border-color: var(--ink-3); }
+
+/* === 本文の幅 ========================================================== */
+
+.wrap {
+	max-width: var(--maxw);
+	margin: 0 auto;
+	padding-inline: 20px;
+	padding-block: 0;
+}
+.prose { max-width: 70ch; }
+
+h1, h2, h3, h4 { text-wrap: balance; line-height: 1.35; }
+
+/* === 見出し =========================================================== */
+
+.masthead { padding-block: 44px 8px; }
+.masthead .kicker {
+	font-family: var(--font-mono);
+	font-size: 12px;
+	letter-spacing: 0.14em;
+	color: var(--ink-3);
+	text-transform: uppercase;
+	margin: 0 0 10px;
+}
+.masthead h1 {
+	font-family: var(--font-display);
+	font-size: clamp(30px, 5.2vw, 46px);
+	font-weight: 600;
+	letter-spacing: 0.01em;
+	margin: 0 0 14px;
+}
+.masthead .lead {
+	font-size: 17px;
+	color: var(--ink-2);
+	margin: 0;
+	max-width: 62ch;
+}
+.masthead .lead strong { color: var(--ink); }
+
+/* === セクション ======================================================== */
+
+section { padding-block: 34px; }
+section > h2 {
+	font-family: var(--font-display);
+	font-size: 24px;
+	font-weight: 600;
+	margin: 0 0 6px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid var(--line);
+}
+section > h2 .n {
+	font-family: var(--font-mono);
+	font-size: 14px;
+	color: var(--ink-3);
+	margin-right: 10px;
+}
+h3 { font-size: 17px; margin: 26px 0 8px; }
+
+p { margin: 0 0 14px; }
+
+/* === 図 =============================================================== */
+
+figure {
+	margin: 24px 0;
+	padding: 20px 18px 14px;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+	overflow-x: auto;
+}
+figure svg { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+figcaption {
+	margin-top: 14px;
+	padding-top: 12px;
+	border-top: 1px solid var(--line);
+	font-size: 13px;
+	line-height: 1.7;
+	color: var(--ink-2);
+}
+figcaption strong { color: var(--ink); }
+
+/* === 汎用の表 ========================================================== */
+
+.tbl-scroll { overflow-x: auto; }
+table.plain {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 14.5px;
+	margin: 6px 0 18px;
+}
+table.plain th, table.plain td {
+	text-align: left;
+	vertical-align: top;
+	padding: 9px 12px;
+	border-bottom: 1px solid var(--line);
+}
+table.plain thead th {
+	font-size: 12px;
+	letter-spacing: 0.06em;
+	color: var(--ink-3);
+	border-bottom: 1px solid var(--line-strong);
+	white-space: nowrap;
+}
+table.plain tbody tr:last-child td { border-bottom: none; }
+
+/* === 注意書き ========================================================== */
+
+.note {
+	margin: 18px 0;
+	padding: 14px 16px;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-left: 3px solid var(--lv);
+	border-radius: 0 var(--radius) var(--radius) 0;
+	font-size: 14.5px;
+	line-height: 1.8;
+}
+.note > :last-child { margin-bottom: 0; }
+.note .h {
+	display: block;
+	font-weight: 700;
+	color: var(--lv);
+	margin-bottom: 4px;
+}
+
+/* === レベルの見出し ==================================================== */
+
+.level { scroll-margin-top: 70px; }
+.level-head {
+	display: flex;
+	align-items: baseline;
+	gap: 14px;
+	flex-wrap: wrap;
+	padding-bottom: 10px;
+	border-bottom: 2px solid var(--lv);
+	margin-bottom: 4px;
+}
+.level-head .badge {
+	font-family: var(--font-mono);
+	font-size: 13px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	color: #fff;
+	background: var(--lv);
+	border-radius: 4px;
+	padding: 2px 10px;
+}
+.level-head h2 {
+	font-family: var(--font-display);
+	font-size: 26px;
+	font-weight: 600;
+	margin: 0;
+	border: none;
+	padding: 0;
+}
+.level-head .q {
+	font-size: 14px;
+	color: var(--ink-2);
+	margin-left: auto;
+}
+.level-head .q b { color: var(--lv); font-weight: 600; }
+.level-goal {
+	font-size: 15px;
+	margin: 12px 0 4px;
+}
+.level-goal b { color: var(--lv); }
+
+.level.l1 { --lv: var(--lv1); }
+.level.l2 { --lv: var(--lv2); }
+.level.l3 { --lv: var(--lv3); }
+.level.l4 { --lv: var(--lv4); }
+.level.l5 { --lv: var(--lv5); }
+
+/* === 章の表 ============================================================ */
+
+.chapters {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 14.5px;
+	margin: 14px 0 10px;
+}
+.chapters thead th {
+	font-size: 11.5px;
+	letter-spacing: 0.08em;
+	font-weight: 600;
+	color: var(--ink-3);
+	text-align: left;
+	padding: 6px 10px;
+	border-bottom: 1px solid var(--line-strong);
+	white-space: nowrap;
+}
+.chapters td {
+	vertical-align: top;
+	padding: 9px 10px;
+	border-bottom: 1px solid var(--line);
+}
+.chapters tbody tr:hover { background: var(--surface); }
+
+.chapters .num {
+	font-family: var(--font-mono);
+	font-variant-numeric: tabular-nums;
+	font-size: 13px;
+	color: var(--ink-2);
+	white-space: nowrap;
+	width: 1%;
+	position: relative;
+}
+.chapters .num a { position: absolute; top: -70px; }
+.chapters .title { line-height: 1.6; }
+.chapters .pre {
+	font-family: var(--font-mono);
+	font-variant-numeric: tabular-nums;
+	font-size: 12.5px;
+	color: var(--ink-2);
+	white-space: nowrap;
+	width: 1%;
+}
+.chapters .pre .none { color: var(--ink-3); }
+.chapters .goal { color: var(--ink-2); line-height: 1.6; }
+.chapters .dcell { width: 1%; white-space: nowrap; }
+
+/* 制作課題の行。関門なので見た目でも止まるようにする。 */
+.chapters tr.milestone td { background: var(--surface); }
+.chapters tr.milestone .title { font-weight: 700; }
+.chapters tr.milestone .num {
+	box-shadow: inset 3px 0 0 var(--lv);
+	color: var(--lv);
+	font-weight: 700;
+}
+
+/* === 難易度のドット ==================================================== */
+
+.diff { display: inline-flex; gap: 3px; align-items: center; }
+.diff i {
+	width: 7px; height: 7px;
+	border-radius: 50%;
+	display: block;
+}
+.diff .don  { background: var(--lv); }
+.diff .doff { background: transparent; box-shadow: inset 0 0 0 1px var(--line-strong); }
+
+/* === チップ ============================================================ */
+
+.tag {
+	display: inline-block;
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	line-height: 1.6;
+	border-radius: 3px;
+	padding: 0 6px;
+	margin-right: 6px;
+	vertical-align: 1px;
+	white-space: nowrap;
+}
+.tag-goal { color: #fff; background: var(--lv); }
+.tag-gui {
+	color: var(--lv);
+	background: transparent;
+	box-shadow: inset 0 0 0 1px var(--lv);
+}
+
+/* === フッタ ============================================================ */
+
+footer {
+	margin-top: 40px;
+	padding-block: 24px 48px;
+	border-top: 1px solid var(--line);
+	font-size: 13px;
+	color: var(--ink-3);
+}
+footer a { color: var(--ink-2); }
+
+/* === 狭い画面：章の表をカードに組み直す ================================ */
+
+@media (max-width: 780px) {
+	body { font-size: 15px; }
+
+	.chapters thead { display: none; }
+	.chapters, .chapters tbody, .chapters tr, .chapters td { display: block; }
+	.chapters tr {
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		margin-bottom: 10px;
+		padding: 10px 12px;
+	}
+	.chapters td {
+		border: none;
+		padding: 2px 0;
+		width: auto;
+	}
+	.chapters .num {
+		box-shadow: none !important;
+		font-size: 12px;
+		color: var(--lv);
+		font-weight: 700;
+	}
+	.chapters .num a { top: -70px; }
+	.chapters .title { font-size: 15.5px; font-weight: 600; }
+	.chapters tr.milestone {
+		border-left: 3px solid var(--lv);
+	}
+	.chapters .dcell,
+	.chapters .pre,
+	.chapters .goal { font-size: 13px; }
+	.chapters .pre::before,
+	.chapters .goal::before,
+	.chapters .dcell::before {
+		content: attr(data-l) "：";
+		color: var(--ink-3);
+		font-size: 11.5px;
+		font-family: var(--font-body);
+		margin-right: 4px;
+	}
+	.chapters .dcell { display: flex; align-items: center; }
+
+	.level-head .q { margin-left: 0; width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	* { animation: none !important; transition: none !important; }
+}
+
+@media print {
+	.topbar { display: none; }
+	body { background: #fff; color: #000; }
+}
+
+/* === 図の中身のスタイル ================================================
+   SVGの中に<style>は置かず、ここでまとめて色を決める。
+   こうしておくと、ライト/ダークの切り替えに図も自動で追従する。 */
+
+.fig-box   { fill: var(--surface-2); stroke: var(--line-strong); stroke-width: 1; }
+.fig-line  { stroke: var(--line-strong); stroke-width: 1.5; fill: none; }
+.fig-t     { fill: var(--ink);   font-family: var(--font-body); font-size: 14px; }
+.fig-t.sm  { font-size: 12px; }
+.fig-m     { fill: var(--ink-2); font-family: var(--font-body); font-size: 12px; }
+.fig-n     { font-family: var(--font-mono); font-size: 12px; font-weight: 700; }
+.fig-vert  { writing-mode: vertical-rl; }
+.fig-head  { fill: var(--ink-3); }
+
+.c1 { fill: var(--lv1); } .s1 { stroke: var(--lv1); }
+.c2 { fill: var(--lv2); } .s2 { stroke: var(--lv2); }
+.c3 { fill: var(--lv3); } .s3 { stroke: var(--lv3); }
+.c4 { fill: var(--lv4); } .s4 { stroke: var(--lv4); }
+.c5 { fill: var(--lv5); } .s5 { stroke: var(--lv5); }
+
+.fig-box.b1 { stroke: var(--lv1); }
+.fig-box.b2 { stroke: var(--lv2); }
+.fig-box.b3 { stroke: var(--lv3); }
+.fig-box.b4 { stroke: var(--lv4); }
+.fig-box.b5 { stroke: var(--lv5); }
+
+/* === 意味を持つ色（注意・危険） ========================================= */
+
+:root {
+	--warn:        #a8620a;
+	--warn-soft:   #fbf1e2;
+	--danger:      #bb3226;
+	--danger-soft: #fbeceb;
+	--ok:          #1d7a4c;
+}
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme="light"]) {
+		--warn:        #e2a854;
+		--warn-soft:   #322611;
+		--danger:      #ec7d72;
+		--danger-soft: #351e1c;
+		--ok:          #54c68c;
+	}
+}
+:root[data-theme="dark"] {
+	--warn:        #e2a854;
+	--warn-soft:   #322611;
+	--danger:      #ec7d72;
+	--danger-soft: #351e1c;
+	--ok:          #54c68c;
+}
+
+.fig-warn   { fill: var(--warn-soft);   stroke: var(--warn);   stroke-width: 1; }
+.fig-danger { fill: var(--danger-soft); stroke: var(--danger); stroke-width: 1; }
+.cwarn   { fill: var(--warn); }
+.cdanger { fill: var(--danger); }
+.cok     { fill: var(--ok); }
+.fig-dash { stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 4 4; fill: none; }
+
+kbd {
+	font-family: var(--font-mono);
+	font-size: 0.85em;
+	border: 1px solid var(--line-strong);
+	border-bottom-width: 2px;
+	border-radius: 4px;
+	padding: 0 5px;
+	background: var(--surface-2);
+}
+
+pre {
+	font-family: var(--font-mono);
+	font-size: 13px;
+	line-height: 1.7;
+	background: var(--surface-2);
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+	padding: 14px 16px;
+	overflow-x: auto;
+	margin: 14px 0;
+}
+pre code { background: none; border: none; padding: 0; font-size: inherit; }
+
+blockquote {
+	margin: 18px 0;
+	padding: 2px 16px;
+	border-left: 3px solid var(--line-strong);
+	color: var(--ink-2);
+}
+blockquote > :last-child { margin-bottom: 0; }
+
+ul, ol { margin: 0 0 14px; padding-left: 1.6em; }
+li { margin-bottom: 4px; }
+
+hr { border: none; border-top: 1px solid var(--line); margin: 30px 0; }
+
+details {
+	margin: 14px 0;
+	padding: 10px 14px;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+}
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 8px; }
+
+.checklist { list-style: none; padding-left: 0; }
+.checklist li { display: flex; gap: 10px; align-items: flex-start; }
+.checklist li::before {
+	content: "";
+	flex: 0 0 auto;
+	width: 15px; height: 15px;
+	margin-top: 6px;
+	border: 1.5px solid var(--line-strong);
+	border-radius: 3px;
+}
+
+/* === Markdownから変換した文書ページ ==================================== */
+
+.doc { max-width: 78ch; padding-block: 36px 10px; }
+.doc h1 {
+	font-family: var(--font-display);
+	font-size: clamp(26px, 4.4vw, 38px);
+	font-weight: 600;
+	margin: 0 0 20px;
+	padding-bottom: 14px;
+	border-bottom: 2px solid var(--accent);
+}
+.doc h2 {
+	font-family: var(--font-display);
+	font-size: 23px;
+	font-weight: 600;
+	margin: 40px 0 10px;
+	padding-bottom: 7px;
+	border-bottom: 1px solid var(--line);
+}
+.doc h3 { font-size: 17px; margin: 26px 0 6px; }
+.doc h4 { font-size: 15px; margin: 20px 0 4px; color: var(--ink-2); }
+.doc table.plain { font-size: 14px; }
+.doc .tbl-scroll { max-width: 100%; }
+.doc hr { margin: 34px 0; }
+
+
+/* === 執筆済みの章 ====================================================== */
+
+.chapters a.chlink {
+	color: inherit;
+	text-decoration: underline;
+	text-decoration-color: var(--lv);
+	text-decoration-thickness: 2px;
+	text-underline-offset: 3px;
+}
+.chapters a.chlink:hover { color: var(--lv); }
+.chapters tr.written .num::after {
+	content: "\25B8";
+	color: var(--lv);
+	margin-left: 5px;
+}
+table.plain a.chlink {
+	color: inherit;
+	text-decoration: underline;
+	text-decoration-color: var(--accent);
+	text-decoration-thickness: 2px;
+	text-underline-offset: 3px;
+}
+
+
+/* === 演習の解答例 ====================================================== */
+
+details.answer {
+	border-left: 3px solid var(--lv);
+	background: var(--surface-2);
+}
+details.answer > summary {
+	color: var(--lv);
+	font-size: 14px;
+	font-weight: 700;
+	list-style: none;
+}
+details.answer > summary::-webkit-details-marker { display: none; }
+details.answer > summary::before {
+	content: "\25B8\00A0";
+	display: inline-block;
+	transition: transform 0.15s;
+}
+details.answer[open] > summary::before { content: "\25BE\00A0"; }
+details.answer > :not(summary) { font-size: 14.5px; }
+details.answer pre { background: var(--bg); }

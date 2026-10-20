@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Command ― 操作を「もの」にする</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n4" href="4-10_Factory.html">← 前 4-10</a>
+			<a class="navchip n4" href="index.html#lv4">LV4 の目次</a>
+			<a class="navchip n4" href="4-12_Singleton.html">次 → 4-12</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l4">
+		<p class="kicker">LV4 設計 ／ 4-11</p>
+		<h1>Command ― 操作を「もの」にする</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span>
+			／ 前提 <a href="2-10_Input.html">2-10</a>
+		</p>
+	</header>
+
+	<section class="level l4">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>キーコンフィグ</strong>を作れる</li>
+			<li><strong>リプレイ</strong>を作れる</li>
+			<li>AIとプレイヤーで、同じ操作の仕組みを使い回せる</li>
+		</ul>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">02</span>困っている形</h2>
+<pre><code>void Player::Update()
+{
+    if (g_pad[0]-&gt;IsPress(enButtonLeft))  { m_position.x -= SPEED * dt; }
+    if (g_pad[0]-&gt;IsPress(enButtonRight)) { m_position.x += SPEED * dt; }
+    if (g_pad[0]-&gt;IsPress(enButtonA))     { Shot(); }
+    if (g_pad[0]-&gt;IsTrigger(enButtonB))   { Bomb(); }
+}</code></pre>
+		<p class="prose">
+			<strong>動きます。でも、こうなると詰みます。</strong>
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>やりたいこと</th><th>この形だと</th></tr></thead>
+			<tbody>
+				<tr><td>ボタン配置を変えられるようにする</td>
+					<td><strong>全部の <code>if</code> を書き換える</strong></td></tr>
+				<tr><td>リプレイを録る</td><td>できない</td></tr>
+				<tr><td>デモプレイ（AIが遊ぶ）</td>
+					<td><u>入力を偽装する仕組みが要る</u></td></tr>
+				<tr><td>操作不能状態にする</td>
+					<td>全部の <code>if</code> にフラグを足す</td></tr>
+			</tbody>
+		</table>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">03</span>考え方 ― 「入力」と「やること」を切る</h2>
+		<p class="prose">
+			<strong>いまは「Aボタン」と「撃つ」が直結しています。</strong>
+			間に一段はさみます。
+		</p>
+<pre><code>Aボタン ──→ 撃つ               ← いま
+
+Aボタン ──→ 「撃つ」という命令 ──→ 撃つ    ← Command</code></pre>
+		<p class="prose">
+			間にはさんだ<strong>「命令」を、もの（オブジェクト）として扱える</strong>
+			ようにするのが Command パターンです。
+		</p>
+		<p class="prose">
+			ものになると、<strong>保存できます。あとで実行できます。
+			誰が出したかを問わなくなります。</strong>
+		</p>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">04</span>軽い作り方 ― enum で足りることが多い</h2>
+		<p class="prose">
+			<strong>いきなりクラスを作らないでください。</strong>
+			ゲームの操作は種類が少ないので、<u>enum で足ります。</u>
+		</p>
+<pre><code>// GameInput.h
+enum EnAction {
+    enAction_Left,
+    enAction_Right,
+    enAction_Up,
+    enAction_Down,
+    enAction_Shot,
+    enAction_Bomb,
+    enAction_Num,
+};
+
+/// &lt;summary&gt;1フレーム分の操作。&lt;/summary&gt;
+struct InputFrame {
+    bool press[enAction_Num]   = {};    // 押されている
+    bool trigger[enAction_Num] = {};    // 押された瞬間
+};
+
+/// &lt;summary&gt;操作を作るもの。プレイヤー・AI・リプレイが実装する。&lt;/summary&gt;
+class IInputSource {
+public:
+    virtual ~IInputSource() {}
+    virtual void Poll(InputFrame&amp; out) = 0;
+};</code></pre>
+<pre><code>// ゲームパッドから作る
+class PadInputSource : public IInputSource {
+public:
+    void Poll(InputFrame&amp; out) override
+    {
+        auto* pad = g_pad[0];
+        out.press[enAction_Left]  = pad-&gt;IsPress(m_config[enAction_Left]);
+        out.press[enAction_Right] = pad-&gt;IsPress(m_config[enAction_Right]);
+        out.press[enAction_Shot]  = pad-&gt;IsPress(m_config[enAction_Shot]);
+        out.trigger[enAction_Bomb] = pad-&gt;IsTrigger(m_config[enAction_Bomb]);
+        ...
+    }
+
+    /// &lt;summary&gt;キーコンフィグ。&lt;/summary&gt;
+    void SetButton(EnAction action, EnButton button)
+    {
+        m_config[action] = button;
+    }
+
+private:
+    EnButton m_config[enAction_Num] = {
+        enButtonLeft, enButtonRight, enButtonUp, enButtonDown,
+        enButtonA, enButtonB,
+    };
+};</code></pre>
+<pre><code>// Player は「誰が操作しているか」を知らない
+void Player::Update()
+{
+    InputFrame input;
+    m_inputSource-&gt;Poll(input);
+
+    const float dt = g_gameTime-&gt;GetFrameDeltaTime();
+    if (input.press[enAction_Left])  { m_position.x -= SPEED * dt; }
+    if (input.press[enAction_Right]) { m_position.x += SPEED * dt; }
+    if (input.press[enAction_Shot])  { Shot(); }
+    if (input.trigger[enAction_Bomb]) { Bomb(); }
+}</code></pre>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h">この時点で、キーコンフィグができました</span>
+			<code>SetButton()</code> を呼ぶだけです。
+			<strong><code>Player.cpp</code> は一切触りません。</strong>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">05</span>リプレイ</h2>
+<pre><code>// 録る
+class RecordingInputSource : public IInputSource {
+public:
+    explicit RecordingInputSource(std::unique_ptr&lt;IInputSource&gt; inner)
+        : m_inner(std::move(inner)) {}
+
+    void Poll(InputFrame&amp; out) override
+    {
+        m_inner-&gt;Poll(out);       // 本物から取って
+        m_log.push_back(out);     // 記録する
+    }
+
+    const std::vector&lt;InputFrame&gt;&amp; GetLog() const { return m_log; }
+
+private:
+    std::unique_ptr&lt;IInputSource&gt; m_inner;
+    std::vector&lt;InputFrame&gt;       m_log;
+};
+
+// 再生する
+class ReplayInputSource : public IInputSource {
+public:
+    explicit ReplayInputSource(std::vector&lt;InputFrame&gt; log)
+        : m_log(std::move(log)) {}
+
+    void Poll(InputFrame&amp; out) override
+    {
+        if (m_index &lt; m_log.size()) {
+            out = m_log[m_index++];
+        } else {
+            out = InputFrame();   // 記録が尽きたら、何もしない
+        }
+    }
+private:
+    std::vector&lt;InputFrame&gt; m_log;
+    size_t m_index = 0;
+};</code></pre>
+		<p class="prose">
+			<strong>これだけでリプレイができます。</strong>
+			<code>Player</code> は、渡されたものが本物か記録かを知りません。
+		</p>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">ただし、それだけでは同じにならないことがあります</span>
+			リプレイが<strong>ぴったり同じ動きになるには、
+			ゲームが「決定的」である必要があります。</strong>
+			<div class="tbl-scroll" style="margin-top:8px;">
+			<table class="plain">
+				<thead><tr><th>ズレる原因</th><th>対策</th></tr></thead>
+				<tbody>
+					<tr><td><strong>フレーム時間（<code>dt</code>）が毎回違う</strong></td>
+						<td><code>dt</code> も記録する。または固定 <code>dt</code> で計算する</td></tr>
+					<tr><td><code>rand()</code> を使っている</td>
+						<td>乱数の種を記録して、再生時に同じ種から始める</td></tr>
+					<tr><td>物理エンジンの誤差</td><td><u>これは難しい</u></td></tr>
+				</tbody>
+			</table>
+			</div>
+			<u>厳密なリプレイは、想像よりずっと難しい機能です。</u>
+			まずは「だいたい同じ」で充分と割り切ってください。
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">06</span>本来の Command パターン</h2>
+		<p class="prose">
+			教科書的な Command は、<strong>命令を1つずつクラスにする</strong>ものです。
+		</p>
+<pre><code>class ICommand {
+public:
+    virtual ~ICommand() {}
+    virtual void Execute(Player&amp; player) = 0;
+    virtual void Undo(Player&amp; player) {}      // ★ 取り消せる
+};
+
+class MoveCommand : public ICommand {
+public:
+    explicit MoveCommand(const Vector3&amp; delta) : m_delta(delta) {}
+    void Execute(Player&amp; player) override { player.MoveBy(m_delta); }
+    void Undo(Player&amp; player)    override { player.MoveBy(-m_delta); }
+private:
+    Vector3 m_delta;
+};</code></pre>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>形</th><th>向いているもの</th></tr></thead>
+			<tbody>
+				<tr><td><strong>enum + <code>InputFrame</code></strong></td>
+					<td><strong>アクション・シューティング。毎フレーム入力を読む形</strong></td></tr>
+				<tr><td>命令クラス（<code>ICommand</code>）</td>
+					<td><u>ターン制。エディタ。Undo が要るもの</u></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">シューティングに <code>ICommand</code> は重すぎます</span>
+			<strong>毎フレーム、移動命令のオブジェクトを <code>new</code> することになります。</strong>
+			<a href="4-06_ObjectPool.html">4-06</a> でやった問題そのものです。<br>
+			<u>Undo が要らないなら、<code>InputFrame</code> のほうが素直です。</u>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（切る）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>IInputSource</code> と <code>InputFrame</code> を作って、<code>Player</code> から <code>g_pad</code> を消す。</p>
+
+		<h3>演習2（設定する）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>キーコンフィグ</strong>を作る。<kbd>F1</kbd> のデバッグパネルから割り当てを変えられるようにする。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>// KeyConfigPanel.cpp
+namespace {
+
+const char* ACTION_NAMES[enAction_Num] = {
+    "左", "右", "上", "下", "ショット", "ボム",
+};
+
+struct ButtonEntry { EnButton button; const char* name; };
+
+const ButtonEntry BUTTONS[] = {
+    { enButtonUp,     "Up"     }, { enButtonDown,  "Down"  },
+    { enButtonLeft,   "Left"   }, { enButtonRight, "Right" },
+    { enButtonA,      "A"      }, { enButtonB,     "B"     },
+    { enButtonX,      "X"      }, { enButtonY,     "Y"     },
+    { enButtonRB1,    "RB"     }, { enButtonLB1,   "LB"    },
+};
+const int BUTTON_NUM = sizeof(BUTTONS) / sizeof(BUTTONS[0]);
+
+int FindButtonIndex(EnButton b)
+{
+    for (int i = 0; i &lt; BUTTON_NUM; i++) {
+        if (BUTTONS[i].button == b) { return i; }
+    }
+    return 0;
+}
+
+void DrawKeyConfig()
+{
+    PadInputSource* src = GetPadInputSource();
+    if (src == nullptr) { return; }
+
+    for (int a = 0; a &lt; enAction_Num; a++) {
+        int current = FindButtonIndex(src-&gt;GetButton((EnAction)a));
+
+        // 同じ名前の Combo が並ばないよう ID を分ける
+        ImGui::PushID(a);
+        ImGui::TextUnformatted(U8(ACTION_NAMES[a]));
+        ImGui::SameLine(120.0f);
+
+        if (ImGui::BeginCombo("##btn", BUTTONS[current].name)) {
+            for (int i = 0; i &lt; BUTTON_NUM; i++) {
+                bool selected = (i == current);
+                if (ImGui::Selectable(BUTTONS[i].name, selected)) {
+                    src-&gt;SetButton((EnAction)a, BUTTONS[i].button);
+                }
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::PopID();
+    }
+
+    ImGui::Separator();
+    if (ImGui::Button(U8("既定に戻す"))) {
+        src-&gt;ResetToDefault();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(U8("保存"))) {
+        src-&gt;Save("keyconfig.txt");
+    }
+}
+
+}  // namespace
+
+void RegisterKeyConfigPanel()
+{
+    nsDbg::DebugGui::RegisterPanel(U8("キーコンフィグ"), DrawKeyConfig);
+}</code></pre>
+<p><strong>保存・読み込み</strong></p>
+<p>
+エンジンの <code>DebugSettings</code>
+（<code>k2EngineLow/dbg/DebugSettings.h</code>）がそのまま使えます。
+</p>
+<pre><code>void PadInputSource::Save(const char* path)
+{
+    nsDbg::DebugSettings s;
+    for (int a = 0; a &lt; enAction_Num; a++) {
+        char key[32];
+        sprintf_s(key, "action%d", a);
+        s.SetInt(key, (int)m_config[a]);
+    }
+    s.Save(path);
+}</code></pre>
+<div class="note" style="--lv: var(--warn);">
+<span class="h"><code>PushID</code> / <code>PopID</code> を忘れずに</span>
+ImGui は<strong>ラベルの文字列で部品を見分けます。</strong>
+同じ <code>"##btn"</code> という名前の Combo を6個並べると、
+<u>全部が同じ部品だと思われて、1つ開くと全部開きます。</u>
+<br><br>
+ループの中で同じ部品を並べるときは、
+<strong><code>ImGui::PushID(i)</code> で番号を付ける</strong>のが定石です。
+</div>
+		</details>
+
+		<h3>演習3（録る）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>リプレイ</strong>を作る。ゲームオーバー後に、いまのプレイを再生できるようにする。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>仕組み</strong></p>
+<pre><code>// GameScene.h
+private:
+    std::unique_ptr&lt;IInputSource&gt; m_inputSource;
+    RecordingInputSource*         m_recorder = nullptr;   // 借りポインタ
+    unsigned int                  m_randomSeed = 0;
+
+// GameScene.cpp
+bool GameScene::Start()
+{
+    // ★ 乱数の種を決めて、記録しておく
+    m_randomSeed = (unsigned int)time(nullptr);
+    srand(m_randomSeed);
+
+    auto pad = std::make_unique&lt;PadInputSource&gt;();
+    auto rec = std::make_unique&lt;RecordingInputSource&gt;(std::move(pad));
+    m_recorder = rec.get();
+    m_inputSource = std::move(rec);
+
+    FindGO&lt;Player&gt;("player")-&gt;SetInputSource(m_inputSource.get());
+    return true;
+}
+
+void GameScene::OnGameOver()
+{
+    m_replayLog = m_recorder-&gt;GetLog();      // 記録を取っておく
+    NewGO&lt;ResultScene&gt;(enPriority_UI, "result");
+}
+
+void GameScene::StartReplay()
+{
+    srand(m_randomSeed);                     // ★ 同じ種から始め直す
+    m_inputSource = std::make_unique&lt;ReplayInputSource&gt;(m_replayLog);
+    ResetGame();
+    FindGO&lt;Player&gt;("player")-&gt;SetInputSource(m_inputSource.get());
+}</code></pre>
+<p><strong>ズレる原因を1つずつ潰す</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>原因</th><th>対策</th><th>手間</th></tr></thead>
+<tbody>
+<tr><td><strong>乱数</strong></td><td>種を記録して、再生時に同じ種から</td>
+	<td><strong>小。まずこれ</strong></td></tr>
+<tr><td><strong>フレーム時間</strong></td>
+	<td><code>dt</code> も <code>InputFrame</code> に含めて記録する</td>
+	<td>小</td></tr>
+<tr><td>フレーム落ち</td>
+	<td>再生中は記録した <code>dt</code> をそのまま使う</td><td>小</td></tr>
+<tr><td>物理エンジン</td><td><u>実質むり</u></td><td>—</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code>// dt も記録する
+struct InputFrame {
+    bool  press[enAction_Num]   = {};
+    bool  trigger[enAction_Num] = {};
+    float deltaTime = 1.0f / 60.0f;      // ★ 追加
+};</code></pre>
+<pre><code>// 再生中は、記録された dt を使う
+void Player::Update()
+{
+    InputFrame input;
+    m_inputSource-&gt;Poll(input);
+
+    const float dt = input.deltaTime;    // ★ g_gameTime を使わない
+    ...
+}</code></pre>
+<div class="note">
+<span class="h">記録のサイズ</span>
+<code>InputFrame</code> は<strong>1フレーム約16バイト</strong>です。
+60FPS で5分遊ぶと 18000 フレーム、<u>約 288KB</u>。
+<br><br>
+<strong>まったく問題ない大きさです。</strong>
+ファイルに保存して、あとから再生することもできます。
+</div>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">リプレイは、デバッグの道具にもなります</span>
+<strong>「特定の場面でだけ落ちる」バグを、
+毎回同じ手順で再現できるようになります。</strong>
+<br><br>
+<u>再現手順を人に説明する代わりに、リプレイファイルを渡せる</u>
+というのは、チーム開発では非常に大きいです
+（<a href="4-15_Teamwork.html">4-15</a>）。
+</div>
+		</details>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li>入力と処理のあいだに一段はさむと、何ができるようになる？</li>
+			<li>シューティングで <code>ICommand</code> を避けるのはなぜ？</li>
+			<li>リプレイがズレる原因を2つ。</li>
+			<li>ImGui でループ中に同じ部品を並べるとき、必要なものは？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>キーコンフィグ、リプレイ、AIによるデモプレイ、
+					操作不能状態の一括制御。</li>
+				<li>毎フレーム命令オブジェクトを <code>new</code> することになるから。</li>
+				<li>乱数の種が違う。フレーム時間（<code>dt</code>）が毎回違う。</li>
+				<li><code>ImGui::PushID()</code> / <code>PopID()</code>。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="4-12_Singleton.html"><strong>4-12 Singletonの何が悪いのか</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

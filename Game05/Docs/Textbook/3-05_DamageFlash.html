@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>被弾したら赤く光らせる</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n3" href="3-04_ConstantBuffer.html">← 前 3-04</a>
+			<a class="navchip n3" href="index.html#lv3">LV3 の目次</a>
+			<a class="navchip n3" href="3-06_TextureUv.html">次 → 3-06</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l3">
+		<p class="kicker">LV3 表現 ／ 3-05</p>
+		<h1>被弾したら赤く光らせる</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="3-04_ConstantBuffer.html">3-04</a>
+		</p>
+	</header>
+
+	<section class="level l3">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>自分のゲームに、シェーダを使った演出を入れられる</strong></li>
+			<li>「手応え」を作る考え方が分かる</li>
+		</ul>
+		<div class="note">
+			<span class="h">短い章です</span>
+			新しい技術は出てきません。<strong>3-04 で覚えたことを、
+			実際のゲームに入れる回</strong>です。
+		</div>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">02</span>なぜ被弾演出が要るのか</h2>
+		<p class="prose">
+			HPの数字が減るだけでは、<strong>やられたことに気づけません。</strong>
+			遊ぶ人は自機ではなく、敵や弾を見ているからです。
+		</p>
+		<p class="prose">
+			<strong>「当たった」を伝える方法は、いくつも重ねるのが基本です。</strong>
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>手段</th><th>効果</th><th>難しさ</th></tr></thead>
+			<tbody>
+				<tr><td><strong>赤く光る</strong></td><td>大きい</td><td>この章</td></tr>
+				<tr><td>効果音</td><td><strong>いちばん大きい</strong></td><td><a href="2-19_Sound.html">2-19</a></td></tr>
+				<tr><td>画面を揺らす</td><td>大きい</td><td>演習3</td></tr>
+				<tr><td>一瞬止まる（ヒットストップ）</td><td>大きい</td><td>演習3</td></tr>
+				<tr><td>エフェクトを出す</td><td>中</td><td><a href="2-20_Effect.html">2-20</a></td></tr>
+			</tbody>
+		</table>
+		</div>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">03</span>シェーダ</h2>
+<pre><code>// myCharacter.fx
+cbuffer myCb : register(b1){
+    float4 param0;       // x = ダメージ演出の強さ（0〜1）
+};
+
+float4 PSMain( PSInput In ) : SV_Target0
+{
+    float4 color = colorTexture.Sample(Sampler, In.uv) * mulColor;
+
+    // 赤に近づける。1.0 で真っ赤。
+    color.rgb = lerp(color.rgb, float3(1.0f, 0.2f, 0.2f), param0.x);
+
+    // ついでに少し明るくすると「光った」感じになる
+    color.rgb += param0.x * 0.4f;
+
+    return color;
+}</code></pre>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">04</span>C++側</h2>
+<pre><code>// Player.h
+private:
+    MySpriteRender m_spriteRender;
+    float m_damageTimer = 0.0f;
+    static const float DAMAGE_FLASH_TIME;
+
+// Player.cpp
+const float Player::DAMAGE_FLASH_TIME = 0.25f;
+
+void Player::TakeDamage(int damage)
+{
+    if (m_isInvincible) {
+        return;
+    }
+    m_hp -= damage;
+    m_damageTimer = DAMAGE_FLASH_TIME;      // ★ 演出を始める
+    PlaySe(enSound_Damage);
+}
+
+void Player::Update()
+{
+    const float dt = g_gameTime-&gt;GetFrameDeltaTime();
+
+    if (m_damageTimer &gt; 0.0f) {
+        m_damageTimer -= dt;
+        if (m_damageTimer &lt; 0.0f) {
+            m_damageTimer = 0.0f;
+        }
+    }
+    // 残り時間の割合を、そのまま強さとして渡す（1.0 → 0.0）
+    m_spriteRender.SetDamageRate(m_damageTimer / DAMAGE_FLASH_TIME);
+
+    ...
+    m_spriteRender.SetPosition(m_position);
+    m_spriteRender.Update();
+}</code></pre>
+		<div class="note">
+			<span class="h">「残り時間 ÷ 全体の時間」で 1.0→0.0 が作れます</span>
+			<strong>この形は非常によく使います。</strong>
+			フェード、出現、点滅、ノックバック。
+			全部この「0〜1の進み具合」で書けます。
+		</div>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">05</span>点滅させる</h2>
+		<p class="prose">
+			じわっと戻るより、<strong>チカチカ点滅</strong>させたほうが目立ちます。
+		</p>
+<pre><code>// シェーダ側で点滅させる
+float blink = abs(sin(param0.y * 40.0f));    // y = 経過時間
+color.rgb = lerp(color.rgb, float3(1,0.2f,0.2f), param0.x * blink);</code></pre>
+		<p class="prose">
+			<strong>無敵時間中ずっと点滅させる</strong>のも定番です。
+			遊ぶ人に「いまは無敵だ」と伝えられます。
+		</p>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">06</span>演習</h2>
+		<h3>演習1（まねる）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">自機が被弾したときに赤く光るようにする。効果音も一緒に鳴らすと、手応えが大きく変わることを確かめる。</p>
+
+		<h3>演習2（調整する）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>DAMAGE_FLASH_TIME</code> を変えて、<strong>いちばん気持ちいい長さ</strong>を探す。デバッグパネルのスライダーにすると速い。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p>
+<strong>目安は 0.1〜0.3 秒です。</strong>
+</p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>長さ</th><th>感じ</th></tr></thead>
+<tbody>
+<tr><td>0.05秒</td><td>短すぎて気づかない</td></tr>
+<tr><td>0.15秒</td><td><strong>鋭い。シューティング向き</strong></td></tr>
+<tr><td>0.5秒</td><td>もったり。アクションRPG向き</td></tr>
+<tr><td>1.0秒</td><td>長すぎて邪魔</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code>m_debugPanel.Register("Game", "Player", [this]() {
+    ImGui::SliderFloat("damage flash", &amp;m_damageFlashTime, 0.05f, 1.0f);
+    if (ImGui::Button("take damage")) { TakeDamage(1); }
+});</code></pre>
+<p>
+<strong>「ダメージを受けるボタン」を作っておくと、調整が一瞬で終わります。</strong>
+わざと敵に当たりに行く必要がありません
+（<a href="2-23_MyDebugPanel.html">2-23</a>）。
+</p>
+		</details>
+
+		<h3>演習3（自分で書く）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>画面を揺らす</strong>演出を作る。（ヒント：カメラか、UIも含めた全部の描画位置を、少しずつランダムにずらす）<strong>本文には答えがありません。</strong></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p>
+2Dなら、<strong>カメラを動かすのがいちばん簡単です。</strong>
+</p>
+<pre><code>// ScreenShake.h
+class ScreenShake : public IGameObject {
+public:
+    void Start2(float power, float time)     // 揺らし始める
+    {
+        m_power = power;
+        m_timer = time;
+        m_totalTime = time;
+    }
+    void Update() override;
+private:
+    float m_power = 0.0f;
+    float m_timer = 0.0f;
+    float m_totalTime = 0.0f;
+    Vector3 m_basePosition = Vector3::Zero;
+};
+
+void ScreenShake::Update()
+{
+    if (m_timer &lt;= 0.0f) {
+        return;
+    }
+    m_timer -= g_gameTime-&gt;GetFrameDeltaTime();
+
+    // だんだん弱くする
+    float rate = max(m_timer / m_totalTime, 0.0f);
+    float p = m_power * rate;
+
+    float x = ((rand() % 200) / 100.0f - 1.0f) * p;
+    float y = ((rand() % 200) / 100.0f - 1.0f) * p;
+
+    Vector3 pos = m_basePosition;
+    pos.x += x;
+    pos.y += y;
+    g_camera2D-&gt;SetPosition(pos);
+    g_camera2D-&gt;SetTarget({ pos.x, pos.y, 0.0f });
+}</code></pre>
+<div class="note" style="--lv: var(--warn);">
+<span class="h">揺らしすぎないこと</span>
+<strong>初心者がやりがちなのは「揺らしすぎ」です。</strong>
+気持ちよくて強くしたくなりますが、遊ぶ人は酔います。<br>
+<strong>目安は 5〜15 ピクセル、0.1〜0.2 秒。</strong>
+「え、揺れた？」くらいでちょうどいいです。
+</div>
+<p><strong>もうひとつの定番「ヒットストップ」</strong></p>
+<pre><code>// 当たった瞬間、数フレームだけ時間を止める
+if (m_hitStopTimer &gt; 0.0f) {
+    m_hitStopTimer -= g_gameTime-&gt;GetFrameDeltaTime();
+    return;           // ★ 更新をまるごと飛ばす
+}</code></pre>
+<p>
+<strong>0.05秒ほど止めるだけで、手応えが劇的に変わります。</strong>
+格闘ゲームやアクションゲームは、ほぼ必ず入れています。
+</p>
+		</details>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">07</span>確認</h2>
+		<ol class="prose">
+			<li>「残り時間 ÷ 全体の時間」で何が作れる？</li>
+			<li>被弾を伝える手段を3つ挙げる。</li>
+			<li>画面を揺らすときの注意は？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>1.0 から 0.0 へ変化する「進み具合」。
+					フェード・点滅・出現など、あらゆる演出に使える。</li>
+				<li>赤く光る／効果音／画面を揺らす／ヒットストップ／エフェクト など。</li>
+				<li>揺らしすぎない。5〜15ピクセル、0.1〜0.2秒が目安。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">08</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="3-06_TextureUv.html"><strong>3-06 テクスチャとUV</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>αブレンドと描画順・深度</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n3" href="3-06_TextureUv.html">← 前 3-06</a>
+			<a class="navchip n3" href="index.html#lv3">LV3 の目次</a>
+			<a class="navchip n3" href="3-08_PostEffect.html">次 → 3-08</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l3">
+		<p class="kicker">LV3 表現 ／ 3-07</p>
+		<h1>αブレンドと描画順・深度</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span>
+			／ 前提 <a href="3-03_FirstShader.html">3-03</a> , <a href="2-04_Priority.html">2-04</a>
+		</p>
+	</header>
+
+	<section class="level l3">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>半透明が変になる理由</strong>を説明できる</li>
+			<li>加算合成で「光っているもの」を作れる</li>
+			<li>深度バッファが何をしているか分かる</li>
+		</ul>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">02</span>4つの合成モード</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>モード</th><th>計算</th><th>使いどころ</th></tr></thead>
+			<tbody>
+				<tr><td><code>AlphaBlendMode_None</code></td><td>上書き</td>
+					<td>不透明なもの。<strong>いちばん速い</strong></td></tr>
+				<tr><td><code>AlphaBlendMode_Trans</code></td>
+					<td>αで混ぜる</td>
+					<td>ふつうの半透明、切り抜いた絵</td></tr>
+				<tr><td><code>AlphaBlendMode_Add</code></td>
+					<td><strong>足す</strong></td>
+					<td><strong>光、炎、爆発、レーザー</strong></td></tr>
+				<tr><td><code>AlphaBlendMode_Multiply</code></td>
+					<td>掛ける</td>
+					<td>影、暗くするフィルタ</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note">
+			<span class="h">「光るもの」は加算合成です</span>
+			<code>Add</code> は<strong>後ろの色に足す</strong>ので、
+			重なるほど明るくなり、<u>黒い部分は何も起きません</u>。
+			<strong>これが「光っている」ように見える理由です。</strong><br>
+			弾、爆発、エフェクトは、まず <code>Add</code> を試してください。
+			一気にそれらしくなります。
+		</div>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">03</span>深度バッファ ― 前後関係の記録</h2>
+		<p class="prose">
+			3Dでは、描く順番がバラバラでも前後関係が正しくなります。
+			<strong>深度バッファ（Zバッファ）</strong>のおかげです。
+		</p>
+		<p class="prose">
+			画面のピクセルごとに<strong>「いま描かれているものの奥行き」</strong>を
+			記録しておき、<u>それより手前のものだけを描く</u>という仕組みです。
+		</p>
+
+		<figure>
+			<svg viewBox="0 0 740 300" role="img"
+			     aria-label="深度バッファの図。不透明なものは深度テストで前後関係が自動的に正しくなるが、半透明なものは深度を書き込まないため描いた順番がそのまま重なり順になり、順番を間違えると不自然になる">
+				<g class="fig-head" color="currentColor">
+					<text class="fig-t cok" x="20" y="24">不透明 ― 順番はどうでもよい</text>
+
+					<rect class="fig-box b2" x="20" y="40" width="130" height="50" rx="6"/>
+					<text class="fig-t sm" x="85" y="62" text-anchor="middle">奥の箱を描く</text>
+					<text class="fig-m" x="85" y="80" text-anchor="middle">深度 0.8 を記録</text>
+
+					<rect class="fig-box b2" x="170" y="40" width="150" height="50" rx="6"/>
+					<text class="fig-t sm" x="245" y="62" text-anchor="middle">手前の箱を描く</text>
+					<text class="fig-m" x="245" y="80" text-anchor="middle">深度 0.3 &lt; 0.8 → 描く</text>
+
+					<text class="fig-t sm cok" x="340" y="70">→ 正しく前後になる</text>
+
+					<path class="fig-dash" d="M 20 108 L 720 108"/>
+
+					<text class="fig-t cdanger" x="20" y="136">半透明 ― 順番がすべて</text>
+
+					<rect class="fig-warn" x="20" y="152" width="300" height="56" rx="6"/>
+					<text class="fig-t sm cwarn" x="170" y="176" text-anchor="middle">半透明は深度を書き込まない</text>
+					<text class="fig-m cwarn" x="170" y="196" text-anchor="middle">後ろが透けて見えないと困るから</text>
+
+					<text class="fig-m" x="340" y="176">→ 深度テストが効かない</text>
+					<text class="fig-t sm cdanger" x="340" y="196">→ 描いた順が、そのまま重なり順</text>
+
+					<rect class="fig-box b3" x="20" y="226" width="700" height="46" rx="6"/>
+					<text class="fig-t sm c3" x="370" y="246" text-anchor="middle">だから：不透明を先にまとめて描き、そのあと半透明を「奥から手前の順」に描く</text>
+					<text class="fig-m" x="370" y="264" text-anchor="middle">k2Engine もこの順番で描いている</text>
+				</g>
+			</svg>
+			<figcaption>
+				<strong>「半透明が変になる」のは、ほぼこれが原因です。</strong>
+				半透明どうしが重なったとき、描いた順番が間違っていると、
+				手前のものが奥のものに隠れて見えます。
+			</figcaption>
+		</figure>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">04</span>2Dでは優先度がすべて</h2>
+		<p class="prose">
+			2D（<code>OnRender2D</code>）では深度を使いません。
+			<strong>優先度の順に、上から重ねて描いているだけ</strong>です
+			（<a href="2-04_Priority.html">2-04</a>）。
+		</p>
+		<p class="prose">
+			つまり<strong>2Dの重なりがおかしいときは、優先度を見れば必ず直ります。</strong>
+			深度やαブレンドのせいではありません。
+		</p>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">加算合成なら、順番を気にしなくてよい</span>
+			足し算は<strong>順番を変えても結果が同じ</strong>です（<code>a+b = b+a</code>）。<br>
+			だから <code>Add</code> のエフェクトどうしは、
+			<strong>どんな順に描いても同じ絵になります。</strong>
+			エフェクトで加算合成がよく使われるのは、見た目だけが理由ではありません。
+		</div>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">05</span>透明なのに四角く見える</h2>
+		<p class="prose">
+			よくある症状です。原因は3つ考えられます。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>原因</th><th>直し方</th></tr></thead>
+			<tbody>
+				<tr><td><code>AlphaBlendMode_None</code> になっている</td>
+					<td><code>Trans</code> にする</td></tr>
+				<tr><td>画像にαチャンネルが無い</td>
+					<td>透過付きで作り直して <code>.dds</code> に変換</td></tr>
+				<tr><td>シェーダでαを返していない</td>
+					<td><code>return float4(rgb, 1.0f)</code> のように
+						<strong>αを 1 で固定していないか</strong>確認</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			3つめは、<a href="3-03_FirstShader.html">3-03</a> で
+			シェーダを書き換えたときにやりがちです。
+		</p>
+<pre><code>// ダメ：αを捨てている
+return float4(color.rgb, 1.0f);
+
+// よい：元のαを残す
+return float4(color.rgb, color.a);</code></pre>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">06</span>演習</h2>
+		<h3>演習1（まねる）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">弾を <code>AlphaBlendMode_Add</code> にして、<code>Trans</code> と見比べる。<strong>光って見える</strong>ことを確認する。</p>
+
+		<h3>演習2（重ねる）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">加算合成のスプライトを<strong>何枚も重ねて</strong>、どんどん明るくなることを確認する。<strong>また、順番を入れ替えても同じ絵になるか</strong>試す。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>// 同じ場所に3枚出す
+for (int i = 0; i &lt; 3; i++) {
+    Effect* e = NewGO&lt;Effect&gt;(enPriority_Effect + i, "effect");
+    e-&gt;SetPosition({ 0.0f, 0.0f, 0.0f });
+}</code></pre>
+<p><strong>結果</strong></p>
+<ul>
+<li>重ねるほど白く飛んでいく（足し算なので）</li>
+<li><strong>優先度を入れ替えても、まったく同じ絵になる</strong></li>
+</ul>
+<p>
+半透明（<code>Trans</code>）で同じことをすると、
+<strong>順番を変えると結果が変わります。</strong>
+αで混ぜる計算は、順番を入れ替えると答えが違うからです。
+</p>
+<div class="note">
+<span class="h">白く飛びすぎるときは</span>
+<code>SetMulColor</code> でα（4つめ）を下げてください。
+加算合成でも、αは<strong>「どれだけ足すか」の強さ</strong>として効きます。
+<pre style="margin-top:8px;"><code>m_spriteRender.SetMulColor({ 1.0f, 1.0f, 1.0f, 0.4f });</code></pre>
+</div>
+		</details>
+
+		<h3>演習3（調べる）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>AlphaBlendMode_Multiply</code>（乗算）を使うと、どう見えるか試す。<strong>どんな場面で使えそうか</strong>考える。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p>
+乗算は<strong>後ろの色に掛け算</strong>します。
+</p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>掛ける色</th><th>結果</th></tr></thead>
+<tbody>
+<tr><td>白 <code>(1,1,1)</code></td><td>何も変わらない</td></tr>
+<tr><td>黒 <code>(0,0,0)</code></td><td><strong>真っ黒になる</strong></td></tr>
+<tr><td>灰 <code>(0.5,0.5,0.5)</code></td><td>半分の明るさ（暗くなる）</td></tr>
+<tr><td>赤 <code>(1,0,0)</code></td><td>赤以外が消える</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>使いどころ</strong></p>
+<ul>
+<li><strong>影</strong> — キャラクターの足元に、灰色の丸を乗算で置く</li>
+<li><strong>暗いエリア</strong> — 洞窟に入ったら画面全体を暗くする</li>
+<li><strong>色調の変更</strong> — 夕方は全体にオレンジを掛ける</li>
+<li><strong>汚れ・傷</strong> — テクスチャの上から汚れを掛ける</li>
+</ul>
+<div class="note">
+<span class="h">加算と乗算は「反対」の関係です</span>
+<strong>加算は明るくするだけ、乗算は暗くするだけ。</strong>
+<ul style="margin-bottom:0;">
+<li>光を足したい → <strong>加算</strong></li>
+<li>影を落としたい → <strong>乗算</strong></li>
+</ul>
+この2つを覚えておけば、たいていの演出は作れます。
+</div>
+		</details>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">07</span>確認</h2>
+		<ol class="prose">
+			<li>光っているものを表現するには、どの合成モード？</li>
+			<li>半透明どうしの重なりがおかしくなるのはなぜ？</li>
+			<li>2Dの重なり順は何で決まる？</li>
+			<li>透明にしたいのに四角く出るときの原因を1つ。</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>加算（<code>AlphaBlendMode_Add</code>）。</li>
+				<li>半透明は深度を書き込まないので深度テストが効かず、
+					描いた順がそのまま重なり順になるから。</li>
+				<li>優先度（<code>NewGO</code> の第1引数）。</li>
+				<li>ブレンドモードが <code>None</code>／画像にαが無い／
+					シェーダでαを 1 に固定している。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">08</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="3-08_PostEffect.html"><strong>3-08 ポストエフェクトを自作する</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

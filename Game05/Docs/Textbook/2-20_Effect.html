@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>エフェクト</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n2" href="2-19_Sound.html">← 前 2-19</a>
+			<a class="navchip n2" href="index.html#lv2">LV2 の目次</a>
+			<a class="navchip n2" href="2-21_SceneChange.html">次 → 2-21</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l2">
+		<p class="kicker">LV2 基礎 ／ 2-20</p>
+		<h1>エフェクト（Effekseer）</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="2-17_DeathTiming.html">2-17</a>
+		</p>
+	</header>
+
+	<section class="level l2">
+		<h2><span class="n">00</span>入場チェック</h2>
+		<ul class="checklist prose">
+			<li>敵をやられたときの処理を書ける？ → <a href="2-17_DeathTiming.html">2-17</a></li>
+		</ul>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li>爆発などのエフェクトを出せる</li>
+			<li>エフェクトも「ゲームオブジェクト」であることが分かる</li>
+		</ul>
+	</section>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">エフェクトは自分で用意してください</span>
+			本文に出てくる <code>explosion.efk</code> は<strong>ファイル名の例で、実物はありません。</strong>まずは <code>Sample/Sample_17</code> の <code>.efk</code> をコピーして動かしてください。
+			<strong><a href="assets-guide.html">→ 素材の用意のしかた</a></strong>
+		</div>
+
+	<section class="level l2">
+		<h2><span class="n">02</span>Effekseer とは</h2>
+		<p class="prose">
+			<strong>Effekseer</strong> は、エフェクトを作るための無料ツールです。
+			プログラムを書かずに、爆発や魔法陣のような演出を作れます。
+			k2Engine には最初から組み込まれています。
+		</p>
+		<p class="prose">
+			ツール本体は <code>GameTemplate/tools/Effekseer160Win/</code> にあります。
+			作ったエフェクトは <code>.efk</code> という拡張子で保存されます。
+		</p>
+		<div class="note">
+			<span class="h">まずは既成のエフェクトで動かす</span>
+			自分でエフェクトを作るのは後回しでかまいません。
+			<strong><code>Sample_17</code> に入っている <code>.efk</code> をコピーして使ってください。</strong>
+			まず「出る」ところまで確認してから、作り方を覚えるほうが早いです。
+		</div>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">03</span>使い方</h2>
+		<p class="prose">
+			サウンドと同じく、<strong>①番号に登録 → ②番号で再生</strong>の2段階です。
+		</p>
+<pre><code>// EffectEmitter を使うときは、このインクルードが必要。
+#include "graphics/effect/EffectEmitter.h"
+
+bool GameScene::Start()
+{
+    // ① 登録する。パスが u"..." なので注意。
+    EffectEngine::GetInstance()-&gt;ResistEffect(0, u"Assets/effect/explosion.efk");
+    return true;
+}</code></pre>
+
+<pre><code>// ② 出す。
+void Enemy::PlayExplosion()
+{
+    EffectEmitter* effect = NewGO&lt;EffectEmitter&gt;(enPriority_Effect);
+    effect-&gt;Init(0);
+    effect-&gt;SetPosition(m_position);
+    effect-&gt;SetScale({ 30.0f, 30.0f, 30.0f });
+    effect-&gt;Play();
+}</code></pre>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">パスの前に <code>u</code> が付く</span>
+			<code>ResistEffect</code> が受け取るのは <code>char16_t</code> の文字列です。
+			<strong><code>u"Assets/effect/explosion.efk"</code></strong> のように
+			<code>u</code> を付けてください。付け忘れるとコンパイルエラーになります。
+		</div>
+		<p class="prose">
+			<code>EffectEmitter</code> も <code>IGameObject</code> です。
+			<strong>再生が終わると自動で消えます</strong>（サウンドと同じ）。
+		</p>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">04</span>大きさに注意</h2>
+		<p class="prose">
+			Effekseer のエフェクトは<strong>3D空間のサイズ</strong>で作られています。
+			2Dゲームの座標（±960など）に対して、そのまま出すと
+			<strong>点にしか見えないか、画面いっぱいになるか</strong>のどちらかです。
+		</p>
+<pre><code>effect-&gt;SetScale({ 30.0f, 30.0f, 30.0f });   // 数字は実際に見て調整する</code></pre>
+		<p class="prose">
+			<strong>この数字は、見ながら決めるしかありません。</strong>
+			<a href="2-23_MyDebugPanel.html">2-23</a> でスライダーにすると、
+			実行しながら調整できるようになります。
+		</p>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">05</span>よくあるエラー</h2>
+		<h3><code>error C2664</code> : <code>const char*</code> から <code>const char16_t*</code> へ変換できない</h3>
+		<p class="prose">
+			<strong>原因：</strong>パスの前の <code>u</code> を忘れている。<br>
+			<strong>直し方：</strong><code>u"Assets/effect/xxx.efk"</code>
+		</p>
+
+		<h3><code>EffectEmitter</code> が未定義</h3>
+		<p class="prose">
+			<strong>原因：</strong><code>#include "graphics/effect/EffectEmitter.h"</code> がない。<br>
+			<strong>直し方：</strong>使う <code>.cpp</code> に書く。
+			（これはプリコンパイルヘッダに入っていません）
+		</p>
+
+		<h3>エフェクトが見えない</h3>
+		<p class="prose">
+			<strong>原因1：</strong>スケールが小さすぎる。まず <code>100.0f</code> くらいで試す。<br>
+			<strong>原因2：</strong><code>Play()</code> を呼んでいない。<br>
+			<strong>原因3：</strong>出した瞬間に、出した側が <code>DeleteGO</code> されて
+			位置がおかしくなっている。
+		</p>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">06</span>演習</h2>
+		<h3>演習1（まねる）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">敵をやられたときに爆発エフェクトを出す。</p>
+
+		<h3>演習2（調整する）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">スケールを変えて、ちょうどよい大きさを見つける。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p>
+<strong>まず <code>100.0f</code> くらいから始めて、半分・倍で探すのが速いです。</strong>
+</p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>見えかた</th><th>次にやること</th></tr></thead>
+<tbody>
+<tr><td>まったく見えない</td><td>10倍にする（<code>1000.0f</code>）</td></tr>
+<tr><td>点にしか見えない</td><td>5倍にする</td></tr>
+<tr><td>画面いっぱい</td><td>1/5にする</td></tr>
+<tr><td>ちょうどよい</td><td>その値の前後で微調整</td></tr>
+</tbody>
+</table>
+</div>
+<p>
+<strong>スライダーにすると、この作業が一瞬で終わります。</strong>
+（<a href="2-23_MyDebugPanel.html">2-23</a>）
+</p>
+<pre><code>// デバッグ用のグローバルな値にしておくと、全部の爆発に一度に効く
+float g_explosionScale = 30.0f;
+
+DebugGui::RegisterPanel("Game", "Effect", []() {
+    ImGui::SliderFloat("explosion scale", &amp;g_explosionScale, 1.0f, 300.0f);
+});
+
+// 使うとき
+effect-&gt;SetScale({ g_explosionScale, g_explosionScale, g_explosionScale });</code></pre>
+<p>
+値が決まったら、コードに書き戻すか、
+<code>Assets/settings/</code> のファイルに保存しておいてください。
+</p>
+		</details>
+
+		<h3>演習3（自分で書く）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			Effekseer を起動して、<strong>自分でエフェクトを1つ作る。</strong>
+			難しければ、サンプルの <code>.efk</code> を開いて色だけ変えるのでも構いません。
+			<strong>本文には答えがありません。</strong>
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p>
+<strong>まずは既存の <code>.efk</code> を開いて、色だけ変えるところから始めてください。</strong>
+ゼロから作ると、最初の1個で挫折します。
+</p>
+<ol>
+<li><code>GameTemplate/tools/Effekseer160Win/</code> の中の実行ファイルを起動</li>
+<li><code>Sample/Sample_17/Game/Assets/effect/</code> の <code>.efk</code> を開く</li>
+<li>左のツリーからノードを選び、<strong>「色」</strong>のタブで色を変える</li>
+<li>再生ボタンで確認</li>
+<li>別名で保存して、自分の <code>Assets/effect/</code> に置く</li>
+<li>ゲームで読み込んで確認</li>
+</ol>
+<p><strong>慣れてきたら、こんな順で覚えると作れるようになります</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>覚える順</th><th>できること</th></tr></thead>
+<tbody>
+<tr><td>色・大きさ・寿命</td><td>既存のエフェクトを自分好みに変える</td></tr>
+<tr><td>生成数・速度</td><td>粒の量と勢いを変える</td></tr>
+<tr><td>テクスチャの差し替え</td><td>見た目を大きく変えられる</td></tr>
+<tr><td>ノードの追加</td><td>複数の要素を組み合わせる（炎＋煙＋光）</td></tr>
+</tbody>
+</table>
+</div>
+<div class="note">
+<span class="h">エフェクトは、少ない手数で見栄えが変わります</span>
+<strong>爆発、被弾、弾の軌跡。この3つがあるだけで、
+ゲームの印象はまったく違います。</strong>
+時間をかける価値のあるところです。
+</div>
+		</details>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">07</span>確認</h2>
+		<ol class="prose">
+			<li>エフェクトのパスに <code>u</code> を付ける理由は？</li>
+			<li><code>EffectEmitter</code> は自分で <code>DeleteGO</code> する必要がある？</li>
+			<li>エフェクトが点にしか見えないときは？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li><code>char16_t</code> の文字列リテラルにするため。</li>
+				<li>要らない。再生が終わると自動で消える。</li>
+				<li><code>SetScale</code> の値を大きくする。3D用のサイズなので、2Dではかなり大きくする必要がある。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">08</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="2-21_SceneChange.html"><strong>2-21 シーン遷移</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

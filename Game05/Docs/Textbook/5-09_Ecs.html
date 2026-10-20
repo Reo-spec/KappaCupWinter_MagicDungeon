@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ECSを自作して比較する</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n5" href="5-08_Instancing.html">← 前 5-08</a>
+			<a class="navchip n5" href="index.html#lv5">LV5 の目次</a>
+			<a class="navchip n5" href="5-10_ThreadBreak.html">次 → 5-10</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l5">
+		<p class="kicker">LV5 最適化 ／ 5-09</p>
+		<h1>ECSを自作して比較する</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span>
+			／ 前提 <a href="5-06_AosSoa.html">5-06</a> , <a href="4-07_Component.html">4-07</a>
+		</p>
+	</header>
+
+	<section class="level l5">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>ECS が何を解決するものか説明できる</strong></li>
+			<li>継承ベースとの違いを、数字で言える</li>
+			<li><u>自分のゲームに必要かどうか、判断できる</u></li>
+		</ul>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">先に結論を書いておきます</span>
+			<strong>学生作品に ECS は、たいてい要りません。</strong><br>
+			<u>この章は「なぜ現代のエンジンが ECS に向かったか」を
+			体で理解するための章です。</u>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">02</span>ECS とは</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>頭文字</th><th>名前</th><th>正体</th></tr></thead>
+			<tbody>
+				<tr><td><strong>E</strong></td><td>Entity</td>
+					<td><strong>ただの ID（整数）。データも処理も持たない</strong></td></tr>
+				<tr><td><strong>C</strong></td><td>Component</td>
+					<td><strong>データだけ。関数を持たない</strong></td></tr>
+				<tr><td><strong>S</strong></td><td>System</td>
+					<td><strong>処理だけ。データを持たない</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<a href="4-07_Component.html">4-07</a> のコンポーネントと似ていますが、
+			<strong>決定的に違うのは「コンポーネントが関数を持たない」</strong>ことです。
+		</p>
+<pre><code>// 4-07 のコンポーネント（データ＋処理）
+class HealthComponent {
+public:
+    void Update(float dt);      // ★ 処理を持つ
+    bool Damage(int amount);
+private:
+    int m_hp;
+};
+
+// ECS のコンポーネント（データだけ）
+struct Health {
+    int hp;
+    int maxHp;
+    float invincibleTimer;
+};                              // ★ 関数なし。struct でよい</code></pre>
+<pre><code>// 処理は System 側にまとめる
+void HealthSystem(World&amp; w, float dt)
+{
+    // ★ Health を持つ全エンティティを、まとめて処理する
+    for (auto&amp; h : w.healths) {
+        if (h.invincibleTimer &gt; 0.0f) {
+            h.invincibleTimer -= dt;
+        }
+    }
+}</code></pre>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">03</span>なぜ速いのか</h2>
+		<p class="prose">
+			<strong><a href="5-06_AosSoa.html">5-06</a> の SoA を、
+			設計レベルまで徹底したものだからです。</strong>
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th></th><th>継承ベース</th><th>ECS</th></tr></thead>
+			<tbody>
+				<tr><td>データの配置</td>
+					<td><u>オブジェクトごとにバラバラ</u></td>
+					<td><strong>種類ごとに連続</strong></td></tr>
+				<tr><td>処理の呼び方</td>
+					<td>1個ずつ仮想関数</td>
+					<td><strong>System が配列を一気になめる</strong></td></tr>
+				<tr><td>不要なデータ</td>
+					<td>オブジェクト全体が運ばれる</td>
+					<td><strong>必要な配列だけ</strong></td></tr>
+				<tr><td>並列化</td><td>難しい</td>
+					<td><strong>System 単位で分けやすい</strong></td></tr>
+				<tr><td>読みやすさ</td><td><strong>直感的</strong></td>
+					<td><u>慣れが要る</u></td></tr>
+				<tr><td>デバッグ</td><td><strong>やさしい</strong></td>
+					<td><u>「この Entity は何者か」が見えにくい</u></td></tr>
+			</tbody>
+		</table>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">04</span>最小の ECS を作る</h2>
+		<p class="prose">
+			<strong>本格的な ECS は複雑ですが、
+			「考え方だけ」なら100行で書けます。</strong>
+		</p>
+<pre><code>// MiniEcs.h
+#pragma once
+#include &lt;vector&gt;
+
+using Entity = int;
+
+/// &lt;summary&gt;コンポーネント（データだけ）&lt;/summary&gt;
+struct Transform { Vector3 position; Vector3 velocity; };
+struct Health    { int hp; int maxHp; };
+struct Renderable{ int modelId; };
+
+/// &lt;summary&gt;
+/// 世界。コンポーネントごとに配列を持つ。
+/// &lt;/summary&gt;
+/// &lt;remarks&gt;
+/// 本物の ECS は「どのエンティティがどのコンポーネントを持つか」を
+/// もっと賢く管理するが、ここでは有無のフラグだけで表す。
+/// &lt;/remarks&gt;
+class World {
+public:
+    Entity Create()
+    {
+        Entity e = (Entity)m_alive.size();
+        m_alive.push_back(true);
+        m_transforms.push_back({});
+        m_healths.push_back({});
+        m_hasTransform.push_back(false);
+        m_hasHealth.push_back(false);
+        return e;
+    }
+
+    void AddTransform(Entity e, const Transform&amp; t)
+    {
+        m_transforms[e]   = t;
+        m_hasTransform[e] = true;
+    }
+    void AddHealth(Entity e, const Health&amp; h)
+    {
+        m_healths[e]   = h;
+        m_hasHealth[e] = true;
+    }
+
+    // System から使う
+    size_t Size() const { return m_alive.size(); }
+
+    std::vector&lt;Transform&gt;&amp; Transforms()    { return m_transforms; }
+    std::vector&lt;Health&gt;&amp;    Healths()       { return m_healths; }
+    const std::vector&lt;char&gt;&amp; HasTransform() const { return m_hasTransform; }
+    const std::vector&lt;char&gt;&amp; HasHealth()    const { return m_hasHealth; }
+
+private:
+    std::vector&lt;char&gt;      m_alive;
+    std::vector&lt;Transform&gt; m_transforms;
+    std::vector&lt;Health&gt;    m_healths;
+    std::vector&lt;char&gt;      m_hasTransform;
+    std::vector&lt;char&gt;      m_hasHealth;
+};</code></pre>
+<pre><code>// System（処理だけ）
+void MoveSystem(World&amp; w, float dt)
+{
+    auto&amp; ts = w.Transforms();
+    const auto&amp; has = w.HasTransform();
+
+    // ★ 配列を、頭から一気になめる
+    for (size_t i = 0; i &lt; ts.size(); i++) {
+        if (!has[i]) { continue; }
+        ts[i].position += ts[i].velocity * dt;
+    }
+}
+
+void HealthSystem(World&amp; w)
+{
+    auto&amp; hs = w.Healths();
+    const auto&amp; has = w.HasHealth();
+
+    for (size_t i = 0; i &lt; hs.size(); i++) {
+        if (!has[i]) { continue; }
+        if (hs[i].hp &gt; hs[i].maxHp) { hs[i].hp = hs[i].maxHp; }
+    }
+}</code></pre>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">これは「ECS もどき」です</span>
+			<strong>本物の ECS は、
+			<u>コンポーネントの組み合わせが同じエンティティを、
+			ひとかたまりにまとめて保存します</u>（アーキタイプ）。</strong><br>
+			そうすると <code>if (!has[i]) continue;</code> すら不要になり、
+			<u>さらに速くなります。</u><br><br>
+			<strong>ただし、実装は一気に複雑になります。</strong>
+			ここでは考え方が分かれば充分です。
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">05</span>継承ベースとの比較</h2>
+<pre><code>// 継承ベース（k2Engine の形）
+for (auto&amp; goList : m_gameObjectListArray) {   // ★ list を辿る
+    for (auto&amp; go : goList) {                  // ★ ポインタを辿る
+        go-&gt;UpdateWrapper();                   // ★ 仮想関数
+    }
+}
+
+// ECS
+MoveSystem(world, dt);        // ★ 配列を1本なめるだけ
+HealthSystem(world);          // ★ 別の配列を1本
+ShotSystem(world, dt);</code></pre>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>10万体を更新</th><th>時間の目安</th></tr></thead>
+			<tbody>
+				<tr><td><code>std::list&lt;IGameObject*&gt;</code> ＋ 仮想関数</td>
+					<td><strong>20〜40 ms</strong></td></tr>
+				<tr><td><code>std::vector&lt;Obj*&gt;</code> ＋ 仮想関数</td>
+					<td>8〜15 ms</td></tr>
+				<tr><td><code>std::vector&lt;Obj&gt;</code>（値で持つ）</td>
+					<td>2〜4 ms</td></tr>
+				<tr><td><strong>ECS（SoA）</strong></td>
+					<td><strong>0.5〜1.5 ms</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">10万体のときの話です</span>
+			<strong>1000体なら、どれも 0.1ms 以下です。差は測れません。</strong><br>
+			<u>ECS が意味を持つのは、「万」の桁からです。</u>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">06</span>ECS の代償</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>失うもの</th><th>具体的に</th></tr></thead>
+			<tbody>
+				<tr><td><strong>デバッグのしやすさ</strong></td>
+					<td><strong>「Entity 4271」を見ても、何者か分からない</strong></td></tr>
+				<tr><td>コードの直感性</td>
+					<td><code>player-&gt;Damage(10)</code> と書けない</td></tr>
+				<tr><td>1個だけの特別扱い</td>
+					<td><u>ボスのような「1体だけ特殊」が書きにくい</u></td></tr>
+				<tr><td>学習コスト</td><td>チーム全員が理解する必要がある</td></tr>
+				<tr><td>実装量</td>
+					<td><strong>まともな ECS は、それだけで数千行</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note">
+			<span class="h">現実的な折衷案</span>
+			<strong>大量のものだけ ECS 風（SoA）にして、
+			残りは <code>IGameObject</code> のまま。</strong><br>
+			<u>これが <a href="5-06_AosSoa.html">5-06</a> の
+			<code>BulletSystem</code> でやったことです。</u><br><br>
+			<strong>実質、それで充分なことがほとんどです。</strong>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">07</span>それでも ECS を知る意味</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>理由</th><th>説明</th></tr></thead>
+			<tbody>
+				<tr><td><strong>面接で聞かれる</strong></td>
+					<td>Unity DOTS、Unreal の Mass など、話題にのぼる</td></tr>
+				<tr><td>考え方が応用できる</td>
+					<td><strong>「データ指向」の発想は、ECS でなくても使える</strong></td></tr>
+				<tr><td>並列化しやすい</td>
+					<td><a href="5-12_JobSystem.html">5-12</a> で効いてくる</td></tr>
+				<tr><td>大量のものを扱う設計が身につく</td>
+					<td>弾幕、群衆、パーティクル</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h">「データ指向」とは</span>
+			<strong>「オブジェクトはどうあるべきか」ではなく、
+			「データがどう並んでいると速いか」から設計する</strong>考え方です。<br><br>
+			<u>ECS は、その考え方をいちばん徹底した形のひとつ</u>にすぎません。<br>
+			<strong>ECS を使わなくても、この発想は使えます。</strong>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">08</span>演習</h2>
+		<h3>演習1（作る）<span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span></h3>
+		<p class="prose">上の<strong>最小 ECS を実際に書いて動かす。</strong>エンティティを10万作って、<code>MoveSystem</code> を回す。</p>
+
+		<h3>演習2（比べる）<span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span></h3>
+		<p class="prose"><strong>同じ処理を、継承ベースと ECS で書いて、時間を比べる。</strong>1000体・1万体・10万体で測る。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>#include "Bench.h"
+
+//================= 継承ベース =================
+class ObjBase {
+public:
+    virtual ~ObjBase() {}
+    virtual void Update(float dt) = 0;
+    Vector3 m_position = Vector3::Zero;
+    Vector3 m_velocity = { 1.0f, 2.0f, 3.0f };
+    int     m_hp = 100;
+    int     m_maxHp = 100;
+    char    m_pad[64] = {};        // 実際のゲームオブジェクトに近い大きさ
+};
+
+class ObjMover : public ObjBase {
+public:
+    void Update(float dt) override
+    {
+        m_position += m_velocity * dt;
+    }
+};
+
+//================= ECS =================
+struct EcsWorld {
+    std::vector&lt;Vector3&gt; positions;
+    std::vector&lt;Vector3&gt; velocities;
+    std::vector&lt;int&gt;     hps;
+};
+
+void EcsMoveSystem(EcsWorld&amp; w, float dt)
+{
+    const size_t n = w.positions.size();
+    for (size_t i = 0; i &lt; n; i++) {
+        w.positions[i] += w.velocities[i] * dt;
+    }
+}
+
+//================= 比較 =================
+void CompareEcs(int N)
+{
+    const float dt = 1.0f / 60.0f;
+    const int LOOP = 100;
+
+    char head[64];
+    sprintf_s(head, "---- N = %d ----\n", N);
+    OutputDebugStringA(head);
+
+    //--- 継承 + ポインタの vector ---
+    std::vector&lt;ObjBase*&gt; objs;
+    objs.reserve(N);
+    for (int i = 0; i &lt; N; i++) { objs.push_back(new ObjMover()); }
+
+    {
+        BENCH("  継承 + vector&lt;T*&gt;");
+        for (int k = 0; k &lt; LOOP; k++) {
+            for (ObjBase* o : objs) { o-&gt;Update(dt); }
+        }
+    }
+
+    //--- 継承 + list（k2Engine の形）---
+    std::list&lt;ObjBase*&gt; objList(objs.begin(), objs.end());
+    {
+        BENCH("  継承 + list&lt;T*&gt;");
+        for (int k = 0; k &lt; LOOP; k++) {
+            for (ObjBase* o : objList) { o-&gt;Update(dt); }
+        }
+    }
+
+    //--- ECS ---
+    EcsWorld w;
+    w.positions.resize(N, Vector3::Zero);
+    w.velocities.resize(N, { 1.0f, 2.0f, 3.0f });
+    w.hps.resize(N, 100);
+
+    {
+        BENCH("  ECS (SoA)");
+        for (int k = 0; k &lt; LOOP; k++) {
+            EcsMoveSystem(w, dt);
+        }
+    }
+
+    // 消されないように
+    char buf[128];
+    sprintf_s(buf, "  check %f / %f\n\n",
+              objs[0]-&gt;m_position.x, w.positions[0].x);
+    OutputDebugStringA(buf);
+
+    for (ObjBase* o : objs) { delete o; }
+}
+
+void RunAll()
+{
+    CompareEcs(1000);
+    CompareEcs(10000);
+    CompareEcs(100000);
+}</code></pre>
+<p><strong>典型的な結果（Release、100回ループ）</strong></p>
+<pre><code>---- N = 1000 ----
+  継承 + vector&lt;T*&gt;          :    0.412 ms
+  継承 + list&lt;T*&gt;            :    0.688 ms
+  ECS (SoA)                  :    0.094 ms      （4.4倍）
+
+---- N = 10000 ----
+  継承 + vector&lt;T*&gt;          :    5.930 ms
+  継承 + list&lt;T*&gt;            :   12.104 ms
+  ECS (SoA)                  :    0.921 ms      （6.4倍）
+
+---- N = 100000 ----
+  継承 + vector&lt;T*&gt;          :  118.442 ms
+  継承 + list&lt;T*&gt;            :  312.775 ms
+  ECS (SoA)                  :    9.238 ms      （12.8倍）</code></pre>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">数が増えるほど、差が開きます</span>
+<strong>1000体では 4倍、10万体では 13倍。</strong>
+<br><br>
+<u>データがキャッシュに収まっているうちは差が小さく、
+あふれると一気に開く</u>――
+<a href="5-05_AccessOrder.html">5-05</a> の実験3で見た階段と同じ現象です。
+</div>
+<div class="note" style="--lv: var(--warn);">
+<span class="h">1フレームあたりに直してください</span>
+<strong>上は100回ループの合計です。</strong>1フレームあたりは100分の1。
+<br><br>
+<pre style="margin-top:8px;"><code>N = 1000  のとき
+  継承 : 0.0041 ms   ECS : 0.0009 ms   → 差は 0.003 ms
+N = 100000 のとき
+  継承 : 1.18 ms     ECS : 0.09 ms     → 差は 1.1 ms</code></pre>
+<u>1000体なら、16.6ms の予算からすれば誤差です。</u>
+<strong>だから「学生作品に ECS は要らない」と言えるのです。</strong>
+</div>
+		</details>
+
+		<h3>演習3（判断する）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>自分のゲームに ECS が必要か、数字を根拠に判断する。</strong>必要でないなら、<u>「なぜ必要でないか」</u>を書く。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>判断の手順</strong></p>
+<ol>
+<li>自分のゲームで、<strong>いちばん数が多いもの</strong>は何個か</li>
+<li>それを更新するのに、いま何ミリ秒かかっているか（<a href="5-02_ProfileScope.html">5-02</a>）</li>
+<li><strong>それが 16.6ms の何%か</strong></li>
+<li>ECS にして10倍速くなったとして、何ms浮くか</li>
+<li><u>その ms のために、設計を全部書き換える価値があるか</u></li>
+</ol>
+<p><strong>記録の例</strong></p>
+<pre><code>== ECS 導入の検討 ==
+
+【現状】
+いちばん数が多いもの : 敵弾（最大 800発）
+その更新時間         : 0.31 ms（Profiler、Release）
+フレーム全体         : 11.2 ms
+割合                 : 2.8%
+
+【ECS にした場合の見積もり】
+10倍速くなったとして 0.031 ms → 0.28 ms 浮く
+フレーム全体は 11.2 → 10.9 ms（2.7%改善）
+FPS は 60 のまま（そもそも上限に張り付いている）
+
+【判断】
+導入しない。
+
+【理由】
+1. 現状 60FPS 出ており、改善の余地が体感に結びつかない
+2. 弾の更新は全体の 2.8% で、ボトルネックではない
+   （いちばん重いのは描画の 5.9ms）
+3. 既存の IGameObject 設計を全部書き換えるコストが見合わない
+4. デバッグしやすさを失うデメリットのほうが大きい
+
+【代わりにやったこと】
+5-06 の SoA を、弾にだけ部分適用した。
+位置と速度だけ別配列にして、0.31ms → 0.14ms になった。
+IGameObject の枠組みは残したままなので、デバッグしやすさは保てている。
+
+【将来 ECS を検討する条件】
+弾が 5000発を超える弾幕シューを作るなら、そのとき検討する。</code></pre>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">この「導入しない」という判断が、この章のゴールです</span>
+<strong>ECS を実装できることより、
+「測って、割に合わないと判断した」ほうが価値があります。</strong>
+<br><br>
+<u>面接でも、この記録をそのまま話せます。</u>
+「知っているが、自分のゲームには要らないと判断した」というのは、
+<strong>知識と判断力の両方を示せる、いちばん強い答え方</strong>です。
+</div>
+<div class="note" style="--lv: var(--warn);">
+<span class="h">逆に、必要だと判断したなら</span>
+<strong>いきなり全部を ECS にしないでください。</strong>
+<br><br>
+<a href="4-13_Refactoring.html">4-13</a> の
+<u>ストラングラーパターン</u>で、
+いちばん数が多いものから1つずつ移してください。
+<br><br>
+<strong>そして、移すたびに測ってください。</strong>
+思ったほど速くならないことも、よくあります。
+</div>
+		</details>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">09</span>確認</h2>
+		<ol class="prose">
+			<li>ECS の Component が、4-07 のコンポーネントと違う点は？</li>
+			<li>ECS が速い理由は？</li>
+			<li>ECS で失うものを2つ。</li>
+			<li>ECS が意味を持つのは、だいたい何個くらいから？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>関数を持たない。データだけ。処理は System 側にある。</li>
+				<li>同じ種類のデータが連続して並び（SoA）、
+					仮想関数もポインタ追跡もないから。</li>
+				<li>デバッグのしやすさ、コードの直感性、
+					1個だけの特別扱いのしやすさ。</li>
+				<li>1万個以上。千個程度では差が測れない。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">10</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="5-10_ThreadBreak.html"><strong>5-10 マルチスレッド① まず壊す</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

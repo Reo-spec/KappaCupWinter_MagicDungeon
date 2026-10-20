@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>事故を起こしてみる</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n2" href="2-07_FindGO.html">← 前 2-07</a>
+			<a class="navchip n2" href="index.html#lv2">LV2 の目次</a>
+			<a class="navchip n2" href="2-09_GOHandle.html">次 → 2-09</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l2">
+		<p class="kicker">LV2 基礎 ／ 2-08</p>
+		<h1>事故を起こしてみる ― 削除済みオブジェクトへのアクセス</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span>
+			／ 前提 <a href="2-05_Lifetime.html">2-05</a>, <a href="1-18_Debugger.html">1-18</a>
+		</p>
+	</header>
+
+	<div class="note" style="--lv: var(--danger);">
+		<span class="h">この章は、わざとバグを作ります</span>
+		直し方を先に教えません。<strong>まず自分の手でクラッシュさせてください。</strong>
+		痛い目を見ておかないと、次の章の <code>GOHandle</code> が
+		「なんだか面倒な決まりごと」にしか見えません。
+	</div>
+
+	<section class="level l2">
+		<h2><span class="n">00</span>入場チェック</h2>
+		<ul class="checklist prose">
+			<li>本当に <code>delete</code> されるのはいつ？ → 答えられないなら <a href="2-05_Lifetime.html">2-05</a> へ戻る</li>
+			<li>クラッシュしたとき、コールスタックのどこを見る？ → 答えられないなら <a href="1-18_Debugger.html">1-18</a> へ戻る</li>
+			<li>Visual Studio で「ウォッチ」と「メモリ」ウィンドウを開ける？ → 同上</li>
+		</ul>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li>削除済みオブジェクトへのアクセスを<strong>自分で再現できる</strong></li>
+			<li>クラッシュしたとき、<strong>デバッガで原因を特定できる</strong></li>
+			<li><strong>このバグがなぜ「たまにしか落ちない」のか</strong>を説明できる</li>
+		</ul>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">02</span>事故のコードを書く</h2>
+		<p class="prose">
+			敵を追いかけるミサイルを作ります。<strong>わざと危ない書き方をします。</strong>
+		</p>
+
+<pre><code>// Missile.h
+#pragma once
+
+class Enemy;
+
+class Missile : public IGameObject {
+public:
+    bool Start() override;
+    void Update() override;
+    void Render(RenderContext&amp; rc) override;
+private:
+    SpriteRender m_spriteRender;
+    Vector3      m_position;
+    Enemy*       m_target = nullptr;   // ★ 生ポインタで敵を覚えておく
+};</code></pre>
+
+<pre><code>// Missile.cpp
+bool Missile::Start()
+{
+    m_spriteRender.Init("Assets/sprite/missile.dds", 32.0f, 32.0f);
+    m_target = FindGO&lt;Enemy&gt;("enemy");   // 敵を探して覚える
+    return true;
+}
+
+void Missile::Update()
+{
+    // ★ ここが事故の現場。
+    //    m_target がもう死んでいても、そんなことは分からない。
+    Vector3 toTarget = m_target-&gt;GetPosition() - m_position;
+    toTarget.Normalize();
+    m_position += toTarget * 400.0f * g_gameTime-&gt;GetFrameDeltaTime();
+
+    m_spriteRender.SetPosition(m_position);
+    m_spriteRender.Update();
+}</code></pre>
+
+		<p class="prose">そして、敵のほうは少ししたら自分で消えるようにします。</p>
+
+<pre><code>void Enemy::Update()
+{
+    m_frame++;
+    if (m_frame == 120) {       // 2秒で消える
+        DeleteGO(this);
+        return;
+    }
+}</code></pre>
+
+		<p class="prose">
+			<strong>予想してください。</strong> 2秒後、何が起きますか？
+		</p>
+		<ul class="prose">
+			<li>ミサイルがクラッシュする？</li>
+			<li>ミサイルが止まる？</li>
+			<li>何も起きない？</li>
+		</ul>
+		<p class="prose">予想を決めてから、実行してください。</p>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">03</span>何が起きたか</h2>
+		<p class="prose">
+			<strong>結果は、実行するたびに変わります。</strong>
+			次の3つのどれかになります。
+		</p>
+
+		<figure>
+			<svg viewBox="0 0 760 290" role="img"
+			     aria-label="削除済みオブジェクトにアクセスしたときの3つの結末を示す図。1つめはその場でクラッシュする、2つめは何事もなく動いてしまう、3つめは別の場所で後からクラッシュする。真ん中の何事もなく動いてしまうのが一番たちが悪い">
+				<defs>
+					<marker id="ahD" viewBox="0 0 10 10" refX="9" refY="5"
+					        markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+						<path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+					</marker>
+				</defs>
+				<g class="fig-head" color="currentColor">
+					<rect class="fig-box b2" x="270" y="12" width="220" height="42" rx="6"/>
+					<text class="fig-t" x="380" y="39" text-anchor="middle">解放済みメモリを読む</text>
+
+					<path class="fig-line" d="M 380 54 L 380 74"/>
+					<path class="fig-line" d="M 130 74 L 630 74"/>
+					<path class="fig-line" d="M 130 74 L 130 104" marker-end="url(#ahD)"/>
+					<path class="fig-line" d="M 380 74 L 380 104" marker-end="url(#ahD)"/>
+					<path class="fig-line" d="M 630 74 L 630 104" marker-end="url(#ahD)"/>
+
+					<!-- ケース1 -->
+					<rect class="fig-danger" x="20" y="108" width="220" height="56" rx="6"/>
+					<text class="fig-t sm cdanger" x="130" y="132" text-anchor="middle">その場でクラッシュ</text>
+					<text class="fig-m" x="130" y="152" text-anchor="middle">メモリが OS に返されていた</text>
+					<text class="fig-t sm cok" x="130" y="192" text-anchor="middle">まだマシ</text>
+					<text class="fig-m" x="130" y="212" text-anchor="middle">原因の場所で止まるから</text>
+
+					<!-- ケース2 -->
+					<rect class="fig-warn" x="270" y="108" width="220" height="56" rx="6"/>
+					<text class="fig-t sm cwarn" x="380" y="132" text-anchor="middle">何事もなく動く</text>
+					<text class="fig-m" x="380" y="152" text-anchor="middle">中身がまだ残っていた</text>
+					<text class="fig-t sm cdanger" x="380" y="192" text-anchor="middle">いちばん最悪</text>
+					<text class="fig-m" x="380" y="212" text-anchor="middle">バグに気づけない</text>
+
+					<!-- ケース3 -->
+					<rect class="fig-danger" x="520" y="108" width="220" height="56" rx="6"/>
+					<text class="fig-t sm cdanger" x="630" y="132" text-anchor="middle">あとで別の場所で落ちる</text>
+					<text class="fig-m" x="630" y="152" text-anchor="middle">別のものに使われていた</text>
+					<text class="fig-t sm cdanger" x="630" y="192" text-anchor="middle">原因が分からない</text>
+					<text class="fig-m" x="630" y="212" text-anchor="middle">関係ない場所で止まる</text>
+
+					<path class="fig-dash" d="M 20 244 L 740 244"/>
+					<text class="fig-t sm" x="380" y="270" text-anchor="middle">どれになるかは、そのときのメモリの状態しだい。つまり運。</text>
+				</g>
+			</svg>
+			<figcaption>
+				<strong>このバグが最悪なのは、真ん中のケースがあるからです。</strong>
+				自分のPCでは動いてしまい、提出した先や、先生のPCで落ちます。
+				「自分のところでは動いたのに」の正体はこれです。
+			</figcaption>
+		</figure>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">04</span>デバッガで原因を特定する</h2>
+		<p class="prose">
+			クラッシュしたら、<strong>あわてて「中断」を押して閉じないでください。</strong>
+			そこに答えが全部あります。
+		</p>
+
+		<h3>手順1 ― コールスタックを見る</h3>
+		<p class="prose">
+			<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>C</kbd> で<strong>呼び出し履歴</strong>を開きます。
+			いちばん上が、落ちた場所です。
+		</p>
+<pre><code>&gt; Game.exe!Missile::Update()  行 24        ← ここで落ちた
+  Game.exe!nsK2EngineLow::IGameObject::UpdateWrapper()
+  Game.exe!nsK2EngineLow::GameObjectManager::ExecuteUpdate()
+  ...</code></pre>
+		<p class="prose">
+			<code>Missile::Update()</code> の24行目。
+			<code>m_target-&gt;GetPosition()</code> の行です。
+		</p>
+
+		<h3>手順2 ― ポインタの中身を見る</h3>
+		<p class="prose">
+			<code>m_target</code> を選択して <strong>ウォッチ</strong>に追加します（右クリック → ウォッチ式の追加）。
+			アドレスは入っているのに、中身がおかしいはずです。
+		</p>
+<pre><code>m_target        0x0000023f1c4a2e30 {...}       ← アドレスはある
+m_target-&gt;m_position   {x=-4.31602e+08 y=-4.31602e+08 ...}   ← ゴミ</code></pre>
+
+		<h3>手順3 ― メモリウィンドウで確かめる</h3>
+		<p class="prose">
+			<strong>デバッグ → ウィンドウ → メモリ → メモリ1</strong> を開き、
+			アドレス欄に <code>m_target</code> と打ちます。
+		</p>
+<pre><code>0x0000023F1C4A2E30  dd dd dd dd dd dd dd dd  dd dd dd dd dd dd dd dd
+0x0000023F1C4A2E40  dd dd dd dd dd dd dd dd  dd dd dd dd dd dd dd dd</code></pre>
+
+		<div class="note">
+			<span class="h"><code>0xDD</code> は「もう解放したメモリ」の印です</span>
+			Visual Studio の Debug ビルドは、<code>delete</code> したメモリを
+			<code>0xDD</code> で塗りつぶしてくれます。
+			<strong>ウォッチやメモリで <code>0xDD</code> がずらっと並んでいたら、
+			それは「解放済みのものを触っている」という意味です。</strong>
+			<p style="margin-top:8px;">
+				ついでに覚えておくと得をする値：
+				<code>0xCD</code> = まだ初期化していないヒープ、
+				<code>0xCC</code> = まだ初期化していないスタック変数、
+				<code>0xFD</code> = 配列の外側（はみ出し検出用）。
+			</p>
+		</div>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">05</span>落ちないパターンも見てみる</h2>
+		<p class="prose">
+			ここが大事です。<strong>落ちないこともある</strong>ことを、自分で確認します。
+			<code>Enemy</code> を消すタイミングを変えてみてください。
+		</p>
+<pre><code>if (m_frame == 120) {
+    DeleteGO(this);
+    return;
+}</code></pre>
+		<p class="prose">
+			<strong>2-05</strong> でやったとおり、<code>DeleteGO</code> の直後の1フレームは、
+			まだメモリが生きています。この間なら、ミサイルは
+			<strong>何事もなく正常に動きます。</strong>
+		</p>
+		<ul class="checklist prose">
+			<li><code>GameObject List</code> パネルで、敵が <code>DEAD</code> になっている</li>
+			<li>それでもミサイルは、その敵を正しく追いかけている</li>
+			<li>次のフレームで敵の行が消えたあと、挙動がおかしくなる</li>
+		</ul>
+
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">「動いているから正しい」は成り立ちません</span>
+			このバグは、<strong>コンパイラも警告してくれませんし、実行しても止まりません。</strong>
+			だから、書き方のルールで防ぐしかありません。それが次の章です。
+		</div>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">06</span>同じ事故は、ほかにもいろいろな顔で出ます</h2>
+		<p class="prose">
+			「生ポインタで覚えておく」以外にも、同じ原因のバグはあります。
+			どれも<strong>「もういないものを、いると思って触る」</strong>です。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>書き方</th><th>何が起きるか</th></tr></thead>
+			<tbody>
+				<tr>
+					<td><code>std::vector&lt;Enemy*&gt; m_enemies;</code> に入れっぱなし</td>
+					<td>敵が死んでも配列にポインタが残り、次に回したときに落ちる</td>
+				</tr>
+				<tr>
+					<td><code>Start()</code> で <code>FindGO</code> した結果を持ち続ける</td>
+					<td>相手が途中で死ぬと、同じ事故になる</td>
+				</tr>
+				<tr>
+					<td>親が子を <code>DeleteGO</code>、子も自分を <code>DeleteGO</code></td>
+					<td>二重削除。解放済みメモリに書き込む</td>
+				</tr>
+				<tr>
+					<td><code>DeleteGO(this)</code> のあとに <code>return</code> し忘れ</td>
+					<td>自分のメンバ変数を触り続ける</td>
+				</tr>
+			</tbody>
+		</table>
+		</div>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">07</span>演習</h2>
+
+		<h3>演習1（まねる）<span class="diff"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			本文のコードで実際にクラッシュさせ、<strong>コールスタックのスクリーンショットを撮る。</strong>
+			どの行で落ちたかを、自分の言葉でメモする。
+		</p>
+
+		<h3>演習2（観察する）<span class="diff"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			メモリウィンドウで <code>0xDD</code> を自分の目で見る。
+			<strong>Release ビルドでも同じように <code>0xDD</code> になるか</strong>、試して確かめる。
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p>
+<strong>Release ビルドでは <code>0xDD</code> になりません。</strong>
+</p>
+<p>
+<code>0xDD</code> で塗りつぶしているのは、Visual Studio の
+<strong>デバッグ用のメモリ管理（デバッグヒープ）</strong>です。
+これは <code>_DEBUG</code> が定義されているときだけ働きます。
+Release ビルドでは、解放したメモリの中身は<strong>そのまま残っているか、
+別のものに使い回されるか、どちらか</strong>です。
+</p>
+<div class="note" style="--lv: var(--danger);">
+<span class="h">ここが怖いところです</span>
+<strong>Debug では落ちるのに Release では落ちない。あるいはその逆。</strong>
+これが「提出したら動かなかった」の大きな原因のひとつです。<br>
+だから <a href="2-24_Complete.html">2-24</a> の完成条件に
+「Release ビルドでも動く」を入れています。
+</div>
+		</details>
+
+		<h3>演習3（自分で書く）<span class="diff"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			<code>m_target</code> を触る前に <code>if (m_target != nullptr)</code> を足せば、
+			このバグは直るでしょうか。<strong>予想してから試してください。</strong>
+			直らないなら、それはなぜですか。
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>直りません。</strong></p>
+<pre><code>void Missile::Update()
+{
+    if (m_target != nullptr) {        // ← 意味がない
+        m_target-&gt;GetPosition();      // ← やっぱり落ちる
+    }
+}</code></pre>
+<p>
+理由は単純です。<strong><code>DeleteGO(enemy)</code> は、
+あなたの <code>m_target</code> という変数に <code>nullptr</code> を代入しません。</strong>
+<code>DeleteGO</code> は、あなたがどこにポインタを持っているかを知らないからです。
+</p>
+<p>
+ポインタはただの数字です。指す先が消えても、その数字は変わりません。
+<strong>「消えたことを、ポインタ自身は知らない」</strong>のがこの問題の本質です。
+</p>
+<p>
+<strong>では、どうすれば「知っている人」に聞けるのか。</strong>
+それが次の章の <code>GOHandle</code> です。
+</p>
+		</details>
+		<details>
+			<summary>ヒント</summary>
+			<p>
+				<code>DeleteGO</code> は、あなたの <code>m_target</code> に
+				<code>nullptr</code> を入れてくれるでしょうか？
+				<code>DeleteGO</code> は、そのポインタ変数がどこにあるか知りません。
+			</p>
+		</details>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li>削除済みのオブジェクトを触ったとき、起きうる3つの結末は？</li>
+			<li>そのうち、いちばんたちが悪いのはどれ？ なぜ？</li>
+			<li>メモリが <code>0xDD</code> で埋まっているのは、どういう意味？</li>
+			<li><code>nullptr</code> チェックだけでは、なぜこのバグが防げない？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>その場でクラッシュする／何事もなく動いてしまう／あとで別の場所で落ちる。</li>
+				<li>「何事もなく動いてしまう」。バグがあることに気づけず、
+					別の環境や、別の日に落ちるから。</li>
+				<li>Debugビルドで <code>delete</code> 済みのメモリ。もう使ってはいけない領域。</li>
+				<li><code>DeleteGO</code> は、こちらが持っているポインタ変数に
+					<code>nullptr</code> を代入してくれないから。
+					ポインタの値は、指す先が消えても変わらない。</li>
+			</ol>
+		</details>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">09</span>次の章</h2>
+		<p class="prose">
+			では、どう書けば防げるのか。次の章で直します。
+		</p>
+		<ul class="prose">
+			<li><a href="2-09_GOHandle.html"><strong>2-09 GOHandle で安全に参照する</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

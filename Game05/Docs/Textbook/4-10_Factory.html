@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Factory ― 生成を1か所に集める</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n4" href="4-09_Strategy.html">← 前 4-09</a>
+			<a class="navchip n4" href="index.html#lv4">LV4 の目次</a>
+			<a class="navchip n4" href="4-11_Command.html">次 → 4-11</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l4">
+		<p class="kicker">LV4 設計 ／ 4-10</p>
+		<h1>Factory ― 生成を1か所に集める</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span>
+			／ 前提 <a href="2-16_Spawner.html">2-16</a>
+		</p>
+	</header>
+
+	<section class="level l4">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>散らばった <code>switch</code> を1か所にまとめられる</strong></li>
+			<li>敵の設定を、コードではなくデータで書ける</li>
+			<li>ステージ構成を、ビルドせずに調整できる</li>
+		</ul>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">02</span>困っている形</h2>
+<pre><code>// Spawner.cpp
+switch (type) {
+case 0: { auto* e = NewGO&lt;Enemy&gt;(...); e-&gt;SetHp(10); e-&gt;SetMover(...); } break;
+case 1: { auto* e = NewGO&lt;Enemy&gt;(...); e-&gt;SetHp(30); e-&gt;SetMover(...); } break;
+case 2: ...
+}
+
+// BossStage.cpp ― ★ また switch
+switch (type) {
+case 0: ...
+}
+
+// DebugPanel.cpp ― ★ ここにも
+switch (m_selectedType) {
+case 0: ...
+}</code></pre>
+		<p class="prose">
+			<strong>敵を1種類足すと、3か所に1行ずつ足すことになります。</strong>
+			そして、どれか1つを忘れます。
+		</p>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">03</span>まず ― 生成関数を1つにする</h2>
+		<p class="prose">
+			<strong>これだけで、8割は解決します。</strong>
+		</p>
+<pre><code>// EnemyFactory.h
+enum EnEnemyType {
+    enEnemyType_Zako,
+    enEnemyType_Shooter,
+    enEnemyType_Tank,
+    enEnemyType_Num,
+};
+
+/// &lt;summary&gt;敵を1体作る。&lt;/summary&gt;
+/// &lt;returns&gt;作れなければ nullptr&lt;/returns&gt;
+Enemy* CreateEnemy(EnEnemyType type, const Vector3&amp; position);</code></pre>
+<pre><code>// EnemyFactory.cpp
+Enemy* CreateEnemy(EnEnemyType type, const Vector3&amp; position)
+{
+    Enemy* e = NewGO&lt;Enemy&gt;(enPriority_Enemy, "enemy");
+    e-&gt;SetPosition(position);
+
+    switch (type) {
+    case enEnemyType_Zako:
+        e-&gt;SetHp(10);
+        e-&gt;SetMover(std::make_unique&lt;StraightMover&gt;(200.0f));
+        e-&gt;SetScore(100);
+        break;
+    case enEnemyType_Shooter:
+        e-&gt;SetHp(30);
+        e-&gt;SetMover(std::make_unique&lt;ZigzagMover&gt;(150.0f, 200.0f, 3.0f));
+        e-&gt;SetShotPattern(std::make_unique&lt;AimShot&gt;());
+        e-&gt;SetScore(300);
+        break;
+    case enEnemyType_Tank:
+        e-&gt;SetHp(200);
+        e-&gt;SetMover(std::make_unique&lt;StraightMover&gt;(60.0f));
+        e-&gt;SetScore(1000);
+        break;
+    default:
+        DeleteGO(e);
+        return nullptr;
+    }
+    return e;
+}</code></pre>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h"><code>switch</code> は消えていません。1か所に集めただけです</span>
+			<strong>それで充分です。</strong>
+			敵を足すとき、触るのは <code>EnemyFactory.cpp</code> だけになりました。<br>
+			<u>「完全に <code>switch</code> をなくす」より、こちらのほうが読みやすいことが多いです。</u>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">04</span>次 ― データにする</h2>
+		<p class="prose">
+			上の <code>switch</code> をよく見ると、
+			<strong>やっていることは「値を設定する」だけ</strong>です。
+			ならば、表にできます。
+		</p>
+<pre><code>// EnemyFactory.cpp
+namespace {
+
+struct EnemyDef {
+    const char* name;
+    int         hp;
+    int         score;
+    float       moveSpeed;
+    EnMoverType moverType;
+    EnShotType  shotType;
+};
+
+// ★ 敵の定義を、1か所の表にする
+const EnemyDef ENEMY_TABLE[enEnemyType_Num] = {
+    // name        hp   score  speed  mover            shot
+    { "Zako",      10,   100,  200.0f, enMover_Straight, enShot_None },
+    { "Shooter",   30,   300,  150.0f, enMover_Zigzag,   enShot_Aim  },
+    { "Tank",     200,  1000,   60.0f, enMover_Straight, enShot_None },
+};
+
+}  // namespace
+
+Enemy* CreateEnemy(EnEnemyType type, const Vector3&amp; position)
+{
+    if (type &lt; 0 || type &gt;= enEnemyType_Num) {
+        return nullptr;
+    }
+    const EnemyDef&amp; def = ENEMY_TABLE[type];
+
+    Enemy* e = NewGO&lt;Enemy&gt;(enPriority_Enemy, "enemy");
+    e-&gt;SetPosition(position);
+    e-&gt;SetHp(def.hp);
+    e-&gt;SetScore(def.score);
+    e-&gt;SetMover(CreateMover(def.moverType, def.moveSpeed));
+    e-&gt;SetShotPattern(CreateShotPattern(def.shotType));
+    return e;
+}</code></pre>
+		<p class="prose">
+			<strong>敵を1種類足すのが、表に1行足すだけになりました。</strong>
+		</p>
+		<div class="note">
+			<span class="h">これを「テーブル駆動」といいます</span>
+			<strong>分岐を、データの参照に置き換える</strong>やり方です。<br>
+			ゲーム開発では非常によく使われます。
+			<u>行が並んでいるので、バランス調整のとき見比べやすい</u>のも利点です。
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">05</span>最後 ― ファイルから読む</h2>
+		<p class="prose">
+			表をテキストファイルにすれば、<strong>ビルドせずに調整できます。</strong>
+		</p>
+<pre><code># Assets/data/enemy.txt
+# name      hp   score  speed  mover     shot
+Zako        10    100   200    straight  none
+Shooter     30    300   150    zigzag    aim
+Tank       200   1000    60    straight  none
+Bomber      50    500   180    zigzag    circle</code></pre>
+		<p class="prose">
+			<strong>エンジンのデバッグ設定と同じ形式です。</strong>
+			<code>k2EngineLow/dbg/DebugSettings.cpp</code> が参考になります。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th></th><th>コードに書く</th><th>ファイルから読む</th></tr></thead>
+			<tbody>
+				<tr><td>調整の速さ</td><td>ビルドが要る</td>
+					<td><strong>再起動だけ。うまく作れば実行中でも</strong></td></tr>
+				<tr><td>間違いの検出</td><td><strong>コンパイル時</strong></td>
+					<td><u>実行するまで分からない</u></td></tr>
+				<tr><td>プログラマ以外が触れるか</td><td>無理</td>
+					<td><strong>触れる</strong></td></tr>
+				<tr><td>手間</td><td>少ない</td><td>読み込みを書く必要がある</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">ファイル化は、調整の回数が多いものだけに</span>
+			<strong>敵のHPやスコアは、何十回も調整します。→ ファイル向き</strong><br>
+			敵の種類そのもの（クラス構成）は、めったに変わりません。→ コードでよい<br>
+			<u>「何回調整したか」で決めてください。</u>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">06</span>ステージ構成もデータにする</h2>
+<pre><code># Assets/data/stage1.txt
+# time  type      x
+1.0     Zako      -200
+1.5     Zako         0
+2.0     Zako       200
+5.0     Shooter   -300
+5.0     Shooter    300
+12.0    Tank         0
+20.0    BOSS</code></pre>
+<pre><code>void Spawner::Update()
+{
+    m_time += g_gameTime-&gt;GetFrameDeltaTime();
+
+    while (m_next &lt; (int)m_schedule.size()
+        &amp;&amp; m_schedule[m_next].time &lt;= m_time)
+    {
+        const auto&amp; s = m_schedule[m_next];
+        CreateEnemy(s.type, { s.x, SPAWN_Y, 0.0f });
+        m_next++;
+    }
+}</code></pre>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h">ここまで来ると、ゲームが「作れる」ようになります</span>
+			<strong>ステージを1つ増やすのが、テキストファイルを1つ足すだけになります。</strong><br>
+			<u>これはポートフォリオでも強い要素です。</u>
+			「ステージを追加するのに、コードを触らなくて済む設計にしました」
+			と言えます（<a href="4-17_Portfolio.html">4-17</a>）。
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（まとめる）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">散らばった敵の生成コードを、<code>CreateEnemy()</code> 1つにまとめる。</p>
+
+		<h3>演習2（表にする）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>テーブル駆動</strong>に書き直す。敵を1種類足してみて、<u>1行で済むか</u>確かめる。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>// EnemyFactory.cpp
+namespace {
+
+enum EnMoverType  { enMover_Straight, enMover_Zigzag, enMover_Chase };
+enum EnShotType   { enShot_None, enShot_Aim, enShot_Fan, enShot_Circle };
+
+struct EnemyDef {
+    const char*  name;
+    int          hp;
+    int          score;
+    float        moveSpeed;
+    EnMoverType  mover;
+    EnShotType   shot;
+    float        shotInterval;
+    const char*  modelPath;
+};
+
+const EnemyDef ENEMY_TABLE[] = {
+  // name       hp  score  speed  mover             shot           interval  model
+  { "Zako",     10,   100, 200.f, enMover_Straight, enShot_None,     0.0f, "Assets/modelData/zako.tkm"    },
+  { "Shooter",  30,   300, 150.f, enMover_Zigzag,   enShot_Aim,      1.2f, "Assets/modelData/shooter.tkm" },
+  { "Tank",    200,  1000,  60.f, enMover_Straight, enShot_Fan,      2.0f, "Assets/modelData/tank.tkm"    },
+  { "Bomber",   50,   500, 180.f, enMover_Chase,    enShot_Circle,   3.0f, "Assets/modelData/bomber.tkm"  },
+};
+
+// ★ 表の行数と enum の数が合っているか、コンパイル時に確かめる
+static_assert(
+    sizeof(ENEMY_TABLE) / sizeof(ENEMY_TABLE[0]) == enEnemyType_Num,
+    "ENEMY_TABLE の行数が EnEnemyType と合っていません");
+
+std::unique_ptr&lt;IMover&gt; CreateMover(EnMoverType type, float speed)
+{
+    switch (type) {
+    case enMover_Straight: return std::make_unique&lt;StraightMover&gt;(speed);
+    case enMover_Zigzag:   return std::make_unique&lt;ZigzagMover&gt;(speed, 200.0f, 3.0f);
+    case enMover_Chase:    return std::make_unique&lt;ChaseMover&gt;(speed);
+    }
+    return nullptr;
+}
+
+std::unique_ptr&lt;IShotPattern&gt; CreateShotPattern(EnShotType type)
+{
+    switch (type) {
+    case enShot_None:   return nullptr;
+    case enShot_Aim:    return std::make_unique&lt;AimShot&gt;();
+    case enShot_Fan:    return std::make_unique&lt;FanShot&gt;(3, 60.0f);
+    case enShot_Circle: return std::make_unique&lt;CircleShot&gt;(12);
+    }
+    return nullptr;
+}
+
+}  // namespace
+
+Enemy* CreateEnemy(EnEnemyType type, const Vector3&amp; position)
+{
+    if (type &lt; 0 || type &gt;= enEnemyType_Num) {
+        return nullptr;
+    }
+    const EnemyDef&amp; def = ENEMY_TABLE[type];
+
+    Enemy* e = NewGO&lt;Enemy&gt;(enPriority_Enemy, "enemy");
+    e-&gt;SetPosition(position);
+    e-&gt;SetHp(def.hp);
+    e-&gt;SetScore(def.score);
+    e-&gt;SetModel(def.modelPath);
+    e-&gt;SetMover(CreateMover(def.mover, def.moveSpeed));
+
+    auto shot = CreateShotPattern(def.shot);
+    if (shot) {
+        e-&gt;SetShotPattern(std::move(shot), def.shotInterval);
+    }
+    return e;
+}</code></pre>
+<p><strong>敵を足すときにやること</strong></p>
+<ol>
+<li><code>EnEnemyType</code> に <code>enEnemyType_Bomber</code> を足す</li>
+<li><strong>表に1行足す</strong></li>
+</ol>
+<p>以上です。</p>
+<div class="note" style="--lv: var(--ok);">
+<span class="h"><code>static_assert</code> を入れておいてください</span>
+<strong>enum に足して、表に足し忘れる</strong>のが、この方式の唯一の事故です。
+<br><br>
+<code>static_assert</code> があれば<u>コンパイルエラーで止まります。</u>
+実行時に配列の範囲外を読んで、よく分からない値の敵が出る、
+という事態を防げます。
+</div>
+<p><strong>表を眺めるだけでバランスが見える</strong></p>
+<p>
+これが副次的な、でも大きな利点です。
+<strong>「Tank のスコアが Shooter の3倍だけど、HPは7倍だな」</strong>
+といったことが、<u>表を見ただけで分かります。</u>
+</p>
+		</details>
+
+		<h3>演習3（ファイルにする）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>ステージ構成をテキストファイルから読む</strong>ようにする。ビルドせずにステージを調整できるか確かめる。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>ファイル形式（なるべく単純に）</strong></p>
+<pre><code># Assets/data/stage1.txt
+# 「#」で始まる行と空行は無視する
+# time  type      x
+1.0     Zako      -200
+1.5     Zako         0
+2.0     Zako       200
+5.0     Shooter   -300
+5.0     Shooter    300
+12.0    Tank         0</code></pre>
+<p><strong>読み込み</strong></p>
+<pre><code>// StageData.h
+struct SpawnEntry {
+    float        time;
+    EnEnemyType  type;
+    float        x;
+};
+
+class StageData {
+public:
+    bool Load(const char* filePath);
+    const std::vector&lt;SpawnEntry&gt;&amp; GetEntries() const { return m_entries; }
+private:
+    std::vector&lt;SpawnEntry&gt; m_entries;
+};
+
+// StageData.cpp
+namespace {
+    EnEnemyType NameToType(const std::string&amp; name)
+    {
+        for (int i = 0; i &lt; enEnemyType_Num; i++) {
+            if (name == ENEMY_TABLE[i].name) {
+                return (EnEnemyType)i;
+            }
+        }
+        return enEnemyType_Num;      // 見つからない
+    }
+}
+
+bool StageData::Load(const char* filePath)
+{
+    std::ifstream ifs(filePath);
+    if (!ifs) {
+        // ★ 読めなかったことが分かるようにする
+        char buf[256];
+        sprintf_s(buf, "StageData: %s が開けません\n", filePath);
+        OutputDebugStringA(buf);
+        return false;
+    }
+
+    m_entries.clear();
+    std::string line;
+    int lineNo = 0;
+
+    while (std::getline(ifs, line)) {
+        lineNo++;
+        // コメントと空行を飛ばす
+        if (line.empty() || line[0] == '#') { continue; }
+
+        std::istringstream iss(line);
+        float       time = 0.0f;
+        std::string name;
+        float       x = 0.0f;
+
+        if (!(iss &gt;&gt; time &gt;&gt; name &gt;&gt; x)) {
+            char buf[256];
+            sprintf_s(buf, "StageData: %d行目が読めません\n", lineNo);
+            OutputDebugStringA(buf);
+            continue;                 // ★ 1行おかしくても、続ける
+        }
+
+        EnEnemyType type = NameToType(name);
+        if (type == enEnemyType_Num) {
+            char buf[256];
+            sprintf_s(buf, "StageData: %d行目 不明な敵 '%s'\n",
+                      lineNo, name.c_str());
+            OutputDebugStringA(buf);
+            continue;
+        }
+        m_entries.push_back({ time, type, x });
+    }
+
+    // 時間順に並べておく（ファイルがバラバラでも動くように）
+    std::sort(m_entries.begin(), m_entries.end(),
+        [](const SpawnEntry&amp; a, const SpawnEntry&amp; b) {
+            return a.time &lt; b.time;
+        });
+
+    return true;
+}</code></pre>
+<p><strong>使う</strong></p>
+<pre><code>bool Spawner::Start()
+{
+    if (m_stage.Load("Assets/data/stage1.txt") == false) {
+        // ★ 読めなくてもゲームは続ける
+        return true;
+    }
+    return true;
+}
+
+void Spawner::Update()
+{
+    m_time += g_gameTime-&gt;GetFrameDeltaTime();
+
+    const auto&amp; entries = m_stage.GetEntries();
+    while (m_next &lt; (int)entries.size() &amp;&amp; entries[m_next].time &lt;= m_time) {
+        CreateEnemy(entries[m_next].type, { entries[m_next].x, SPAWN_Y, 0.0f });
+        m_next++;
+    }
+}</code></pre>
+<div class="note" style="--lv: var(--danger);">
+<span class="h">データを外に出すと、壊れ方が変わります</span>
+コードなら<strong>コンパイラが間違いを教えてくれました。</strong>
+ファイルはそうではありません。
+<br><br>
+<strong>必ずこの3つを入れてください。</strong>
+<ul style="margin-bottom:0;">
+<li>ファイルが開けなかったときに<u>気づけるログ</u></li>
+<li>1行おかしくても<u>止まらず、その行だけ飛ばす</u></li>
+<li>おかしい行の<u>行番号をログに出す</u></li>
+</ul>
+<br>
+これが無いと、<strong>「なぜか敵が出ない」</strong>という
+原因不明の不具合になります。
+</div>
+<p><strong>さらに一歩：実行中に読み直す</strong></p>
+<pre><code>// デバッグパネルに
+if (ImGui::Button(U8("ステージを読み直す"))) {
+    spawner-&gt;Reload();
+}</code></pre>
+<p>
+<strong>これがあると、調整のサイクルが「数秒」になります。</strong>
+ファイルを保存 → ボタンを押す → すぐ確認。
+<u>ビルドを待つ時間がゼロになります。</u>
+</p>
+		</details>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li>Factory にすると、敵を足すとき触る場所はいくつになる？</li>
+			<li>テーブル駆動とは？</li>
+			<li>データをファイルに出す代わりに、失うものは？</li>
+			<li>ファイル読み込みで、必ず入れるべき3つは？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>1か所（<code>EnemyFactory.cpp</code>）。
+					テーブル駆動なら、表に1行。</li>
+				<li>分岐を、データ（表）の参照に置き換えるやり方。</li>
+				<li>コンパイル時の検査。間違いが実行するまで分からなくなる。</li>
+				<li>開けなかったときのログ、1行飛ばして続ける、行番号を出す。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="4-11_Command.html"><strong>4-11 Command</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>環境構築とビルド</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n1" href="index.html#lv1">LV1 の目次</a>
+			<a class="navchip n1" href="1-02_Samples.html">次 → 1-02</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l1">
+		<p class="kicker">LV1 入門 ／ 1-01</p>
+		<h1>環境構築とビルド</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 —
+		</p>
+	</header>
+
+	<section class="level l1">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li>Visual Studio で k2Engine のプロジェクトを開ける</li>
+			<li><strong>ビルドして、実行できる</strong></li>
+		</ul>
+		<div class="note">
+			<span class="h">ここは急がなくていい章です</span>
+			環境構築は、プログラミングを始めるときにいちばん心が折れやすいところです。
+			<strong>うまくいかなくても、あなたのせいではありません。</strong>
+			エラーが出たら、下の「よくあるエラー」を落ち着いて読んでください。
+		</div>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">02</span>用意するもの</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>もの</th><th>備考</th></tr></thead>
+			<tbody>
+				<tr><td>Windows 10 / 11 の PC</td><td>Mac では動きません（DirectXがWindows専用のため）</td></tr>
+				<tr><td>Visual Studio 2022 以降</td><td>Community版（無料）で構いません</td></tr>
+				<tr><td>k2Engine 一式</td><td>学校から配られたもの、またはGitでクローンしたもの</td></tr>
+				<tr><td>ゲームパッド</td><td>無くてもキーボードで動きます。あると楽</td></tr>
+			</tbody>
+		</table>
+		</div>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">03</span>Visual Studio を入れる</h2>
+		<p class="prose">
+			インストーラを起動すると、<strong>「ワークロード」</strong>という一覧が出ます。
+			ここで選び忘れると、あとでビルドできません。
+		</p>
+		<ul class="checklist prose">
+			<li><strong>C++ によるデスクトップ開発</strong> にチェックを入れる</li>
+			<li>右側の「インストールの詳細」に <strong>Windows 10/11 SDK</strong> が入っているか確認</li>
+		</ul>
+		<p class="prose">
+			ほかのワークロード（Unity、Python など）は、今は要りません。
+			容量が大きいので、必要になってから足せば充分です。
+		</p>
+		<div class="note">
+			<span class="h">あとから追加できます</span>
+			チェックを忘れても大丈夫です。スタートメニューから
+			<strong>Visual Studio Installer</strong> を起動して「変更」を押せば、
+			あとから追加できます。
+		</div>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">04</span>ファイルを置く場所</h2>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">パスに日本語とスペースを入れないこと</span>
+			フォルダの名前に<strong>日本語・スペース・記号</strong>が入っていると、
+			ビルドツールがファイルを見つけられず、意味のわからないエラーが出ます。
+		</div>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>置き場所</th><th>可否</th></tr></thead>
+			<tbody>
+				<tr><td><code>C:\dev\k2Engine\</code></td><td>よい</td></tr>
+				<tr><td><code>D:\work\game\k2Engine\</code></td><td>よい</td></tr>
+				<tr><td><code>C:\Users\山田太郎\デスクトップ\k2Engine\</code></td><td><strong>だめ</strong>（日本語）</td></tr>
+				<tr><td><code>C:\My Documents\k2 Engine\</code></td><td><strong>だめ</strong>（スペース）</td></tr>
+				<tr><td>OneDrive の中</td><td><strong>やめたほうがよい</strong>（同期が邪魔をする）</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			また、<strong>パスが長すぎるとビルドに失敗することがあります。</strong>
+			<code>C:\dev\</code> のように、なるべく浅い場所に置いてください。
+		</p>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">05</span>最初の1回だけやること</h2>
+		<p class="prose">
+			リポジトリの直下に
+			<code>右クリックで管理者として実行してね.bat</code> というファイルがあります。
+			<strong>その名のとおり、右クリックして「管理者として実行」してください。</strong>
+		</p>
+		<p class="prose">
+			これは、エンジンのフォルダへのショートカット（シンボリックリンク）を作るものです。
+			管理者権限がないと作れないので、ふつうにダブルクリックしても失敗します。
+		</p>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">06</span>ビルドして実行する</h2>
+		<ol class="prose">
+			<li><code>GameTemplate/Game/Game.sln</code> をダブルクリックして開く</li>
+			<li>画面の上のほうにある2つのドロップダウンを確認する
+				<ul>
+					<li>左：<strong>Debug</strong></li>
+					<li>右：<strong>x64</strong></li>
+				</ul>
+			</li>
+			<li><kbd>F5</kbd> を押す（または「ローカル Windows デバッガー」ボタン）</li>
+			<li>初回は数分かかります。<strong>コーヒーでも飲んで待ってください</strong></li>
+		</ol>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">x64 になっているか、必ず確認</span>
+			<strong>x86（Win32）だとビルドが通りません。</strong>
+			k2Engine は64bit専用です。うまくいかないときは、まずここを見てください。
+		</div>
+		<p class="prose">
+			<strong>ウィンドウが開いて、キャラクターが表示されたら成功です。</strong>
+			おめでとうございます。ここが出発点です。
+		</p>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">07</span>よくあるエラー</h2>
+		<h3>ビルドに何分もかかる</h3>
+		<p class="prose">
+			<strong>初回はそういうものです。</strong>
+			エンジン全体と、物理エンジンなどのライブラリを全部コンパイルするからです。
+			2回目からは、変えたファイルだけが作り直されるので速くなります。
+		</p>
+
+		<h3><code>fatal error C1083: include ファイルを開けません</code></h3>
+		<p class="prose">
+			<strong>原因1：</strong>
+			<code>右クリックで管理者として実行してね.bat</code> を実行していない。<br>
+			<strong>原因2：</strong>パスに日本語やスペースが入っている。<br>
+			<strong>原因3：</strong>Windows SDK が入っていない。
+			Visual Studio Installer で確認する。
+		</p>
+
+		<h3>「このプロジェクトは移行が必要です」と出る</h3>
+		<p class="prose">
+			<strong>原因：</strong>プロジェクトが想定している
+			Visual Studio のバージョンと違う。<br>
+			<strong>直し方：</strong>そのまま「OK」で進めてかまいません。
+			通らない場合は、Visual Studio Installer で
+			<strong>v143 のビルドツール</strong>を追加してください。
+		</p>
+
+		<h3>実行したらすぐ落ちる</h3>
+		<p class="prose">
+			<strong>原因：</strong>アセットを読み込めていないことが多いです。<br>
+			<strong>直し方：</strong>出力ウィンドウ
+			（<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>O</kbd>）に
+			何か出ていないか見てください。エラーの手がかりが出ています。
+		</p>
+
+		<h3>グラフィックボードが無いPCで動かない</h3>
+		<p class="prose">
+			k2Engine は DirectX 12 を使います。
+			<strong>古いPCや、内蔵グラフィックスだけのPCでは動かないことがあります。</strong>
+			学校のPCで試してみてください。
+		</p>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">08</span>演習</h2>
+		<h3>演習1（まねる）<span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">ビルドして実行し、キャラクターが画面に出るところまで進める。</p>
+
+		<h3>演習2（慣れる）<span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">ウィンドウを閉じて、もう一度 <kbd>F5</kbd> を押す。<strong>2回目はどのくらい速くなるか</strong>を体感する。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p>
+1回目が数分、2回目は数秒〜十数秒になるはずです。
+</p>
+<p>
+これは <strong>変更のないファイルは作り直さない</strong> からです。
+これを「インクリメンタルビルド」と呼びます。
+</p>
+<p>
+逆に、<strong>ビルド → リビルド</strong> を選ぶと全部作り直すので、また数分かかります。
+<strong>おかしくなったとき以外は、リビルドしないでください。</strong>時間の無駄です。
+</p>
+		</details>
+
+		<h3>演習3（調べる）<span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>Debug</code> と <code>Release</code> の違いは何でしょうか。両方でビルドして、<code>Game/x64/</code> の中にできるファイルの<strong>大きさ</strong>を比べてみる。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th></th><th>Debug</th><th>Release</th></tr></thead>
+<tbody>
+<tr><td>目的</td><td>開発中に使う</td><td>完成品として配る</td></tr>
+<tr><td>速さ</td><td>遅い</td><td><strong>速い</strong></td></tr>
+<tr><td>ファイルの大きさ</td><td>大きい</td><td>小さい</td></tr>
+<tr><td>デバッグ</td><td><strong>できる</strong></td><td>しにくい</td></tr>
+</tbody>
+</table>
+</div>
+<p>
+Debug には「どの行を実行しているか」といった情報が全部入っているので、
+大きくて遅いかわりに、<strong>デバッガで中身を追えます</strong>
+（<a href="1-18_Debugger.html">1-18</a>）。
+</p>
+<div class="note" style="--lv: var(--warn);">
+<span class="h">作るときは Debug、提出するときは Release</span>
+<strong>そして、提出前に必ず Release でも動くか確かめてください。</strong>
+「Debugでは動いたのに」は、毎年いちばん多い失敗です。
+</div>
+		</details>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">09</span>確認</h2>
+		<ol class="prose">
+			<li>ビルド構成は Debug / Release のどちら？ プラットフォームは？</li>
+			<li>フォルダのパスに入れてはいけないものは？</li>
+			<li>最初の1回だけやることは？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>開発中は Debug。プラットフォームは必ず <strong>x64</strong>。</li>
+				<li>日本語・スペース。OneDriveの中も避ける。</li>
+				<li><code>右クリックで管理者として実行してね.bat</code> を管理者として実行する。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">10</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="1-02_Samples.html"><strong>1-02 サンプルを全部動かしてみる</strong></a>
+				— 何が作れるのかを、先に見ておきます</li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

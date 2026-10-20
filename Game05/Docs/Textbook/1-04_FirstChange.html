@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>はじめての改造</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n1" href="1-03_Git.html">← 前 1-03</a>
+			<a class="navchip n1" href="index.html#lv1">LV1 の目次</a>
+			<a class="navchip n1" href="1-05_ErrorMessage.html">次 → 1-05</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l1">
+		<p class="kicker">LV1 入門 ／ 1-04</p>
+		<h1>はじめての改造</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="1-01_Setup.html">1-01</a>
+		</p>
+	</header>
+
+	<section class="level l1">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li>コードを書き換えて、画面の変化を確かめられる</li>
+			<li><strong>「書き換える → ビルド → 実行」のリズムを体で覚える</strong></li>
+		</ul>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">02</span>いま動いているコードを見る</h2>
+		<p class="prose">
+			ソリューションエクスプローラーから <code>Game.cpp</code> を開いてください。
+			全部でこれだけです。
+		</p>
+<pre><code>#include "stdafx.h"
+#include "Game.h"
+
+bool Game::Start()
+{
+    m_modelRender.Init("Assets/modelData/unityChan.tkm");
+    return true;
+}
+
+void Game::Update()
+{
+    m_modelRender.Update();
+}
+
+void Game::Render(RenderContext&amp; rc)
+{
+    m_modelRender.Draw(rc);
+}</code></pre>
+		<p class="prose">
+			<strong>いまは細かい意味が分からなくて大丈夫です。</strong>
+			次の3つだけ覚えてください。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>ここ</th><th>いつ動くか</th></tr></thead>
+			<tbody>
+				<tr><td><code>Start()</code> の <code>{ }</code> の中</td>
+					<td><strong>最初に1回だけ</strong></td></tr>
+				<tr><td><code>Update()</code> の <code>{ }</code> の中</td>
+					<td><strong>1秒間に約60回、ずっと</strong></td></tr>
+				<tr><td><code>Render()</code> の <code>{ }</code> の中</td>
+					<td>画面に描くとき</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			この先しばらく、<strong>あなたが書くコードは全部この <code>{ }</code> の中</strong>です。
+		</p>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">03</span>改造1 ― 位置を変える</h2>
+		<p class="prose">
+			<code>Game.h</code> を見ると、<code>m_pos</code> という変数があります。
+			これを使って、キャラクターの位置を変えてみます。
+		</p>
+<pre><code>bool Game::Start()
+{
+    m_modelRender.Init("Assets/modelData/unityChan.tkm");
+
+    m_pos.x = 100.0f;                    // ← 足す
+    m_modelRender.SetPosition(m_pos);    // ← 足す
+
+    return true;
+}</code></pre>
+		<p class="prose">
+			<kbd>F5</kbd> を押してください。<strong>キャラクターが右にずれたはずです。</strong>
+		</p>
+		<p class="prose">
+			<code>100.0f</code> を <code>-100.0f</code> や <code>300.0f</code> に変えて、
+			何度か試してみてください。<code>y</code> や <code>z</code> でも試してみましょう。
+		</p>
+		<div class="note">
+			<span class="h"><code>100.0f</code> の <code>f</code> は何？</span>
+			「これは小数の数字だよ」という印です。付け忘れても動くことが多いのですが、
+			<strong>C++では付けるのが作法</strong>です。理由は <a href="1-06_Variable.html">1-06</a> で。
+		</div>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">04</span>改造2 ― 動かす</h2>
+		<p class="prose">
+			<code>Update()</code> は毎フレーム呼ばれます。
+			<strong>ここで少しずつ位置を足せば、動いて見えます。</strong>
+		</p>
+<pre><code>void Game::Update()
+{
+    m_pos.x += 1.0f;                     // ← 足す
+    m_modelRender.SetPosition(m_pos);    // ← 足す
+
+    m_modelRender.Update();
+}</code></pre>
+		<p class="prose">
+			<code>+=</code> は「いまの値に足す」という意味です。
+			1秒に60回呼ばれるので、1秒でだいたい60進みます。
+		</p>
+		<p class="prose">
+			<strong>これがゲームの動きの正体です。</strong>
+			パラパラ漫画のように、少しずつ位置を変えたものを、
+			1秒に60枚描いているだけなのです。
+		</p>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">05</span>改造3 ― モデルを変える</h2>
+		<p class="prose">
+			<code>Game/Assets/modelData/</code> の中を見てください。
+			<code>.tkm</code> というファイルがモデルです。別のものに変えてみましょう。
+		</p>
+<pre><code>m_modelRender.Init("Assets/modelData/別のモデル.tkm");</code></pre>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">わざと間違えてみてください</span>
+			存在しないファイル名を書いて実行すると、どうなるでしょうか。
+			<strong>次の章で、その「エラーの読み方」をやります。</strong>
+			いま一度、わざと壊してみるのはよい練習です。（Gitがあるので戻せます）
+		</div>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">06</span>ビルドと実行のショートカット</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>キー</th><th>動作</th></tr></thead>
+			<tbody>
+				<tr><td><kbd>F5</kbd></td><td>ビルドして、デバッグ実行する（いちばん使う）</td></tr>
+				<tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd></td><td>ビルドだけする（実行しない）</td></tr>
+				<tr><td><kbd>Shift</kbd>+<kbd>F5</kbd></td><td>実行を止める</td></tr>
+				<tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>保存。<strong>保存しないとビルドに反映されません</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>「書き換える → <kbd>F5</kbd> → 見る」を、何十回も繰り返すことになります。</strong>
+			手がおぼえるまで、たくさん試してください。
+		</p>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（まねる）<span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">改造1〜3を全部やって、それぞれ画面が変わることを確認する。</p>
+
+		<h3>演習2（変えてみる）<span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">キャラクターが<strong>上に向かって動く</strong>ようにする。また、<strong>もっと速く</strong>動くようにする。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>void Game::Update()
+{
+    m_pos.y += 3.0f;                     // y を増やすと上へ。数字を大きくすると速く
+    m_modelRender.SetPosition(m_pos);
+    m_modelRender.Update();
+}</code></pre>
+<p>
+<strong>3Dでは、<code>y</code> が上下、<code>x</code> が左右、<code>z</code> が奥行きです。</strong>
+</p>
+<p>
+数字を <code>10.0f</code> にすると、1秒で600も進むので、あっという間に画面の外へ消えます。
+<strong>消えてしまっても、プログラムは動き続けています。</strong>
+見えないだけで、ずっと足し算をしています。
+</p>
+		</details>
+
+		<h3>演習3（考える）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>Update()</code> ではなく <code>Start()</code> に <code>m_pos.x += 1.0f;</code> を書くと、どうなるでしょうか。<strong>予想してから</strong>試してください。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p>
+<strong>1回しか実行されないので、少し右にずれるだけで、動きません。</strong>
+</p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th></th><th>呼ばれる回数</th><th>結果</th></tr></thead>
+<tbody>
+<tr><td><code>Start()</code></td><td>1回だけ</td><td>1.0 だけずれて止まる</td></tr>
+<tr><td><code>Update()</code></td><td>毎フレーム（1秒に約60回）</td><td>どんどん動く</td></tr>
+</tbody>
+</table>
+</div>
+<p>
+<strong>この違いが、これからずっとついて回ります。</strong>
+</p>
+<ul>
+<li><strong>1回だけやりたいこと</strong>（画像の読み込み、初期位置）→ <code>Start()</code></li>
+<li><strong>毎回やりたいこと</strong>（動かす、入力を見る、当たり判定）→ <code>Update()</code></li>
+</ul>
+<p>
+「動かないんだけど」という相談のかなりの割合が、
+<strong><code>Update()</code> に書くべきものを <code>Start()</code> に書いている</strong>
+というものです。
+</p>
+		</details>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li><code>Start()</code> と <code>Update()</code> は、それぞれ何回呼ばれる？</li>
+			<li><code>+=</code> はどういう意味？</li>
+			<li>ものが動いて見えるのは、なぜ？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li><code>Start()</code> は最初に1回だけ。<code>Update()</code> は1秒に約60回ずっと。</li>
+				<li>いまの値に足す。<code>a += 1</code> は <code>a = a + 1</code> と同じ。</li>
+				<li>毎フレーム少しずつ位置を変えたものを、1秒に60回描き直しているから。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="1-05_ErrorMessage.html"><strong>1-05 エラーメッセージの読み方</strong></a>
+				— この先いちばん使う技術です</li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

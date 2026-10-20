@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>メモリ階層とキャッシュライン</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n5" href="5-03_Cpu.html">← 前 5-03</a>
+			<a class="navchip n5" href="index.html#lv5">LV5 の目次</a>
+			<a class="navchip n5" href="5-05_AccessOrder.html">次 → 5-05</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l5">
+		<p class="kicker">LV5 最適化 ／ 5-04</p>
+		<h1>メモリ階層とキャッシュライン</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span>
+			／ 前提 <a href="5-03_Cpu.html">5-03</a>
+		</p>
+	</header>
+
+	<section class="level l5">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>なぜ64バイトなのかを説明できる</strong></li>
+			<li><code>std::vector</code> と <code>std::list</code> の差を、理由から説明できる</li>
+			<li>k2Engine のどこが遅くなりうるか指摘できる</li>
+		</ul>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">02</span>メモリは階層になっている</h2>
+
+		<figure>
+			<svg viewBox="0 0 740 380" role="img"
+			     aria-label="メモリ階層の図。CPUコアに近いほど速く小さい。レジスタ、L1キャッシュ、L2キャッシュ、L3キャッシュ、メインメモリの順に、容量が増え速度が下がる。メインメモリはL1の約60倍遅い">
+				<g class="fig-head" color="currentColor">
+					<defs>
+						<marker id="mem-arrow" viewBox="0 0 10 10" refX="9" refY="5"
+						        markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+							<path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+						</marker>
+					</defs>
+
+					<text class="fig-t sm" x="20" y="22">CPU に近い</text>
+					<text class="fig-t sm" x="20" y="366">遠い</text>
+
+					<path class="fig-line" d="M 62 32 L 62 348" marker-end="url(#mem-arrow)"/>
+
+					<rect class="fig-box b5" x="90" y="32" width="150" height="44" rx="4"/>
+					<text class="fig-t sm c5" x="165" y="60" text-anchor="middle">レジスタ</text>
+					<text class="fig-m" x="260" y="52">数百バイト</text>
+					<text class="fig-m" x="420" y="52">1 サイクル</text>
+
+					<rect class="fig-box b5" x="90" y="86" width="190" height="44" rx="4"/>
+					<text class="fig-t sm c5" x="185" y="114" text-anchor="middle">L1 キャッシュ</text>
+					<text class="fig-m" x="300" y="106">32〜64 KB（コアごと）</text>
+					<text class="fig-m" x="480" y="106">4 サイクル</text>
+
+					<rect class="fig-box b4" x="90" y="140" width="250" height="44" rx="4"/>
+					<text class="fig-t sm c4" x="215" y="168" text-anchor="middle">L2 キャッシュ</text>
+					<text class="fig-m" x="360" y="160">512KB〜2MB</text>
+					<text class="fig-m" x="480" y="160">12 サイクル</text>
+
+					<rect class="fig-box b3" x="90" y="194" width="330" height="44" rx="4"/>
+					<text class="fig-t sm c3" x="255" y="222" text-anchor="middle">L3 キャッシュ（全コア共有）</text>
+					<text class="fig-m" x="440" y="214">8〜32 MB</text>
+					<text class="fig-m" x="540" y="214">40 サイクル</text>
+
+					<rect class="fig-danger" x="90" y="248" width="560" height="56" rx="4"/>
+					<text class="fig-t sm cdanger" x="370" y="272" text-anchor="middle">メインメモリ（DRAM）</text>
+					<text class="fig-m cdanger" x="370" y="294" text-anchor="middle">8〜64 GB　／　200〜300 サイクル　＝　L1 の約 60 倍遅い</text>
+
+					<path class="fig-dash" d="M 90 318 L 720 318"/>
+
+					<text class="fig-t sm" x="90" y="344">CPU は、必要なデータを上の階層へ「64バイト単位」で運び上げる</text>
+					<text class="fig-m" x="90" y="364">＝ 1バイト欲しくても、その周り64バイトがまとめて運ばれる</text>
+				</g>
+			</svg>
+			<figcaption>
+				<strong>速いものは小さく、大きいものは遅い。</strong>
+				この階層を意識するのが、LV5 の最適化です。
+			</figcaption>
+		</figure>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">03</span>キャッシュライン ― なぜ64バイトなのか</h2>
+		<p class="prose">
+			<strong>CPUは、1バイトだけを運んできたりしません。</strong>
+			<u>必ず64バイトのかたまりで運びます。</u>
+			このかたまりを<strong>キャッシュライン</strong>といいます。
+		</p>
+<pre><code>int a = array[0];     // ★ array[0] だけが欲しい</code></pre>
+		<p class="prose">
+			<strong>実際には、<code>array[0]</code> から 64バイトぶんが
+			まとめてキャッシュに運ばれます。</strong>
+			<code>int</code> なら 16個ぶんです。
+		</p>
+<pre><code>int sum = 0;
+for (int i = 0; i &lt; 16; i++) {
+    sum += array[i];    // ★ 1回目だけ遅い。2〜16回目はキャッシュにある
+}</code></pre>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h">これが「連続して並べると速い」の正体です</span>
+			<strong>16個読むのに、メモリアクセスは1回だけ。</strong><br>
+			<u>バラバラの場所にある16個なら、メモリアクセスは16回です。</u>
+		</div>
+		<p class="prose">
+			<strong>なぜ64バイトか</strong> — ハードウェアの設計上の決めごとです。
+			小さすぎると運ぶ回数が増え、大きすぎると無駄が増えます。
+			<u>x86系では、この20年ほど64バイトで固定されています。</u>
+		</p>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">04</span>vector と list の差</h2>
+<pre><code>std::vector&lt;int&gt; v;     // ★ メモリ上で連続して並ぶ
+std::list&lt;int&gt;   l;     // ★ 1個ずつバラバラの場所。ポインタでつながっている</code></pre>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th></th><th><code>std::vector</code></th><th><code>std::list</code></th></tr></thead>
+			<tbody>
+				<tr><td>メモリ配置</td><td><strong>連続</strong></td><td>バラバラ</td></tr>
+				<tr><td>全部なめる速さ</td><td><strong>速い</strong></td>
+					<td><u>10〜50倍遅いことがある</u></td></tr>
+				<tr><td>真ん中への挿入（計算量）</td><td>O(n)</td><td><strong>O(1)</strong></td></tr>
+				<tr><td>真ん中への挿入（実測）</td>
+					<td colspan="2"><strong>要素数が数千までなら、たいてい vector が速い</strong></td></tr>
+				<tr><td>1要素あたりの余計なメモリ</td><td><strong>0</strong></td>
+					<td>前後のポインタで16バイト</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">計算量だけで選ぶと、間違えます</span>
+			<strong><code>list</code> の挿入は O(1) ですが、
+			<u>「挿入する場所まで辿る」のに O(n) かかります。</u></strong>
+			しかも、辿るたびにキャッシュミスします。<br><br>
+			<code>vector</code> の挿入は O(n) ですが、
+			<strong>メモリをまとめてずらすだけ</strong>なので、
+			<u>CPUがいちばん得意な処理</u>です。<br><br>
+			<strong>迷ったら <code>vector</code> を使ってください。</strong>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">05</span>k2Engine を見てみる</h2>
+		<p class="prose">
+			<code>k2EngineLow/gameObject/GameObjectManager.h</code> に、こう書いてあります。
+		</p>
+<pre><code>enum { GAME_OBJECT_PRIO_MAX = 255 };
+
+typedef std::list&lt;IGameObject*&gt;  GameObjectList;
+std::array&lt;GameObjectList, GAME_OBJECT_PRIO_MAX&gt;  m_gameObjectListArray;</code></pre>
+		<p class="prose">
+			<strong>優先度ごとの <code>std::list</code> が、255本。</strong>
+			そして毎フレーム、全部をなめます。
+		</p>
+<pre><code>void GameObjectManager::ExecuteUpdate()
+{
+    ...
+    for (auto&amp; goList : m_gameObjectListArray) {      // ★ 255回
+        for (auto&amp; go : goList) {                     // ★ ポインタを辿る
+            go-&gt;UpdateWrapper();                      // ★ 仮想関数
+        }
+    }
+}</code></pre>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>ここで起きていること</th><th>コスト</th></tr></thead>
+			<tbody>
+				<tr><td>空のリストを255本チェックする</td><td><u>小さい</u></td></tr>
+				<tr><td><strong><code>list</code> のノードを辿る</strong></td>
+					<td><strong>ノードごとにキャッシュミス</strong></td></tr>
+				<tr><td><strong>その先の <code>IGameObject</code> 本体へ飛ぶ</strong></td>
+					<td><strong>さらにキャッシュミス</strong></td></tr>
+				<tr><td>仮想関数を呼ぶ</td><td>vtable を引く</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">これは「エンジンが悪い」という話ではありません</span>
+			<strong>この設計は、途中で <code>DeleteGO</code> しても
+			安全にループを続けられる</strong>など、扱いやすさのための選択です。
+			学習用エンジンとして妥当です。<br><br>
+			<u>ただし「オブジェクトが数千個になると遅くなる」という性質は持っています。</u>
+			<strong>それを知ったうえで、大量のものは自分で持つ
+			（<a href="4-06_ObjectPool.html">4-06</a>）という判断ができるのが、
+			LV5 の力です。</strong>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">06</span>構造体のサイズを意識する</h2>
+<pre><code>struct Bad {
+    bool  a;      // 1バイト … だが、次が int なので 3バイト詰め物が入る
+    int   b;      // 4バイト
+    bool  c;      // 1バイト … また 3バイト詰め物
+    int   d;      // 4バイト
+};                // 合計 16バイト
+
+struct Good {
+    int   b;      // 4
+    int   d;      // 4
+    bool  a;      // 1
+    bool  c;      // 1
+};                // 合計 12バイト（末尾に2バイト詰め物）</code></pre>
+		<p class="prose">
+			<strong>大きい型から順に並べると、隙間が減ります。</strong>
+			<u>1000個持つなら、16KB と 12KB の差になります。</u>
+		</p>
+<pre><code>// 確認するには
+printf("Bad  = %zu\n", sizeof(Bad));
+printf("Good = %zu\n", sizeof(Good));</code></pre>
+		<div class="note">
+			<span class="h">効くのは「大量に持つもの」だけです</span>
+			<strong>1個しかないクラスのメンバ順を並べ替えても、意味はありません。</strong><br>
+			<u>弾、パーティクル、頂点のように、
+			何千個も並べるものだけ気にしてください。</u>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（測る）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>sizeof()</code> で、自分の <code>Bullet</code> や<code>Enemy</code> のサイズを表示する。<strong>1000個でどれくらいになるか。</strong></p>
+
+		<h3>演習2（比べる）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>std::vector&lt;int&gt;</code> と <code>std::list&lt;int&gt;</code> に100万個入れて、<strong>全部足す時間を比べる。</strong></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>#include &lt;vector&gt;
+#include &lt;list&gt;
+#include &lt;chrono&gt;
+#include &lt;cstdio&gt;
+
+void CompareVectorList()
+{
+    const int N = 1000000;
+
+    std::vector&lt;int&gt; v;
+    std::list&lt;int&gt;   l;
+    v.reserve(N);
+    for (int i = 0; i &lt; N; i++) {
+        v.push_back(i);
+        l.push_back(i);
+    }
+
+    using Clock = std::chrono::high_resolution_clock;
+
+    // vector
+    auto t0 = Clock::now();
+    long long sumV = 0;
+    for (int x : v) { sumV += x; }
+    auto t1 = Clock::now();
+
+    // list
+    long long sumL = 0;
+    for (int x : l) { sumL += x; }
+    auto t2 = Clock::now();
+
+    auto msV = std::chrono::duration&lt;double, std::milli&gt;(t1 - t0).count();
+    auto msL = std::chrono::duration&lt;double, std::milli&gt;(t2 - t1).count();
+
+    char buf[256];
+    sprintf_s(buf, "vector : %.3f ms (sum=%lld)\n", msV, sumV);
+    OutputDebugStringA(buf);
+    sprintf_s(buf, "list   : %.3f ms (sum=%lld)\n", msL, sumL);
+    OutputDebugStringA(buf);
+    sprintf_s(buf, "list は vector の %.1f 倍\n", msL / msV);
+    OutputDebugStringA(buf);
+}</code></pre>
+<p><strong>典型的な結果（Release）</strong></p>
+<pre><code>vector : 0.412 ms (sum=499999500000)
+list   : 8.734 ms (sum=499999500000)
+list は vector の 21.2 倍</code></pre>
+<p><strong>なぜこんなに違うのか</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th></th><th>vector</th><th>list</th></tr></thead>
+<tbody>
+<tr><td>1要素のサイズ</td><td>4バイト</td>
+	<td><strong>約32バイト</strong>（値4＋前後のポインタ16＋管理）</td></tr>
+<tr><td>64バイトに入る個数</td><td><strong>16個</strong></td><td>2個</td></tr>
+<tr><td>100万個を読むメモリアクセス</td>
+	<td><strong>約 62,500 回</strong></td><td>約 500,000 回</td></tr>
+<tr><td>配置</td><td>連続。<u>先読みも効く</u></td>
+	<td>バラバラ。<strong>先読みできない</strong></td></tr>
+</tbody>
+</table>
+</div>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">「先読み（プリフェッチ）」が効くかどうかが、大きい</span>
+<strong>CPUは「連続して読んでいるな」と気づくと、
+次に必要になるであろう領域を、勝手に先読みします。</strong>
+<br><br>
+<u><code>vector</code> はこれが完全に効きます。
+<code>list</code> は次のノードの場所が予測できないので、まったく効きません。</u>
+<br><br>
+表の「62,500回」すら、実際にはほぼ待ち時間ゼロになります。
+</div>
+<div class="note" style="--lv: var(--warn);">
+<span class="h">Debug で測ると差が小さく出ます</span>
+<strong>Debug では <code>vector</code> 側にも範囲チェックなどが入るので、
+差が縮まります。</strong>
+<br><br>
+<u>必ず Release で測ってください</u>（<a href="5-02_ProfileScope.html">5-02</a>）。
+</div>
+		</details>
+
+		<h3>演習3（並べ替える）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">自分の構造体の<strong>メンバの順番を、大きい型から並べ替える。</strong><code>sizeof()</code> がどれくらい減るか。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>並べ替えの規則</strong></p>
+<ol>
+<li>大きい型から順に並べる（<code>double</code> → ポインタ →
+	<code>int</code>/<code>float</code> → <code>short</code> →
+	<code>char</code>/<code>bool</code>）</li>
+<li><strong><code>bool</code> やフラグは最後にまとめる</strong></li>
+<li>それでもサイズが減らなければ、それ以上は無理</li>
+</ol>
+<p><strong>例</strong></p>
+<pre><code>// 前
+struct Particle {
+    bool    m_isActive;      // 1  (+3 詰め物)
+    Vector3 m_position;      // 12
+    bool    m_isFadeOut;     // 1  (+3 詰め物)
+    float   m_lifeTime;      // 4
+    Vector3 m_velocity;      // 12
+    char    m_type;          // 1  (+3 詰め物)
+    float   m_scale;         // 4
+};
+// sizeof = 44</code></pre>
+<pre><code>// 後
+struct Particle {
+    Vector3 m_position;      // 12
+    Vector3 m_velocity;      // 12
+    float   m_lifeTime;      // 4
+    float   m_scale;         // 4
+    bool    m_isActive;      // 1
+    bool    m_isFadeOut;     // 1
+    char    m_type;          // 1  (+1 詰め物)
+};
+// sizeof = 36</code></pre>
+<p><strong>44 → 36。18%減。</strong></p>
+<pre><code>10,000個なら  440KB → 360KB
+64バイトに入る個数  1.45個 → 1.78個（約22%多く入る）</code></pre>
+<p><strong>確認のしかた</strong></p>
+<pre><code>// コンパイル時に確認する
+static_assert(sizeof(Particle) &lt;= 36, "Particle が大きくなりました");</code></pre>
+<p>
+<strong>これを入れておくと、あとでメンバを足したときに気づけます。</strong>
+</p>
+<div class="note" style="--lv: var(--warn);">
+<span class="h">やりすぎないでください</span>
+<strong>並べ替えると、意味的なまとまりが崩れます。</strong>
+<br><br>
+<code>m_isActive</code> と <code>m_lifeTime</code> は
+<u>関係が深いのに、離れた場所に置かれる</u>ことになります。
+<br><br>
+<strong>読みやすさを犠牲にする価値があるのは、
+「何千個も並べるもの」だけ</strong>です。
+<a href="5-01_ReadProfiler.html">5-01</a> のとおり、
+<u>まず測って、そこがボトルネックだと分かってからにしてください。</u>
+</div>
+<div class="note">
+<span class="h">それでもサイズが減らないとき</span>
+<strong>そもそもメンバが多すぎるのかもしれません。</strong>
+<br><br>
+<a href="5-06_AosSoa.html">5-06</a> でやる SoA は、
+<u>「必要なメンバだけを別の配列にする」</u>という、
+もっと踏み込んだやり方です。
+</div>
+		</details>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li>キャッシュラインは何バイト？ なぜそれが効く？</li>
+			<li><code>list</code> が遅い理由を2つ。</li>
+			<li>k2Engine の <code>ExecuteUpdate()</code> で、
+				キャッシュミスが起きる箇所は？</li>
+			<li>構造体のメンバを並べ替える効果があるのは、どんなとき？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>64バイト。1回のメモリアクセスで、
+					隣接する複数の要素がまとめて運ばれるから。</li>
+				<li>ノードがバラバラに配置されてキャッシュに乗らない。
+					先読みが効かない。1要素あたりのメモリも大きい。</li>
+				<li><code>list</code> のノードを辿るところと、
+					その先の <code>IGameObject</code> 本体へ飛ぶところ。</li>
+				<li>何千個も並べて持つとき。1個しかないものでは意味がない。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="5-05_AccessOrder.html"><strong>5-05 実験：アクセス順で10倍変わる</strong></a>
+				— 実際に手を動かします</li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

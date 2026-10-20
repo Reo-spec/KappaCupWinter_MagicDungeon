@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>サンプルを全部動かしてみる</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n1" href="1-01_Setup.html">← 前 1-01</a>
+			<a class="navchip n1" href="index.html#lv1">LV1 の目次</a>
+			<a class="navchip n1" href="1-03_Git.html">次 → 1-03</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l1">
+		<p class="kicker">LV1 入門 ／ 1-02</p>
+		<h1>サンプルを全部動かしてみる</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="1-01_Setup.html">1-01</a>
+		</p>
+	</header>
+
+	<section class="level l1">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>このエンジンで何が作れるのかを知る</strong></li>
+			<li>作りたいものが出てきたとき、どのサンプルを見ればいいか分かる</li>
+		</ul>
+		<div class="note">
+			<span class="h">なぜ最初にこれをやるのか</span>
+			これから長い道のりを歩きます。
+			<strong>ゴールが見えていないと、いま何のために変数を覚えているのか分からなくなります。</strong>
+			先に「ここまで行ける」を見ておいてください。
+		</div>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">02</span>サンプルを使えるようにする</h2>
+		<p class="prose">
+			<code>Sample/</code> フォルダの中の <code>setup.bat</code> を、
+			<strong>右クリックして「管理者として実行」</strong>してください。
+		</p>
+		<p class="prose">
+			これで、それぞれのサンプルからエンジン本体へのショートカットが作られます。
+			（エンジンのコピーを27個も置かないための仕組みです）
+		</p>
+		<p class="prose">
+			あとは、遊びたいサンプルの <code>Game/Game.sln</code> を開いて
+			<kbd>F5</kbd> を押すだけです。
+		</p>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">03</span>まずこれを遊ぶ</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>名前</th><th>内容</th></tr></thead>
+			<tbody>
+				<tr><td><strong>DemoGame_01</strong></td>
+					<td><strong>まずこれを遊んでください。</strong>先輩が作った完成品です。
+						この教材を終えれば、これが作れます</td></tr>
+				<tr><td>DemoGame_00</td><td>作りかけのゲーム</td></tr>
+			</tbody>
+		</table>
+		</div>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">04</span>サンプル一覧</h2>
+		<p class="prose">
+			<strong>全部の中身を理解する必要はありません。</strong>
+			「こういうことができるんだ」と眺めておくだけで充分です。
+			必要になったら、ここに戻ってきてください。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>サンプル</th><th>内容</th><th>関連する章</th></tr></thead>
+			<tbody>
+				<tr><td>Sample_00</td><td>3Dモデルを表示する</td><td><a href="3-09_ModelRender.html">3-09</a></td></tr>
+				<tr><td>Sample_01</td><td>パッドでキャラクターを動かす</td><td><a href="2-10_Input.html">2-10</a></td></tr>
+				<tr><td>Sample_02</td><td>キャラクターを回転させる</td><td>—</td></tr>
+				<tr><td>Sample_03</td><td>アニメーション</td><td><a href="3-13_Animation.html">3-13</a></td></tr>
+				<tr><td>Sample_05</td><td>ポイントライト（小さい太陽のような光）</td><td><a href="3-11_Lighting.html">3-11</a></td></tr>
+				<tr><td><strong>Sample_06</strong></td><td><strong>2Dの画像表示</strong>。LV2でよく見ることになります</td><td><a href="2-11_SpriteRender.html">2-11</a></td></tr>
+				<tr><td>Sample_07</td><td>衝突判定（メッシュコライダー、キャラクターコントローラー）</td><td>—</td></tr>
+				<tr><td>Sample_08〜11</td><td>カメラ（追従・TPS・バネ）</td><td><a href="3-10_Camera.html">3-10</a></td></tr>
+				<tr><td>Sample_12</td><td>キャラクターを進行方向に向ける</td><td>—</td></tr>
+				<tr><td><strong>Sample_13</strong></td><td><strong>サウンド</strong></td><td><a href="2-19_Sound.html">2-19</a></td></tr>
+				<tr><td>Sample_14</td><td>レベルデザイン（配置データの読み込み）</td><td>—</td></tr>
+				<tr><td><strong>Sample_17</strong></td><td><strong>エフェクト（Effekseer）</strong></td><td><a href="2-20_Effect.html">2-20</a></td></tr>
+				<tr><td><strong>Sample_18</strong></td><td><strong>文字の表示</strong></td><td><a href="2-12_FontRender.html">2-12</a></td></tr>
+				<tr><td>Sample_19</td><td>ゴースト（影のような残像）</td><td>—</td></tr>
+				<tr><td>Sample_20</td><td>クォータニオン（回転の扱い）</td><td>—</td></tr>
+				<tr><td>Sample_21</td><td>Level2D（2Dの配置データ）</td><td>—</td></tr>
+				<tr><td>Sample_22</td><td>インスタンシング描画（同じものを大量に速く描く）</td><td><a href="5-08_Instancing.html">5-08</a></td></tr>
+				<tr><td>Sample_23</td><td>IBL（画像を使ったライティング）</td><td><a href="3-11_Lighting.html">3-11</a></td></tr>
+				<tr><td>Sample_24</td><td>オンラインマルチプレイ（PhotonCloud）</td><td>—</td></tr>
+				<tr><td>Sample_25</td><td>ナビメッシュによる経路探索</td><td>—</td></tr>
+				<tr><td>Sample_26</td><td>スポットライト（懐中電灯のような光）</td><td><a href="3-11_Lighting.html">3-11</a></td></tr>
+				<tr><td>Sample_27</td><td>ボリュームライト（光の筋が見える）</td><td>—</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			くわしい説明は <code>Sample/readme.txt</code> にもあります。
+		</p>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">05</span>サンプルは「あとで戻ってくる場所」です</h2>
+		<div class="note">
+			<span class="h">困ったらサンプルを開く</span>
+			この先、「音を鳴らしたい」「エフェクトを出したい」となったとき、
+			<strong>まず対応するサンプルの <code>Game.cpp</code> を読んでください。</strong>
+			動くコードが目の前にあるのは、とても強い武器です。<br>
+			また、素材（画像・音・エフェクト）が無いときも、
+			<strong>サンプルのものをコピーして使えます</strong>
+			（<a href="assets-guide.html">素材の用意のしかた</a>）。
+		</div>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">06</span>演習</h2>
+		<h3>演習1（まねる）<span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>setup.bat</code> を実行して、<strong>DemoGame_01</strong> を遊ぶ。</p>
+
+		<h3>演習2（見る）<span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">気になったサンプルを3つ選んで動かす。<strong>どれが面白そうだったか</strong>をメモしておく。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p>
+メモしておくと、あとで効きます。
+</p>
+<ul>
+<li><strong>絵が好き</strong>だと思ったら → <a href="index.html#lv3">LV3 表現</a> に早く進むとよい</li>
+<li><strong>仕組みが気になる</strong>と思ったら → <a href="index.html#lv4">LV4 設計</a> が向いています</li>
+<li><strong>大量のものが動くのが面白い</strong>と思ったら → <a href="index.html#lv5">LV5 最適化</a> です</li>
+</ul>
+<p>
+この教材は <strong>LV2 まで終われば、LV3 と LV4 はどちらから始めてもよい</strong>
+構成になっています。自分が面白いと思った方向から進んでください。
+</p>
+		</details>
+
+		<h3>演習3（読んでみる）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>Sample_06</code> の <code>Game.cpp</code> を開いて眺める。<strong>いまは意味が分からなくて当然です。</strong>それでも、何行くらいか・どんな単語が出てくるかを見てみる。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p>中身はこれだけです。</p>
+<pre><code>bool Game::Start()
+{
+    m_spriteRender.Init("Assets/sprite/windowsSprite.dds", 1280, 720);
+    m_spriteRender.SetScale(Vector3(1.0f, 1.0f, 0.0f));
+    return true;
+}
+
+void Game::Update()
+{
+    m_spriteRender.Update();
+}
+
+void Game::Render(RenderContext&amp; rc)
+{
+    m_spriteRender.Draw(rc);
+}</code></pre>
+<p>
+<strong>画像を1枚出すだけなら、これだけで済みます。</strong>
+</p>
+<p>
+いま分からなくていいのは、次のようなことです。
+</p>
+<ul>
+<li><code>Game::</code> の <code>::</code> って何？ → <a href="1-12_Class.html">1-12</a></li>
+<li><code>bool</code> って？ → <a href="1-06_Variable.html">1-06</a></li>
+<li><code>RenderContext&amp; rc</code> の <code>&amp;</code> は？ → <a href="1-14_Pointer.html">1-14</a></li>
+<li>なぜ <code>Update</code> が勝手に呼ばれるの？ → <a href="1-16_Inheritance.html">1-16</a></li>
+</ul>
+<p>
+<strong>この4つが、LV1 で学ぶことのほぼ全部です。</strong>
+いまは「そのうち分かる」と思っておいてください。
+</p>
+		</details>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">07</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="1-03_Git.html"><strong>1-03 Gitで自分のリポジトリを作る</strong></a>
+				— コードを書き始める前に、保存の準備をします</li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

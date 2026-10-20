@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>撃破処理と DeleteGO のタイミング設計</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n2" href="2-16_Spawner.html">← 前 2-16</a>
+			<a class="navchip n2" href="index.html#lv2">LV2 の目次</a>
+			<a class="navchip n2" href="2-18_ScoreUi.html">次 → 2-18</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l2">
+		<p class="kicker">LV2 基礎 ／ 2-17</p>
+		<h1>撃破処理と <code>DeleteGO</code> のタイミング設計</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span>
+			／ 前提 <a href="2-16_Spawner.html">2-16</a> , <a href="2-09_GOHandle.html">2-09</a>
+		</p>
+	</header>
+
+	<section class="level l2">
+		<h2><span class="n">00</span>入場チェック</h2>
+		<ul class="checklist prose">
+			<li><code>DeleteGO</code> した直後、メモリはどうなっている？ → <a href="2-05_Lifetime.html">2-05</a></li>
+			<li><code>GOHandle</code> はなぜ安全？ → <a href="2-09_GOHandle.html">2-09</a></li>
+		</ul>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>同じフレームで両方が死んでも壊れない</strong>コードが書ける</li>
+			<li>二重に当たり判定が起きないようにできる</li>
+			<li>「死ぬ」と「消える」を分けて考えられる</li>
+		</ul>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">02</span>ありがちな壊れ方</h2>
+		<p class="prose">
+			2-15 で書いたコードには、まだ穴があります。
+			<strong>1発の弾が、同じフレームで2体の敵に当たる</strong>ケースです。
+		</p>
+<pre><code>void Bullet::CheckHitToEnemy()
+{
+    const auto&amp; enemies = FindGOs&lt;Enemy&gt;("enemy");
+    for (auto enemy : enemies) {
+        if (IsHit(enemy)) {
+            enemy-&gt;TakeDamage(1);
+            DeleteGO(this);
+            return;              // ← ここで抜けているので、実は大丈夫
+        }
+    }
+}</code></pre>
+		<p class="prose">
+			<code>return</code> があるので1体だけです。<strong>では、これならどうでしょう。</strong>
+		</p>
+<pre><code>// 敵のほうから弾を探す版
+void Enemy::CheckHitToBullet()
+{
+    const auto&amp; bullets = FindGOs&lt;Bullet&gt;("bullet");
+    for (auto bullet : bullets) {
+        if (IsHit(bullet)) {
+            DeleteGO(bullet);       // 弾を消す
+            m_hp--;
+            if (m_hp &lt;= 0) {
+                DeleteGO(this);     // 自分も消す
+            }
+            // return を書いていない！
+        }
+    }
+}</code></pre>
+		<p class="prose">
+			<strong>HPが0になったあとも、ループが続きます。</strong>
+			残りの弾にも当たって、HPは <code>-1</code>、<code>-2</code> と減り続け、
+			<code>DeleteGO(this)</code> も何度も呼ばれます。
+		</p>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">03</span>本当の問題は「もう死んでいる相手」</h2>
+		<figure>
+			<svg viewBox="0 0 760 280" role="img"
+			     aria-label="同じフレームの中で、弾Aが敵を倒してDeleteGOしたあと、弾Bも同じ敵に当たってしまう様子を示す図。敵はDEAD状態だがメモリはまだ残っているため、FindGOsの結果にも含まれ、二重に処理されてしまう">
+				<defs>
+					<marker id="ahT" viewBox="0 0 10 10" refX="9" refY="5"
+					        markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+						<path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+					</marker>
+				</defs>
+				<g class="fig-head" color="currentColor">
+					<text class="fig-m" x="20" y="22">同じ1フレームの中で…</text>
+					<path class="fig-line" d="M 20 34 L 720 34" marker-end="url(#ahT)"/>
+
+					<rect class="fig-box b2" x="30" y="56" width="180" height="44" rx="6"/>
+					<text class="fig-t sm" x="120" y="74" text-anchor="middle">弾A の Update</text>
+					<text class="fig-m" x="120" y="92" text-anchor="middle">敵に当たる → 敵を DeleteGO</text>
+
+					<path class="fig-line" d="M 210 78 L 250 78" marker-end="url(#ahT)"/>
+
+					<rect class="fig-warn" x="250" y="56" width="200" height="44" rx="6"/>
+					<text class="fig-t sm cwarn" x="350" y="74" text-anchor="middle">敵は DEAD になった</text>
+					<text class="fig-m cwarn" x="350" y="92" text-anchor="middle">でもメモリはまだある</text>
+
+					<path class="fig-line" d="M 450 78 L 490 78" marker-end="url(#ahT)"/>
+
+					<rect class="fig-danger" x="490" y="56" width="230" height="44" rx="6"/>
+					<text class="fig-t sm cdanger" x="605" y="74" text-anchor="middle">弾B の Update</text>
+					<text class="fig-m cdanger" x="605" y="92" text-anchor="middle">同じ敵にまた当たる</text>
+
+					<path class="fig-dash" d="M 20 126 L 740 126"/>
+
+					<text class="fig-t" x="20" y="158">結果</text>
+					<text class="fig-t sm cdanger" x="120" y="158">スコアが2回入る</text>
+					<text class="fig-t sm cdanger" x="320" y="158">爆発が2回出る</text>
+					<text class="fig-t sm cdanger" x="520" y="158">弾が2発とも消える</text>
+
+					<text class="fig-m" x="20" y="198">原因は <tspan class="fig-n">FindGOs</tspan> が DEAD のオブジェクトも返すこと。</text>
+					<text class="fig-m" x="20" y="222">DEAD は「Update が呼ばれなくなる」だけで、リストからはまだ消えていない。</text>
+
+					<rect class="fig-box b2" x="20" y="240" width="720" height="30" rx="6"/>
+					<text class="fig-t sm cok" x="380" y="260" text-anchor="middle">対策：判定する前に「相手はまだ生きているか」を必ず確かめる</text>
+				</g>
+			</svg>
+			<figcaption>
+				<strong><code>FindGOs</code> は <code>DeleteGO</code> 済みのオブジェクトも返します。</strong>
+				クラッシュはしませんが、スコアが二重に入ったり、爆発が重なったりします。
+				「たまにスコアが変」というバグの正体はこれです。
+			</figcaption>
+		</figure>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">04</span>対策1 ― <code>IsDead()</code> を確認する</h2>
+<pre><code>void Bullet::CheckHitToEnemy()
+{
+    const auto&amp; enemies = FindGOs&lt;Enemy&gt;("enemy");
+    for (auto enemy : enemies) {
+        if (enemy-&gt;IsDead()) {
+            continue;              // ★ もう死んでいる相手は無視
+        }
+        if (IsHit(enemy) == false) {
+            continue;
+        }
+        enemy-&gt;TakeDamage(1);
+        DeleteGO(this);
+        return;                    // ★ 自分を消したら、すぐ帰る
+    }
+}</code></pre>
+		<p class="prose">
+			<code>IsDead()</code> は <code>IGameObject</code> が持っている関数です。
+			<strong>「リストには入っているが、もう死んでいる」を見分けられます。</strong>
+		</p>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">05</span>対策2 ― 「死ぬ」と「消える」を分ける</h2>
+		<p class="prose">
+			もう少し丁寧に作るなら、<strong>やられた瞬間に消さない</strong>という手があります。
+		</p>
+<pre><code>class Enemy : public IGameObject {
+public:
+    void TakeDamage(int damage);
+    bool IsAliveEnemy() const { return m_state == enState_Alive; }
+private:
+    enum EnState {
+        enState_Alive,      // 生きている。当たり判定あり
+        enState_Dying,      // やられた。爆発中。当たり判定なし
+    };
+    EnState m_state = enState_Alive;
+    float   m_dyingTimer = 0.0f;
+};
+
+void Enemy::TakeDamage(int damage)
+{
+    if (m_state != enState_Alive) {
+        return;                     // もうやられている
+    }
+    m_hp -= damage;
+    if (m_hp &lt;= 0) {
+        m_state = enState_Dying;    // すぐには消さない
+        m_dyingTimer = 0.4f;
+        PlayExplosion();
+        AddScore(100);              // スコアはここで1回だけ
+    }
+}
+
+void Enemy::Update()
+{
+    if (m_state == enState_Dying) {
+        m_dyingTimer -= g_gameTime-&gt;GetFrameDeltaTime();
+        if (m_dyingTimer &lt;= 0.0f) {
+            DeleteGO(this);         // 爆発が終わってから消える
+            return;
+        }
+        return;                     // 動かない
+    }
+    Move();
+}</code></pre>
+		<div class="note">
+			<span class="h">この書き方の良いところ</span>
+			<ul style="margin-bottom:0;">
+				<li><code>TakeDamage</code> の先頭で弾くので、<strong>何回呼ばれてもスコアは1回</strong></li>
+				<li>爆発アニメを最後まで見せられる</li>
+				<li>当たり判定は <code>IsAliveEnemy()</code> で判断できる</li>
+			</ul>
+		</div>
+		<p class="prose">
+			ここで出てきた <code>enState_Alive</code> / <code>enState_Dying</code> のような書き方を
+			<strong>ステートマシン</strong>と呼びます。
+			<a href="2-22_Boss.html">2-22 ボスを作る</a> で本格的に使います。
+		</p>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">06</span>まとめ：3つの守りかた</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>守り方</th><th>いつ使う</th></tr></thead>
+			<tbody>
+				<tr><td><code>DeleteGO(this)</code> の直後に <code>return</code></td>
+					<td>いつでも。<strong>例外なし</strong></td></tr>
+				<tr><td>相手の <code>IsDead()</code> を確認する</td>
+					<td><code>FindGOs</code> の結果を回すとき</td></tr>
+				<tr><td>状態（<code>Alive</code> / <code>Dying</code>）を持つ</td>
+					<td>爆発を見せたいとき、スコアの二重加算を防ぎたいとき</td></tr>
+			</tbody>
+		</table>
+		</div>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">07</span>動かして確かめる</h2>
+		<p class="prose">
+			二重処理はめったに起きないので、<strong>わざと起こしてみます。</strong>
+			弾を10発同時に、同じ場所へ撃ってください。
+		</p>
+		<ul class="checklist prose">
+			<li>対策する前：スコアが100ではなく、200や300入ることがある</li>
+			<li>対策したあと：何度やっても100だけ入る</li>
+			<li>GameObject List で、爆発中の敵が <code>Alive</code> のまま残っている</li>
+		</ul>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">08</span>演習</h2>
+		<h3>演習1（再現する）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			対策なしのコードで、<strong>スコアが二重に入るところを実際に見る。</strong>
+			見られたら、それがこの章の価値です。
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p>
+<strong>確実に再現させるコツは、同じ場所に弾を重ねることです。</strong>
+</p>
+<pre><code>// デバッグ用。1回のボタンで10発まとめて、同じ場所に出す。
+void Player::ShootDebugBurst()
+{
+    for (int i = 0; i &lt; 10; i++) {
+        Bullet* b = NewGO&lt;Bullet&gt;(enPriority_Bullet, "bullet");
+        Vector3 pos = m_position;
+        pos.y += 40.0f + i * 2.0f;    // ほんの少しずらす
+        b-&gt;SetPosition(pos);
+    }
+}</code></pre>
+<p>
+この状態で、HPが1の敵に撃ち込んでください。
+<strong>スコアが100ではなく、200や300入ることがあります。</strong>
+</p>
+<p><strong>確実に見るには</strong></p>
+<ul>
+<li>スコアが増えるたびに <code>OutputDebugStringA</code> でログを出す</li>
+<li>出力ウィンドウで、1回の撃破に対して何回ログが出るか数える</li>
+</ul>
+<pre><code>void GameScene::AddScore(int value)
+{
+    m_score += value;
+    char text[256];
+    sprintf_s(text, "AddScore %d -> %d\n", value, m_score);
+    OutputDebugStringA(text);
+}</code></pre>
+<p>
+<strong>1回の撃破で2行出たら、それが二重処理です。</strong>
+</p>
+		</details>
+
+		<h3>演習2（直す）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>IsDead()</code> の確認を入れて、二重処理が起きないことを確認する。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>void Bullet::CheckHitToEnemy()
+{
+    const auto&amp; enemies = FindGOs&lt;Enemy&gt;("enemy");
+    for (auto enemy : enemies) {
+        if (enemy-&gt;IsDead()) {
+            continue;              // ★ 追加
+        }
+        Vector3 diff = enemy-&gt;GetPosition() - m_position;
+        float radiusSum = RADIUS + enemy-&gt;GetRadius();
+        if (diff.LengthSq() &gt;= radiusSum * radiusSum) {
+            continue;
+        }
+        enemy-&gt;TakeDamage(1);
+        DeleteGO(this);
+        return;                    // ★ 忘れない
+    }
+}</code></pre>
+<p>
+これで、さっきのログが<strong>1回の撃破につき1行</strong>になるはずです。
+</p>
+<div class="note">
+<span class="h">なぜ <code>IsDead()</code> だけで足りるのか</span>
+<code>DeleteGO(enemy)</code> された瞬間に <code>m_isDead</code> が <code>true</code> になります。
+<strong>同じフレームの中でも、すぐに <code>true</code> になっています。</strong>
+だから、あとから来た弾はこの <code>continue</code> で弾かれます。
+</div>
+		</details>
+
+		<h3>演習3（自分で書く）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			<code>Dying</code> 状態を入れて、<strong>やられた敵が0.4秒かけて小さくなりながら消える</strong>
+			ようにする。その間、当たり判定は無くすこと。
+			<strong>本文には答えがありません。</strong>
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>// Enemy.h
+private:
+    enum EnState { enState_Alive, enState_Dying };
+    EnState m_state = enState_Alive;
+    float   m_dyingTimer = 0.0f;
+    static const float DYING_TIME;
+
+public:
+    bool IsAliveEnemy() const { return m_state == enState_Alive; }
+
+// Enemy.cpp
+const float Enemy::DYING_TIME = 0.4f;
+
+void Enemy::TakeDamage(int damage)
+{
+    if (m_state != enState_Alive) {
+        return;                      // もうやられている。二重加算を防ぐ
+    }
+    m_hp -= damage;
+    if (m_hp &gt; 0) {
+        return;
+    }
+    m_state = enState_Dying;
+    m_dyingTimer = DYING_TIME;
+    PlayExplosion();
+    AddScore(100);                   // ここで1回だけ
+}
+
+void Enemy::Update()
+{
+    const float dt = g_gameTime-&gt;GetFrameDeltaTime();
+
+    if (m_state == enState_Dying) {
+        m_dyingTimer -= dt;
+        if (m_dyingTimer &lt;= 0.0f) {
+            DeleteGO(this);
+            return;
+        }
+        // 残り時間の割合で、小さくしながら薄くする。
+        float rate = m_dyingTimer / DYING_TIME;    // 1.0 → 0.0
+        m_spriteRender.SetScale({ rate, rate, 1.0f });
+        m_spriteRender.SetMulColor({ 1.0f, 1.0f, 1.0f, rate });
+        m_spriteRender.SetPosition(m_position);
+        m_spriteRender.Update();
+        return;                      // 動かない
+    }
+
+    Move();
+    ...
+}</code></pre>
+<p><strong>当たり判定を無くす</strong>のは、弾のほうで見ます。</p>
+<pre><code>// Bullet.cpp
+for (auto enemy : enemies) {
+    if (enemy-&gt;IsDead() || enemy-&gt;IsAliveEnemy() == false) {
+        continue;                    // 死亡中は当たらない
+    }
+    ...
+}</code></pre>
+<p>
+<strong>これで「爆発は見えるが、もう当たらない」状態が作れます。</strong>
+ここで書いた <code>enState_</code> の考え方が、
+<a href="2-22_Boss.html">2-22 ボス</a> でそのまま使えます。
+</p>
+		</details>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">09</span>確認</h2>
+		<ol class="prose">
+			<li><code>FindGOs</code> は <code>DeleteGO</code> 済みのオブジェクトを返す？</li>
+			<li>スコアが二重に入るのを防ぐには？（2つ）</li>
+			<li>「死ぬ」と「消える」を分けると、何ができるようになる？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>返す。DEADはリストから外れておらず、次のフレームまで残っている。</li>
+				<li>相手の <code>IsDead()</code> を確認する／<code>TakeDamage</code> の先頭で状態を見て弾く。</li>
+				<li>爆発アニメを最後まで見せられる。当たり判定だけ先に消せる。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">10</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="2-18_ScoreUi.html"><strong>2-18 スコアとHP、UI</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

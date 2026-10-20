@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>計測せずに最適化するな</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n5" href="index.html#lv5">LV5 の目次</a>
+			<a class="navchip n5" href="5-02_ProfileScope.html">次 → 5-02</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l5">
+		<p class="kicker">LV5 最適化 ／ 5-01</p>
+		<h1>計測せずに最適化するな</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="2-24_Complete.html">2-24</a>
+		</p>
+	</header>
+
+	<section class="level l5">
+		<h2><span class="n">01</span>LV5 は何をするところか</h2>
+		<p class="prose">
+			LV4 の判断基準は<strong>「読みやすさ」と「変更しやすさ」</strong>でした。<br>
+			LV5 の判断基準は<strong>「速さ」</strong>です。
+		</p>
+		<p class="prose">
+			<strong>そして、この2つはしばしば対立します。</strong>
+			どちらが正しいという話ではありません。
+			<u>場面ごとに選べるようになるのが目標です。</u>
+		</p>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">LV5 でいちばん大事なのは、この章です</span>
+			<strong>以降の章で出てくる技術は、全部「使いどころを間違えると害になる」ものです。</strong>
+			<u>測ることを覚えないまま先に進まないでください。</u>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">02</span>なぜ「計測せずに」がダメなのか</h2>
+		<p class="prose">
+			<strong>人間の推測は、驚くほど当たりません。</strong>
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>よくある推測</th><th>実際</th></tr></thead>
+			<tbody>
+				<tr><td>ループが多いから、そこが重い</td>
+					<td><strong>ループの中身が軽ければ、何ともない</strong></td></tr>
+				<tr><td>当たり判定が重い</td>
+					<td><u>たいてい描画のほうが重い</u></td></tr>
+				<tr><td><code>sqrt</code> が重い</td>
+					<td>いまのCPUでは、たいした問題ではない</td></tr>
+				<tr><td>関数呼び出しが重い</td>
+					<td><strong>Release ではインライン化されて消える</strong></td></tr>
+				<tr><td>ここが原因に違いない</td>
+					<td><strong>まったく別の場所だった</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note">
+			<span class="h">最適化は、コードを悪くします</span>
+			<strong>速いコードは、たいてい読みにくくなります。</strong>
+			<a href="4-16_Redesign.html">4-16</a> でせっかく整理したものを、
+			また崩すことになります。<br>
+			<u>それに見合う効果があるかどうかは、測らないと分かりません。</u>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">03</span>まず Profiler パネルを開く</h2>
+		<p class="prose">
+			<kbd>F1</kbd> → <strong>Profiler</strong> パネルです。
+		</p>
+		<figure>
+			<img src="assets/img/profiler.png" alt="Profiler パネル。フレーム時間、FPS、フレーム時間のグラフ、セクションごとの計測結果、ドローコール数、メモリ使用量が並んでいる">
+			<figcaption>Profiler パネル</figcaption>
+		</figure>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">04</span>数字の読み方</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>表示</th><th>意味</th><th>目安</th></tr></thead>
+			<tbody>
+				<tr><td><strong>xx.xx ms (xx.x fps)</strong></td>
+					<td>1フレームにかかった時間</td>
+					<td><strong>16.6ms 以内で 60FPS</strong></td></tr>
+				<tr><td><strong>max xx.xx ms</strong></td>
+					<td><strong>履歴の中でいちばん遅かったフレーム</strong></td>
+					<td><u>平均より、こちらが大事</u></td></tr>
+				<tr><td>グラフ</td><td>フレーム時間の推移</td>
+					<td>とがっているところが引っかかり</td></tr>
+				<tr><td>Section / Time</td>
+					<td><code>K2_PROFILE_SCOPE</code> の計測結果</td>
+					<td><a href="5-02_ProfileScope.html">5-02</a></td></tr>
+				<tr><td><strong>EndFrame(Present/Wait)</strong></td>
+					<td><strong>60FPSに合わせるための「待ち時間」</strong></td>
+					<td><strong>長いほど余裕がある</strong></td></tr>
+				<tr><td>Draw call</td><td>「描け」と命令した回数</td>
+					<td><a href="5-08_Instancing.html">5-08</a></td></tr>
+				<tr><td>Instance</td><td>実際に描かれたモデルの数</td>
+					<td>インスタンシングを使うと
+						Draw call より大きくなる</td></tr>
+				<tr><td><strong>GameObject</strong></td>
+					<td>生きているゲームオブジェクトの数</td>
+					<td><strong>増え続けていたら <code>DeleteGO</code> 忘れ</strong></td></tr>
+				<tr><td>Memory</td><td>プロセスのメモリ使用量</td>
+					<td><a href="5-14_CrashDump.html">5-14</a></td></tr>
+				<tr><td>VRAM</td><td>ビデオメモリ使用量</td>
+					<td>予算を超えると急に重くなる</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>パネルの項目にマウスを乗せると、説明が出ます。</strong>
+			<u>覚えなくても、その場で読めます。</u>
+		</p>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">平均ではなく max を見てください</span>
+			<strong>平均 8ms でも、ときどき 40ms のフレームがあれば、
+			プレイヤーには「カクつく」と感じられます。</strong><br>
+			<u>平均が良いことより、最悪値が悪くないことのほうが、
+			体感には効きます。</u>
+		</div>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h">Section は 0.25秒ごとの平均値です</span>
+			<strong>毎フレームの生の値ではありません。</strong>
+			<u>数字がぶれずに読めるように、ならしてあります。</u><br>
+			だから<strong>一瞬のスパイクは、Section ではなくグラフと max で見ます。</strong>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">05</span>EndFrame が、いちばん分かりやすい余裕の指標です</h2>
+		<p class="prose">
+			<strong><code>EndFrame(Present/Wait)</code> は、
+			<u>「60FPSに間に合ったので、次のフレームまで何もせず待っている時間」</u>です。</strong>
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>EndFrame の値</th><th>状態</th></tr></thead>
+			<tbody>
+				<tr><td><strong>14 ms（フレームの大半）</strong></td>
+					<td><strong>非常に余裕がある。最適化は不要</strong></td></tr>
+				<tr><td>8 ms</td><td>余裕あり</td></tr>
+				<tr><td>2 ms</td><td><u>ぎりぎり。そろそろ危ない</u></td></tr>
+				<tr><td><strong>0 ms</strong></td>
+					<td><strong>間に合っていない。FPSが落ちている</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h">Frame の数字だけ見ていると、危機に気づけません</span>
+			<strong>FPS制限があるので、処理が軽くても重くても
+			<u>Frame は 16.6ms 前後に張り付きます。</u></strong><br><br>
+			16.6ms のままでも、<strong>EndFrame が 14ms から 3ms に減っていたら、
+			裏では処理が 11ms 増えている</strong>ということです。<br>
+			<u>FPSが落ち始める前に気づけます。</u>
+		</div>
+		<div class="note">
+			<span class="h">GameObject の数も、毎回見る癖をつけてください</span>
+			<strong>増え続けていたら <code>DeleteGO</code> の消し忘れです</strong>
+			（<a href="5-14_CrashDump.html">5-14</a>）。<br>
+			<u>内訳は <kbd>F1</kbd> → GameObject List で見られます</u>
+			（<a href="2-06_GameObjectList.html">2-06</a>）。
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">06</span>16.6ms という数字</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>目標FPS</th><th>1フレームの予算</th></tr></thead>
+			<tbody>
+				<tr><td><strong>60 FPS</strong></td><td><strong>16.6 ms</strong></td></tr>
+				<tr><td>30 FPS</td><td>33.3 ms</td></tr>
+				<tr><td>120 FPS</td><td>8.3 ms</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>「1フレームに使える時間の予算」</strong>と考えてください。
+			16.6ms のうち、
+		</p>
+		<ul class="prose">
+			<li>ゲームの更新に 5ms</li>
+			<li>描画の準備に 4ms</li>
+			<li>GPU待ちに 6ms</li>
+			<li>余裕 1.6ms</li>
+		</ul>
+		<p class="prose">
+			…といった配分になります。<strong>1ms は、決して小さくありません。</strong>
+			全体の6%です。
+		</p>
+		<div class="note">
+			<span class="h">「0.01ms 速くなりました」は、意味がありません</span>
+			<strong>16.6ms のうちの 0.01ms は、0.06% です。</strong>
+			誤差に埋もれます。<br>
+			<u>最適化は「1ms 以上の効果があるか」を基準にしてください。</u>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">07</span>CPU と GPU、どちらが遅いのか</h2>
+		<p class="prose">
+			<strong>最初に切り分けるべきことです。</strong>
+			対策がまったく違います。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>試すこと</th><th>速くなったら</th></tr></thead>
+			<tbody>
+				<tr><td><strong>ウィンドウを小さくする</strong></td>
+					<td><strong>GPU が原因（ピクセルの処理）</strong></td></tr>
+				<tr><td>オブジェクトを半分に減らす</td>
+					<td>両方ありうる</td></tr>
+				<tr><td><kbd>F1</kbd> でポストエフェクトを全部切る</td>
+					<td>GPU が原因</td></tr>
+				<tr><td><strong>描画だけ止めて、更新は動かす</strong></td>
+					<td><strong>切り分けとして、いちばん確実</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>ウィンドウサイズを変えて速くなるなら、
+			CPU側をいくら最適化しても無駄です。</strong>
+			<a href="3-15_GpuDebug.html">3-15</a> の PIX で GPU 側を見てください。
+		</p>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h">LV5 は、ほとんど CPU 側の話です</span>
+			GPU 側の話は <a href="5-08_Instancing.html">5-08</a> だけです。<br>
+			<u>まず、自分のゲームがどちらで詰まっているか確かめてください。</u>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">08</span>最適化の順番</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>順</th><th>やること</th><th>効き方</th></tr></thead>
+			<tbody>
+				<tr><td><strong>1</strong></td>
+					<td><strong>そもそもやらない</strong>（画面外の処理を飛ばす、など）</td>
+					<td><strong>いちばん効く</strong></td></tr>
+				<tr><td>2</td><td>アルゴリズムを変える（O(n²) → O(n)）</td>
+					<td>桁で効く</td></tr>
+				<tr><td>3</td><td><strong>データの並べ方を変える</strong></td>
+					<td><a href="5-06_AosSoa.html">5-06</a>。数倍</td></tr>
+				<tr><td>4</td><td>並列化する</td>
+					<td><a href="5-12_JobSystem.html">5-12</a>。コア数ぶん</td></tr>
+				<tr><td><u>5</u></td><td><u>細かい書き方を変える</u></td>
+					<td><u>数%。最後でよい</u></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">多くの人が、5番から始めてしまいます</span>
+			<strong><code>i++</code> を <code>++i</code> にする、
+			<code>sqrt</code> を避ける、といったことです。</strong><br>
+			<u>効果はほぼありません。コンパイラがやってくれます。</u><br>
+			<strong>1番と2番を先にやってください。</strong>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">09</span>演習</h2>
+		<h3>演習1（見る）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><kbd>F1</kbd> → Profiler を開いて、<strong>いまの Frame / Max / FPS を記録する。</strong></p>
+
+		<h3>演習2（切り分ける）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>ウィンドウを小さくして、速くなるか試す。</strong>自分のゲームは CPU と GPU、どちらで詰まっているか。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>やり方</strong></p>
+<ol>
+<li>いちばん重くなる場面（弾幕、敵が大量、など）を作る</li>
+<li>その状態で Frame(ms) を記録</li>
+<li>ウィンドウを<strong>4分の1くらいの大きさ</strong>にする</li>
+<li>同じ場面で、もう一度記録</li>
+</ol>
+<p><strong>判定</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>結果</th><th>意味</th><th>次に読む章</th></tr></thead>
+<tbody>
+<tr><td>18ms → 6ms（大きく速くなった）</td>
+	<td><strong>GPU律速。</strong>ピクセルの処理が重い</td>
+	<td><a href="5-08_Instancing.html">5-08</a>、
+		<a href="3-15_GpuDebug.html">3-15</a></td></tr>
+<tr><td>18ms → 17ms（ほぼ変わらない）</td>
+	<td><strong>CPU律速。</strong>更新処理が重い</td>
+	<td><strong>LV5 のほぼ全部</strong></td></tr>
+<tr><td>18ms → 13ms（少し速い）</td>
+	<td>両方。<u>まず大きいほうから</u></td><td>両方</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>さらに確実な切り分け ― 描画だけ止める</strong></p>
+<pre><code>// Game.cpp
+#ifdef _DEBUG
+if (g_pad[0]-&gt;IsPress(enButtonBack)) {
+    return;                 // ★ 描画をまるごと飛ばす
+}
+#endif
+m_gameObjectManager-&gt;ExecuteRender(rc);</code></pre>
+<p>
+<strong>これを押している間だけ速くなるなら、描画（GPUまたは描画準備）が原因です。</strong>
+押しても変わらないなら、<u>更新処理（CPU）が原因</u>です。
+</p>
+<div class="note">
+<span class="h">ポストエフェクトを切ってみるのも速いです</span>
+<kbd>F1</kbd> → Post Effect パネルで、
+<strong>Bloom / DoF / SSR / FXAA を全部オフ</strong>にしてください
+（<a href="3-01_TouchTheLook.html">3-01</a>）。
+<br><br>
+<u>これで劇的に速くなるなら、GPU の負荷はポストエフェクトです。</u>
+そして、それは<strong>設定で切れるようにしておけばよい</strong>だけの話です。
+</div>
+		</details>
+
+		<h3>演習3（探す）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>グラフがとがっているところ</strong>を探す。ゲーム中のどの操作をしたときに、フレーム時間が跳ねるか。<strong>本文には答えがありません。</strong></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>探し方</strong></p>
+<p>
+グラフを見ながら、いろいろ操作してみてください。
+<strong>とがった瞬間に何をしていたかをメモします。</strong>
+</p>
+<p><strong>よくある「とがる」場所</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>とがるタイミング</th><th>原因</th><th>効く章</th></tr></thead>
+<tbody>
+<tr><td><strong>シーン切り替えの瞬間</strong></td>
+	<td>テクスチャ・モデルの読み込み</td>
+	<td>先に読んでおく（プリロード）</td></tr>
+<tr><td>ボスが出てくる瞬間</td><td>大量の <code>NewGO</code> と初期化</td>
+	<td><a href="4-06_ObjectPool.html">4-06</a></td></tr>
+<tr><td><strong>爆発エフェクトが出た瞬間</strong></td>
+	<td><code>.efk</code> の読み込み、大量のパーティクル</td>
+	<td><a href="4-06_ObjectPool.html">4-06</a></td></tr>
+<tr><td>弾幕が濃くなったとき</td><td>当たり判定の O(n²)</td>
+	<td><a href="5-06_AosSoa.html">5-06</a></td></tr>
+<tr><td>一定間隔で定期的に</td>
+	<td><u>メモリの断片化、GCのような処理</u></td>
+	<td><a href="5-07_Allocator.html">5-07</a></td></tr>
+<tr><td>初回だけ</td><td>シェーダのコンパイル、ファイルキャッシュ</td>
+	<td><strong>2回目以降が本当の値</strong></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>記録の例</strong></p>
+<pre><code>== スパイクの記録 ==
+
+1. ボス出現時       : 16ms → 89ms  ★最大
+   → ボスのモデルとアニメを、そこで初めて読んでいる
+2. 爆発が5個同時    : 16ms → 34ms
+   → Explosion を毎回 NewGO している
+3. ステージ2に切替  : 16ms → 210ms
+   → シーン切り替えで全部読み直し。暗転でごまかしている
+4. 弾200発超        : 16ms → 22ms
+   → 当たり判定が弾×敵の総当たり</code></pre>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">スパイクは、平均より体感に効きます</span>
+<strong>平均 16ms でも、ボス出現時に 89ms かかると、
+プレイヤーには「一瞬止まった」とはっきり分かります。</strong>
+<br><br>
+<u>そして、そういう瞬間は「ボスが出てくる」という
+いちばん盛り上がる場面だったりします。</u>
+</div>
+<div class="note">
+<span class="h">いちばん効く対策は「先に読んでおく」</span>
+<strong>読み込みのスパイクは、
+ゲーム開始時やロード画面中にまとめてやってしまえば消えます。</strong>
+<br><br>
+<a href="4-06_ObjectPool.html">4-06</a> のプールも、
+<u>「あとで必要になるものを、先に作っておく」</u>という同じ考え方です。
+<br><br>
+LV5 の最適化の中で、<strong>いちばん効果が大きく、
+いちばんコードを汚さない</strong>のがこれです。
+</div>
+		</details>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">10</span>確認</h2>
+		<ol class="prose">
+			<li>60FPS のための、1フレームの予算は？</li>
+			<li>平均より Max を見るのはなぜ？</li>
+			<li>CPU か GPU かを切り分ける、手軽な方法は？</li>
+			<li>最適化の順番で、いちばん効くのは？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>16.6 ミリ秒。</li>
+				<li>ときどき跳ねるフレームがあると、
+					平均が良くてもカクついて感じられるから。</li>
+				<li>ウィンドウを小さくする。速くなれば GPU 律速。</li>
+				<li>そもそもやらないこと（処理を飛ばす、先に読んでおく）。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">11</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="5-02_ProfileScope.html"><strong>5-02 K2_PROFILE_SCOPE で自分のコードを測る</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

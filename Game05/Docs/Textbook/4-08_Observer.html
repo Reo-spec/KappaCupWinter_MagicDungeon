@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Observer ― 知らせる側と受け取る側を切る</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n4" href="4-07_Component.html">← 前 4-07</a>
+			<a class="navchip n4" href="index.html#lv4">LV4 の目次</a>
+			<a class="navchip n4" href="4-09_Strategy.html">次 → 4-09</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l4">
+		<p class="kicker">LV4 設計 ／ 4-08</p>
+		<h1>Observer ― 知らせる側と受け取る側を切る</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span>
+			／ 前提 <a href="2-07_FindGO.html">2-07</a>
+		</p>
+	</header>
+
+	<section class="level l4">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><code>FindGO</code> だらけのコードを整理できる</li>
+			<li><strong>敵を倒したとき、スコア・音・UI が勝手に反応する</strong>形にできる</li>
+			<li>登録したまま消えるオブジェクトの事故を防げる</li>
+		</ul>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">02</span>困っている形</h2>
+<pre><code>void Enemy::OnDead()
+{
+    FindGO&lt;ScoreManager&gt;("score")-&gt;AddScore(100);
+    FindGO&lt;SoundManager&gt;("sound")-&gt;Play("explosion");
+    FindGO&lt;ComboUi&gt;("combo")-&gt;AddCombo();
+    FindGO&lt;GameScene&gt;("gameScene")-&gt;OnEnemyDead();
+    NewGO&lt;Explosion&gt;(enPriority_Effect, "explosion")-&gt;SetPosition(m_position);
+}</code></pre>
+		<p class="prose">
+			<strong>困ること</strong>
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>困りごと</th><th>説明</th></tr></thead>
+			<tbody>
+				<tr><td><strong><code>Enemy</code> が5つのクラスを知っている</strong></td>
+					<td>どれかの名前を変えると <code>Enemy</code> が壊れる</td></tr>
+				<tr><td>UIの無いシーンで落ちる</td>
+					<td><code>FindGO</code> が <code>nullptr</code> を返す</td></tr>
+				<tr><td>新しい反応を足すとき</td>
+					<td><strong><code>Enemy.cpp</code> を書き換える</strong></td></tr>
+				<tr><td>同じコードが <code>Boss</code> にもある</td>
+					<td>直すとき、両方直す</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">それに、<code>nullptr</code> チェックがありません</span>
+			<strong>上のコードは、<code>ScoreManager</code> がいないと即クラッシュします。</strong>
+			かといって5行すべてに <code>if (x != nullptr)</code> を書くと、
+			<u>15行になって読めなくなります。</u>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">03</span>考え方 ― 「起きたこと」だけを放送する</h2>
+
+		<figure>
+			<svg viewBox="0 0 740 340" role="img"
+			     aria-label="Observerパターンの図。FindGOを直接呼ぶ形では敵がスコア・音・UI・シーンの4つのクラスを知っていて矢印が敵から各クラスへ向かう。Observerでは敵はイベントを発行するだけで、各クラスが自分から購読しに来るため、矢印の向きが逆になり敵は誰も知らない">
+				<g class="fig-head" color="currentColor">
+					<defs>
+						<marker id="ob-arrow" viewBox="0 0 10 10" refX="9" refY="5"
+						        markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+							<path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+						</marker>
+					</defs>
+
+					<text class="fig-t sm cdanger" x="20" y="22">FindGO を直接呼ぶ ― 敵が4つのクラスを知っている</text>
+
+					<rect class="fig-danger" x="20" y="38" width="120" height="86" rx="6"/>
+					<text class="fig-t sm cdanger" x="80" y="78" text-anchor="middle">Enemy</text>
+					<text class="fig-m cdanger" x="80" y="98" text-anchor="middle">全部知っている</text>
+
+					<path class="fig-line" d="M 146 52 L 274 46" marker-end="url(#ob-arrow)"/>
+					<path class="fig-line" d="M 146 70 L 274 84" marker-end="url(#ob-arrow)"/>
+					<path class="fig-line" d="M 146 92 L 274 122" marker-end="url(#ob-arrow)"/>
+					<path class="fig-line" d="M 146 110 L 274 160" marker-end="url(#ob-arrow)"/>
+
+					<rect class="fig-box" x="280" y="32" width="130" height="28" rx="4"/>
+					<text class="fig-m" x="345" y="51" text-anchor="middle">ScoreManager</text>
+					<rect class="fig-box" x="280" y="70" width="130" height="28" rx="4"/>
+					<text class="fig-m" x="345" y="89" text-anchor="middle">SoundManager</text>
+					<rect class="fig-box" x="280" y="108" width="130" height="28" rx="4"/>
+					<text class="fig-m" x="345" y="127" text-anchor="middle">ComboUi</text>
+					<rect class="fig-box" x="280" y="146" width="130" height="28" rx="4"/>
+					<text class="fig-m" x="345" y="165" text-anchor="middle">GameScene</text>
+
+					<text class="fig-m cdanger" x="430" y="89">反応を足す ＝ Enemy.cpp を書き換える</text>
+
+					<path class="fig-dash" d="M 20 194 L 720 194"/>
+
+					<text class="fig-t sm cok" x="20" y="222">Observer ― 敵は「倒された」と放送するだけ</text>
+
+					<rect class="fig-box b4" x="20" y="238" width="120" height="72" rx="6"/>
+					<text class="fig-t sm c4" x="80" y="268" text-anchor="middle">Enemy</text>
+					<text class="fig-m" x="80" y="290" text-anchor="middle">誰も知らない</text>
+
+					<path class="fig-line" d="M 146 274 L 194 274" marker-end="url(#ob-arrow)"/>
+
+					<rect class="fig-box b4" x="200" y="238" width="130" height="72" rx="6"/>
+					<text class="fig-m" x="265" y="266" text-anchor="middle">EventBus</text>
+					<text class="fig-m" x="265" y="288" text-anchor="middle">「敵が死んだ」</text>
+
+					<path class="fig-line" d="M 460 252 L 340 252" marker-end="url(#ob-arrow)"/>
+					<path class="fig-line" d="M 460 274 L 340 274" marker-end="url(#ob-arrow)"/>
+					<path class="fig-line" d="M 460 296 L 340 296" marker-end="url(#ob-arrow)"/>
+
+					<rect class="fig-box" x="466" y="238" width="120" height="24" rx="4"/>
+					<text class="fig-m" x="526" y="255" text-anchor="middle">ScoreManager</text>
+					<rect class="fig-box" x="466" y="262" width="120" height="24" rx="4"/>
+					<text class="fig-m" x="526" y="279" text-anchor="middle">SoundManager</text>
+					<rect class="fig-box" x="466" y="286" width="120" height="24" rx="4"/>
+					<text class="fig-m" x="526" y="303" text-anchor="middle">ComboUi</text>
+
+					<text class="fig-t sm cok" x="600" y="262">自分から</text>
+					<text class="fig-t sm cok" x="600" y="282">聞きに行く</text>
+					<text class="fig-m" x="600" y="304">＝ 矢印の向きが逆</text>
+				</g>
+			</svg>
+			<figcaption>
+				<strong>矢印の向きが逆になるのが要点です。</strong>
+				反応を1つ足したいとき、<u>足したいクラスだけを触れば済みます。</u>
+			</figcaption>
+		</figure>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">04</span>いちばん簡単な実装</h2>
+		<p class="prose">
+			<strong><code>std::function</code> を並べておくだけです。</strong>
+		</p>
+<pre><code>// EventBus.h
+#pragma once
+#include &lt;functional&gt;
+#include &lt;vector&gt;
+
+/// &lt;summary&gt;敵が倒されたときの情報。&lt;/summary&gt;
+struct EnemyDeadEvent {
+    Vector3 position;
+    int     score;
+};
+
+/// &lt;summary&gt;
+/// ゲーム中の出来事を、知りたい人に配る。
+/// &lt;/summary&gt;
+class EventBus : public IGameObject {
+public:
+    using Handle = int;
+
+    /// &lt;summary&gt;購読する。戻り値は解除に使う。&lt;/summary&gt;
+    Handle SubscribeEnemyDead(std::function&lt;void(const EnemyDeadEvent&amp;)&gt; fn)
+    {
+        Handle h = m_nextHandle++;
+        m_enemyDead.push_back({ h, std::move(fn) });
+        return h;
+    }
+
+    /// &lt;summary&gt;購読をやめる。&lt;/summary&gt;
+    void Unsubscribe(Handle h)
+    {
+        m_enemyDead.erase(
+            std::remove_if(m_enemyDead.begin(), m_enemyDead.end(),
+                [h](const Entry&amp; e) { return e.handle == h; }),
+            m_enemyDead.end());
+    }
+
+    /// &lt;summary&gt;発行する。&lt;/summary&gt;
+    void PublishEnemyDead(const EnemyDeadEvent&amp; ev)
+    {
+        // コピーしてから回す（購読側が解除しても安全にするため）
+        auto copy = m_enemyDead;
+        for (const auto&amp; e : copy) {
+            e.fn(ev);
+        }
+    }
+
+private:
+    struct Entry {
+        Handle handle;
+        std::function&lt;void(const EnemyDeadEvent&amp;)&gt; fn;
+    };
+    std::vector&lt;Entry&gt; m_enemyDead;
+    Handle m_nextHandle = 1;
+};</code></pre>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">05</span>使う</h2>
+<pre><code>// Enemy.cpp ― 放送するだけ
+void Enemy::OnDead()
+{
+    EventBus* bus = FindGO&lt;EventBus&gt;("eventBus");
+    if (bus != nullptr) {
+        bus-&gt;PublishEnemyDead({ m_position, m_score });
+    }
+    Deactivate();
+}</code></pre>
+<pre><code>// ScoreManager.cpp ― 聞きに行く
+bool ScoreManager::Start()
+{
+    EventBus* bus = FindGO&lt;EventBus&gt;("eventBus");
+    m_handle = bus-&gt;SubscribeEnemyDead(
+        [this](const EnemyDeadEvent&amp; ev) {
+            m_score += ev.score;
+        });
+    return true;
+}
+
+ScoreManager::~ScoreManager()
+{
+    // ★ ここが命綱
+    EventBus* bus = FindGO&lt;EventBus&gt;("eventBus");
+    if (bus != nullptr) {
+        bus-&gt;Unsubscribe(m_handle);
+    }
+}</code></pre>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">デストラクタでの解除を、絶対に忘れないでください</span>
+			<strong>購読したまま <code>DeleteGO</code> されると、
+			ラムダが捕まえた <code>this</code> が解放済みのポインタになります。</strong><br>
+			次にイベントが発行されたとき、<u>解放済みのメモリに書き込みます。</u><br>
+			これは <a href="2-08_DanglingPointer.html">2-08</a> でやった問題が、
+			<strong>もっと見つけにくい形で出てくるもの</strong>です。
+		</div>
+		<p class="prose">
+			<code>IGameObject</code> に <code>OnDestroy()</code> はありませんが、
+			<strong>デストラクタは <code>DeleteGO</code> のときに必ず呼ばれます</strong>
+			（<a href="2-05_Lifetime.html">2-05</a>）。ここに書けば確実です。
+		</p>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">06</span>どこまで使うか</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>場面</th><th>どちら</th></tr></thead>
+			<tbody>
+				<tr><td><strong>1つの出来事に、複数が反応する</strong></td>
+					<td><strong>Observer</strong></td></tr>
+				<tr><td>反応する相手が、あとから増えそう</td><td>Observer</td></tr>
+				<tr><td>相手が1つで、これからも1つ</td>
+					<td><u><code>FindGO</code> で充分</u></td></tr>
+				<tr><td>毎フレーム呼ぶもの</td>
+					<td><strong>Observer にしない。</strong>直接呼ぶ</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">Observer の弱点：追いにくくなります</span>
+			<strong>「誰がこのイベントに反応しているか」が、
+			コードを見ただけでは分かりません。</strong>
+			デバッガで追っても、いきなりラムダに飛びます。<br>
+			<u>イベントの種類は、増やしすぎないでください。</u>
+			5〜10種類くらいが扱える上限です。
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（作る）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>EventBus</code> を作って、敵が倒されたときに<strong>スコアと効果音が反応する</strong>ようにする。</p>
+
+		<h3>演習2（足す）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>Enemy.cpp</code> を<strong>1行も触らずに</strong>、「敵を倒すと画面が少し揺れる」機能を足す。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p>
+<strong>これが Observer の効果を、いちばん実感できる演習です。</strong>
+</p>
+<pre><code>// GameCamera.cpp ― カメラだけを触る
+bool GameCamera::Start()
+{
+    ...
+
+    EventBus* bus = FindGO&lt;EventBus&gt;("eventBus");
+    if (bus != nullptr) {
+        m_deadHandle = bus-&gt;SubscribeEnemyDead(
+            [this](const EnemyDeadEvent&amp; ev) {
+                Shake(8.0f, 0.12f);      // 3-10 の演習3で作ったもの
+            });
+    }
+    return true;
+}
+
+GameCamera::~GameCamera()
+{
+    EventBus* bus = FindGO&lt;EventBus&gt;("eventBus");
+    if (bus != nullptr) {
+        bus-&gt;Unsubscribe(m_deadHandle);
+    }
+}</code></pre>
+<p><strong>これだけです。</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th></th><th>触ったファイル</th></tr></thead>
+<tbody>
+<tr><td>FindGO 方式</td>
+	<td><code>Enemy.cpp</code>、<code>Boss.cpp</code>、
+		そのほか敵を倒す処理があるところ全部</td></tr>
+<tr><td><strong>Observer 方式</strong></td>
+	<td><strong><code>GameCamera.cpp</code> だけ</strong></td></tr>
+</tbody>
+</table>
+</div>
+<p>
+これが <a href="4-04_Solid.html">4-04</a> の
+<strong>O（開放閉鎖）</strong>です。
+<u>機能追加に開いていて、既存コードの変更に閉じている。</u>
+</p>
+<p><strong>ついでに試してほしいこと</strong></p>
+<p>
+同じ要領で、<strong>コンボ表示・ヒットストップ・スロー演出</strong>も
+それぞれのクラスだけ触って足せます。
+<u>足すたびに <code>Enemy.cpp</code> が汚れていかない</u>のを体感してください。
+</p>
+		</details>
+
+		<h3>演習3（壊す）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>購読したまま <code>DeleteGO</code> されるとどうなるか、わざと再現する。</strong>そのあと直す。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>壊し方</strong></p>
+<pre><code>// ComboUi.cpp ― デストラクタを書かない
+bool ComboUi::Start()
+{
+    EventBus* bus = FindGO&lt;EventBus&gt;("eventBus");
+    m_handle = bus-&gt;SubscribeEnemyDead(
+        [this](const EnemyDeadEvent&amp; ev) {
+            m_combo++;                    // ★ this を使っている
+            m_comboTimer = 2.0f;
+        });
+    return true;
+}
+
+// ★ デストラクタで Unsubscribe しない</code></pre>
+<pre><code>// どこかで
+DeleteGO(FindGO&lt;ComboUi&gt;("comboUi"));
+
+// 次に敵を倒すと…</code></pre>
+<p><strong>起きること</strong></p>
+<ul>
+<li>運が良ければ、その場でクラッシュする</li>
+<li><strong>運が悪いと、しばらく動いてから別の場所で落ちる</strong></li>
+<li>Release ビルドでだけ落ちる、ということもある</li>
+</ul>
+<div class="note" style="--lv: var(--danger);">
+<span class="h">2つめがいちばん厄介です</span>
+解放されたメモリは、<strong>すぐには他人に使われません。</strong>
+しばらくは中身が残っているので、
+<u><code>m_combo++</code> が「成功してしまう」ことがあります。</u>
+<br><br>
+そして数秒後、そのメモリが別のオブジェクトに再利用されたとき、
+<strong>まったく関係ない場所で不可解な値が出ます。</strong>
+<br><br>
+<a href="2-08_DanglingPointer.html">2-08</a> でやった話と同じですが、
+<strong>今回は <code>Enemy</code> 側のコードを見ても、
+<code>ComboUi</code> の名前がどこにも出てきません。</strong>
+これが Observer のいちばんの怖さです。
+</div>
+<p><strong>直し方1 ― デストラクタで解除する（基本）</strong></p>
+<pre><code>ComboUi::~ComboUi()
+{
+    EventBus* bus = FindGO&lt;EventBus&gt;("eventBus");
+    if (bus != nullptr) {
+        bus-&gt;Unsubscribe(m_handle);
+    }
+}</code></pre>
+<p><strong>直し方2 ― 忘れられないようにする（おすすめ）</strong></p>
+<p>
+<a href="3-03_FirstShader.html">LV3</a> までに3回出てきた
+<strong>RAII</strong> を、ここでも使います。
+</p>
+<pre><code>// Subscription.h
+/// &lt;summary&gt;
+/// 購読を持っておき、壊れるときに自動で解除するもの。
+/// &lt;/summary&gt;
+class Subscription {
+public:
+    Subscription() = default;
+    Subscription(EventBus* bus, EventBus::Handle h)
+        : m_bus(bus), m_handle(h) {}
+
+    ~Subscription() { Reset(); }
+
+    // コピーは禁止。ムーブだけ許す
+    Subscription(const Subscription&amp;) = delete;
+    Subscription&amp; operator=(const Subscription&amp;) = delete;
+
+    Subscription(Subscription&amp;&amp; other) noexcept { *this = std::move(other); }
+    Subscription&amp; operator=(Subscription&amp;&amp; other) noexcept
+    {
+        Reset();
+        m_bus = other.m_bus;
+        m_handle = other.m_handle;
+        other.m_bus = nullptr;
+        return *this;
+    }
+
+    void Reset()
+    {
+        if (m_bus != nullptr) {
+            m_bus-&gt;Unsubscribe(m_handle);
+            m_bus = nullptr;
+        }
+    }
+
+private:
+    EventBus*         m_bus = nullptr;
+    EventBus::Handle  m_handle = 0;
+};</code></pre>
+<pre><code>// ComboUi.h
+private:
+    Subscription m_deadSub;      // ★ これを持つだけ
+
+// ComboUi.cpp
+bool ComboUi::Start()
+{
+    EventBus* bus = FindGO&lt;EventBus&gt;("eventBus");
+    m_deadSub = Subscription(bus,
+        bus-&gt;SubscribeEnemyDead([this](const EnemyDeadEvent&amp; ev) {
+            m_combo++;
+        }));
+    return true;
+}
+
+// ★ デストラクタを書かなくてよい。Subscription が勝手に解除する</code></pre>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">RAII は、これで4回目です</span>
+<div class="tbl-scroll" style="margin-top:8px;">
+<table class="plain">
+<thead><tr><th>もの</th><th>壊れるときに何をするか</th></tr></thead>
+<tbody>
+<tr><td><code>GOHandle</code></td><td>（持つだけ。生死を安全に確認できる）</td></tr>
+<tr><td><code>DebugGuiPanel</code></td><td>パネルの登録を解除する</td></tr>
+<tr><td><code>K2_PROFILE_SCOPE</code></td><td>計測を終了する</td></tr>
+<tr><td><strong><code>Subscription</code></strong></td><td><strong>購読を解除する</strong></td></tr>
+<tr><td><code>std::unique_ptr</code></td><td><code>delete</code> する</td></tr>
+</tbody>
+</table>
+</div>
+<strong>「後始末を、忘れようがない場所に置く」</strong>
+―― C++ でいちばん価値のある考え方です。
+<br><br>
+<u>解除し忘れの事故は、この型を一度作れば、二度と起きません。</u>
+</div>
+		</details>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li>Observer にすると、依存の矢印はどうなる？</li>
+			<li>購読したまま削除されると、何が起きる？</li>
+			<li>解除を忘れないようにする、いちばん確実な方法は？</li>
+			<li>Observer にしないほうがよいのは、どんなとき？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>逆になる。知らせる側が相手を知らず、
+					受け取る側が自分から購読しに行く。</li>
+				<li>ラムダが捕まえた <code>this</code> が解放済みになり、
+					次の発行で解放済みメモリに触る。</li>
+				<li>購読を RAII の型（<code>Subscription</code>）に持たせ、
+					デストラクタで自動的に解除する。</li>
+				<li>相手が1つで増えないとき。毎フレーム呼ぶとき。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="4-09_Strategy.html"><strong>4-09 Strategy</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

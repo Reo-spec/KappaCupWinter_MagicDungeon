@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>計算と代入</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n1" href="1-06_Variable.html">← 前 1-06</a>
+			<a class="navchip n1" href="index.html#lv1">LV1 の目次</a>
+			<a class="navchip n1" href="1-08_If.html">次 → 1-08</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l1">
+		<p class="kicker">LV1 入門 ／ 1-07</p>
+		<h1>計算と代入 ― 物を動かす</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="1-06_Variable.html">1-06</a>
+		</p>
+	</header>
+
+	<section class="level l1">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li>変数の値を計算して書き換えられる</li>
+			<li><strong><code>=</code> は「等しい」ではない</strong>と説明できる</li>
+			<li>整数の割り算の落とし穴を知っている</li>
+		</ul>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">02</span><code>=</code> は「代入」</h2>
+		<p class="prose">
+			数学では <code>=</code> は「等しい」ですが、
+			<strong>C++では「右のものを、左に入れる」という意味です。</strong>
+		</p>
+<pre><code>int hp = 100;      // hp に 100 を入れる
+hp = 80;           // hp に 80 を入れる（上書き）
+hp = hp - 10;      // hp の中身から10引いて、また hp に入れる → 70</code></pre>
+		<p class="prose">
+			<code>hp = hp - 10;</code> は、数学では「ありえない式」ですが、
+			C++では<strong>ごく普通の書き方</strong>です。
+			<strong>右から左へ、値が移動する</strong>と考えてください。
+		</p>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">03</span>計算の記号</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>記号</th><th>意味</th><th>例</th></tr></thead>
+			<tbody>
+				<tr><td><code>+</code></td><td>足す</td><td><code>a + b</code></td></tr>
+				<tr><td><code>-</code></td><td>引く</td><td><code>a - b</code></td></tr>
+				<tr><td><code>*</code></td><td><strong>かける</strong>（× ではない）</td><td><code>a * b</code></td></tr>
+				<tr><td><code>/</code></td><td><strong>割る</strong>（÷ ではない）</td><td><code>a / b</code></td></tr>
+				<tr><td><code>%</code></td><td><strong>割った余り</strong></td><td><code>7 % 3</code> は <code>1</code></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<code>%</code> は意外と便利です。「3回に1回だけ何かする」といった処理に使えます。
+		</p>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">04</span>短く書く記号</h2>
+<pre><code>hp = hp + 10;    →    hp += 10;
+hp = hp - 10;    →    hp -= 10;
+hp = hp * 2;     →    hp *= 2;
+hp = hp / 2;     →    hp /= 2;
+
+count = count + 1;    →    count++;   // 1増やす専用
+count = count - 1;    →    count--;   // 1減らす専用</code></pre>
+		<p class="prose">
+			<strong>意味はまったく同じです。</strong>
+			短いほうが読みやすいので、こちらを使ってください。
+		</p>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">05</span>整数の割り算に注意</h2>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">1 / 2 は 0 になります</span>
+			<code>int</code> どうしの割り算は、<strong>小数点以下が切り捨てられます。</strong>
+		</div>
+<pre><code>int a = 1 / 2;              // 0 になる（0.5 ではない）
+int b = 7 / 2;              // 3 になる（3.5 ではない）
+
+float c = 1 / 2;            // これも 0.0f になる！
+                            // 割り算のあとで float にしても手遅れ
+
+float d = 1.0f / 2.0f;      // 0.5f  ← 正しい</code></pre>
+		<p class="prose">
+			<code>float c = 1 / 2;</code> が <code>0</code> になるのが、
+			<strong>いちばん引っかかるところです。</strong>
+			<code>1 / 2</code> の計算が先に終わってしまい、
+			その結果（<code>0</code>）を <code>float</code> に入れているからです。
+		</p>
+		<p class="prose">
+			<strong>小数で計算したいなら、計算の時点で小数にします。</strong>
+		</p>
+<pre><code>float rate = (float)m_hp / (float)m_maxHp;    // HPの割合を出す</code></pre>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">06</span>動かしてみる</h2>
+		<p class="prose">
+			<a href="1-04_FirstChange.html">1-04</a> でやったことを、変数を使って書き直します。
+		</p>
+<pre><code>// Game.h
+private:
+    FontRender m_fontRender;
+    float m_posX  = 0.0f;
+    float m_speed = 3.0f;
+    int   m_frameCount = 0;
+
+// Game.cpp
+void Game::Update()
+{
+    m_posX += m_speed;      // 毎フレーム進む
+    m_frameCount++;         // 何フレーム目か数える
+
+    wchar_t text[256];
+    swprintf_s(text, 256, L"posX=%.1f  frame=%d", m_posX, m_frameCount);
+    m_fontRender.SetText(text);
+}</code></pre>
+		<ul class="checklist prose">
+			<li><code>posX</code> がどんどん増えていく</li>
+			<li><code>frame</code> は1秒でだいたい60増える</li>
+			<li><code>m_speed</code> を変えると、増え方が変わる</li>
+		</ul>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（まねる）<span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">上のコードを書いて、数字が増えていくのを確認する。</p>
+
+		<h3>演習2（計算する）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>m_frameCount</code> から<strong>「何秒たったか」</strong>を計算して表示する。（1秒 = 60フレームとして）</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>void Game::Update()
+{
+    m_frameCount++;
+
+    float seconds = m_frameCount / 60.0f;     // ★ 60.0f にする
+
+    wchar_t text[256];
+    swprintf_s(text, 256, L"%.1f 秒", seconds);
+    m_fontRender.SetText(text);
+}</code></pre>
+<div class="note" style="--lv: var(--warn);">
+<span class="h"><code>/ 60</code> と書くと壊れます</span>
+<pre><code>float seconds = m_frameCount / 60;     // ← 整数の割り算になる</code></pre>
+<code>m_frameCount</code> は <code>int</code>、<code>60</code> も <code>int</code> なので、
+<strong>整数どうしの割り算</strong>になり、小数点以下が切り捨てられます。<br>
+59フレーム目まで <code>0</code>、60フレーム目でいきなり <code>1</code>。
+なめらかに増えません。<br>
+<strong><code>60.0f</code> と書けば直ります。</strong>
+</div>
+<p>
+これは<strong>実際に非常によくやる間違い</strong>です。
+「なぜか0のまま」「なぜかカクカク増える」ときは、ここを疑ってください。
+</p>
+		</details>
+
+		<h3>演習3（使ってみる）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>%</code>（余り）を使って、<strong>1秒に1回だけ</strong>出力ウィンドウにメッセージを出す。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>void Game::Update()
+{
+    m_frameCount++;
+
+    if (m_frameCount % 60 == 0) {       // 60で割った余りが0＝60回に1回
+        char text[256];
+        sprintf_s(text, "%d 秒経過\n", m_frameCount / 60);
+        OutputDebugStringA(text);
+    }
+}</code></pre>
+<p>
+<code>m_frameCount % 60</code> は
+<strong>0, 1, 2, ..., 59, 0, 1, 2, ...</strong> と繰り返します。
+<code>== 0</code> になるのは60回に1回だけです。
+</p>
+<p>
+この書き方は「N回に1回」をやりたいときの定番です。
+</p>
+<pre><code>if (m_frameCount % 10 == 0) { ... }    // 10回に1回
+if (m_frameCount % 2  == 0) { ... }    // 2回に1回（偶数フレーム）</code></pre>
+<div class="note">
+<span class="h">ただし、ゲームでは使いどころに注意</span>
+<strong>フレーム数で数えると、PCが重いときにタイミングが変わってしまいます。</strong>
+デバッグ表示なら構いませんが、ゲームの動きに使うのは危険です。
+正しいやり方は <a href="2-02_DeltaTime.html">2-02</a> でやります。
+</div>
+		</details>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li><code>hp = hp - 10;</code> は何をしている？</li>
+			<li><code>float x = 1 / 2;</code> の結果は？ なぜ？</li>
+			<li><code>count++</code> と同じ意味の書き方は？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li><code>hp</code> の中身から10引いた結果を、また <code>hp</code> に入れている。</li>
+				<li><code>0.0f</code>。<code>1</code> も <code>2</code> も整数なので、
+					先に整数の割り算（結果 0）が行われるから。</li>
+				<li><code>count = count + 1;</code> または <code>count += 1;</code></li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="1-08_If.html"><strong>1-08 if文</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

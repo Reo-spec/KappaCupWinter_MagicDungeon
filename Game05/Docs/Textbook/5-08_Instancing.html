@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ドローコールとインスタンシング</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n5" href="5-07_Allocator.html">← 前 5-07</a>
+			<a class="navchip n5" href="index.html#lv5">LV5 の目次</a>
+			<a class="navchip n5" href="5-09_Ecs.html">次 → 5-09</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l5">
+		<p class="kicker">LV5 最適化 ／ 5-08</p>
+		<h1>ドローコールとインスタンシング</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span>
+			／ 前提 <a href="5-01_ReadProfiler.html">5-01</a> , <a href="3-09_ModelRender.html">3-09</a>
+		</p>
+	</header>
+
+	<section class="level l5">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>同じモデルを1000個出しても重くならない</strong></li>
+			<li>ドローコールがなぜコストなのか説明できる</li>
+			<li>k2Engine のインスタンシング機能を使える</li>
+		</ul>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">02</span>ドローコール1回のコスト</h2>
+		<p class="prose">
+			<a href="3-16_Dx12Skeleton.html">3-16</a> で見たとおり、
+			1回の描画は<strong>「準備 → 描け」</strong>の繰り返しでした。
+		</p>
+<pre><code>rc.SetPipelineState(...)        // ★ 状態を切り替える
+rc.SetVertexBuffer(...)
+rc.SetIndexBuffer(...)
+rc.SetDescriptorHeap(...)
+rc.DrawIndexed(...)             // ★ 描け</code></pre>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>コストの中身</th><th>説明</th></tr></thead>
+			<tbody>
+				<tr><td><strong>CPU側：コマンドを積む</strong></td>
+					<td><strong>これが本体。1回あたり数マイクロ秒</strong></td></tr>
+				<tr><td>GPU側：状態を切り替える</td>
+					<td>パイプラインの流れが途切れる</td></tr>
+				<tr><td>定数バッファの更新</td>
+					<td>オブジェクトごとに行列を送る</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">ドローコールは、CPU のコストです</span>
+			<strong>「GPUが重い」と思いがちですが、
+			多くの場合ボトルネックは「CPUがコマンドを積む時間」</strong>です。<br>
+			<u>三角形が少なくても、ドローコールが多ければ遅くなります。</u>
+		</div>
+		<p class="prose">
+			<strong>目安：1フレームに 1000〜3000 回を超えたら、対策どき。</strong>
+			<kbd>F1</kbd> → Profiler の Draw Call で見られます。
+		</p>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">03</span>インスタンシング ― 1回で何個も描く</h2>
+		<p class="prose">
+			<strong>同じモデルを、位置だけ変えて何個も描く</strong>なら、
+			<u>コマンドは1回で済みます。</u>
+		</p>
+<pre><code>いままで：
+  [準備][描け] [準備][描け] [準備][描け] ... × 1000
+
+インスタンシング：
+  [準備][1000個まとめて描け]</code></pre>
+		<p class="prose">
+			位置・回転・拡大の情報を<strong>まとめて1つのバッファに入れて、
+			GPUに渡します。</strong>
+			シェーダ側で「自分は何番目か」を見て、対応する行列を使います。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>条件</th><th>インスタンシングできる？</th></tr></thead>
+			<tbody>
+				<tr><td><strong>同じモデル</strong></td><td><strong>必須</strong></td></tr>
+				<tr><td>同じマテリアル・シェーダ</td><td><strong>必須</strong></td></tr>
+				<tr><td>位置・回転・大きさが違う</td><td><strong>問題なし</strong></td></tr>
+				<tr><td>色を変えたい</td><td>インスタンスごとのデータに含めれば可能</td></tr>
+				<tr><td>別々のアニメーション</td><td><u>k2Engine では非対応</u></td></tr>
+			</tbody>
+		</table>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">04</span>k2Engine での書き方</h2>
+		<p class="prose">
+			<code>ModelRender::Init()</code> の
+			<strong>最後のほうにある <code>maxInstance</code></strong> を指定します。
+		</p>
+<pre><code>// 初期化（1回だけ）
+m_modelRender.Init(
+    "Assets/modelData/star.tkm",
+    nullptr,                // アニメーションクリップ
+    0,                      // その数
+    enModelUpAxisZ,
+    true,                   // 影を受ける
+    1000);                  // ★ maxInstance</code></pre>
+<pre><code>// 毎フレーム：インスタンスごとに位置を渡す
+void StarRender::Update()
+{
+    for (int i = 0; i &lt; m_numStar; i++) {
+        m_modelRender.UpdateInstancingData(
+            i,                      // 何番目か
+            m_positions[i],
+            m_rotations[i],
+            m_scales[i]);
+    }
+    m_modelRender.Update();
+}
+
+void StarRender::Render(RenderContext&amp; rc)
+{
+    m_modelRender.Draw(rc);         // ★ これ1回で全部描かれる
+}</code></pre>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h">Sample_22 に動く例があります</span>
+			<strong><code>Sample/Sample_22</code> の
+			<code>Sphere</code> / <code>SphereRender</code> /
+			<code>Muscle</code> / <code>MuscleRender</code></strong> を見てください。<br>
+			<u>ゲームパッドの A ボタンで、
+			インスタンシングあり／なしを切り替えられます。</u>
+			FPSの違いを、自分の目で見られます。
+		</div>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">アニメーション付きのインスタンシングは非対応です</span>
+			<code>Sample/readme.txt</code> にも
+			<strong>「アニメーションありインスタンシング描画のみNG」</strong>
+			と書かれています。<br>
+			<u>動かない背景オブジェクト、弾、星、草などに使ってください。</u>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">05</span>設計のパターン</h2>
+		<p class="prose">
+			<strong>Sample_22 の構成が、そのまま参考になります。</strong>
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>クラス</th><th>役割</th></tr></thead>
+			<tbody>
+				<tr><td><code>Sphere</code></td>
+					<td><strong>1個ぶんの状態（位置・動き）。描画はしない</strong></td></tr>
+				<tr><td><code>SphereRender</code></td>
+					<td><strong><code>ModelRender</code> を1つだけ持ち、全部まとめて描く</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>描画を1か所に集めるのが要点です。</strong>
+			<u>これは <a href="5-06_AosSoa.html">5-06</a> でやった
+			<code>BulletSystem</code> の形と同じです。</u>
+		</p>
+<pre><code>// SphereRender は、Sphere から位置を集める
+void SphereRender::Update()
+{
+    int i = 0;
+    for (Sphere* s : FindGOs&lt;Sphere&gt;("sphere")) {
+        m_modelRender.UpdateInstancingData(
+            i++, s-&gt;GetPosition(), s-&gt;GetRotation(), s-&gt;GetScale());
+    }
+    m_modelRender.Update();
+}</code></pre>
+		<div class="note">
+			<span class="h">優先度に注意してください</span>
+			<strong><code>SphereRender</code> は、
+			<code>Sphere</code> より後の優先度にしてください。</strong><br>
+			<u>先に動くと、1フレーム前の位置を集めることになります。</u>
+			（<a href="3-10_Camera.html">3-10</a> のカメラと同じ話です）
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">06</span>ほかにドローコールを減らす方法</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>方法</th><th>効き方</th><th>手間</th></tr></thead>
+			<tbody>
+				<tr><td><strong>画面外のものを描かない（カリング）</strong></td>
+					<td><strong>大きい</strong></td><td>中</td></tr>
+				<tr><td>インスタンシング</td><td>大きい</td><td>小</td></tr>
+				<tr><td>遠いものを簡略化（LOD）</td><td>中</td><td>大</td></tr>
+				<tr><td>テクスチャをまとめる（アトラス）</td>
+					<td>中。<u>2Dで効く</u></td><td>中</td></tr>
+				<tr><td>小さいモデルを1つに統合する</td><td>中</td><td>大</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>いちばん効くのはカリングです。</strong>
+			<a href="5-01_ReadProfiler.html">5-01</a> の
+			<u>「そもそもやらない」</u>に当たります。
+		</p>
+<pre><code>void Enemy::Render(RenderContext&amp; rc)
+{
+    // カメラの後ろにいたら、描かない
+    Vector3 toEnemy = m_position - g_camera3D-&gt;GetPosition();
+    if (toEnemy.Dot(g_camera3D-&gt;GetForward()) &lt; 0.0f) {
+        return;
+    }
+    // 遠すぎたら、描かない
+    if (toEnemy.LengthSq() &gt; DRAW_DISTANCE * DRAW_DISTANCE) {
+        return;
+    }
+    m_modelRender.Draw(rc);
+}</code></pre>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h">数行で、ドローコールが半分以下になることがあります</span>
+			<strong>カメラの後ろにいるものは、全体の半分近くあることも珍しくありません。</strong><br>
+			<u>内積1回で判定できます（<a href="3-11_Lighting.html">3-11</a>）。</u>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（見る）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>Sample/Sample_22</code> を動かして、<strong>A ボタンでインスタンシングを切り替え、FPSを比べる。</strong><kbd>F1</kbd> の Draw Call も見る。</p>
+
+		<h3>演習2（使う）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose">自分のゲームで<strong>同じモデルを大量に出すもの</strong>（弾、背景、星など）を、インスタンシングにする。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>設計 ― 状態と描画を分ける</strong></p>
+<pre><code>// Star.h ― 1個ぶんの状態。描画しない
+class Star : public IGameObject {
+public:
+    bool Start()  override;
+    void Update() override;
+    // ★ Render を持たない
+
+    const Vector3&amp;    GetPosition() const { return m_position; }
+    const Quaternion&amp; GetRotation() const { return m_rotation; }
+    const Vector3&amp;    GetScale()    const { return m_scale; }
+
+    void SetPosition(const Vector3&amp; p) { m_position = p; }
+
+private:
+    Vector3    m_position = Vector3::Zero;
+    Quaternion m_rotation = Quaternion::Identity;
+    Vector3    m_scale    = Vector3::One;
+    float      m_angle    = 0.0f;
+};
+
+void Star::Update()
+{
+    // くるくる回る
+    m_angle += 60.0f * g_gameTime-&gt;GetFrameDeltaTime();
+    if (m_angle &gt; 360.0f) { m_angle -= 360.0f; }
+    m_rotation.SetRotationDegY(m_angle);
+}</code></pre>
+<pre><code>// StarRender.h ― まとめて描く。1個だけ作る
+class StarRender : public IGameObject {
+public:
+    bool Start()  override;
+    void Update() override;
+    void Render(RenderContext&amp; rc) override;
+
+private:
+    static const int MAX_STAR = 1000;
+    ModelRender m_modelRender;
+    int         m_numDraw = 0;
+};
+
+// StarRender.cpp
+bool StarRender::Start()
+{
+    m_modelRender.Init(
+        "Assets/modelData/star.tkm",
+        nullptr, 0,
+        enModelUpAxisZ,
+        false,              // 影は受けない（軽くする）
+        MAX_STAR);          // ★ インスタンシング
+    m_modelRender.SetShadowCasterFlag(false);
+    return true;
+}
+
+void StarRender::Update()
+{
+    const auto&amp; stars = FindGOs&lt;Star&gt;("star");
+
+    m_numDraw = 0;
+    for (Star* s : stars) {
+        if (m_numDraw &gt;= MAX_STAR) { break; }     // ★ あふれ対策
+
+        m_modelRender.UpdateInstancingData(
+            m_numDraw,
+            s-&gt;GetPosition(),
+            s-&gt;GetRotation(),
+            s-&gt;GetScale());
+        m_numDraw++;
+    }
+    m_modelRender.Update();
+}
+
+void StarRender::Render(RenderContext&amp; rc)
+{
+    if (m_numDraw == 0) { return; }
+    m_modelRender.Draw(rc);        // ★ 1回
+}</code></pre>
+<pre><code>// GameScene.cpp
+bool GameScene::Start()
+{
+    for (int i = 0; i &lt; 1000; i++) {
+        Star* s = NewGO&lt;Star&gt;(enPriority_Background, "star");
+        s-&gt;SetPosition(RandomPosition());
+    }
+    // ★ Star より後の優先度
+    NewGO&lt;StarRender&gt;(enPriority_BackgroundRender, "starRender");
+    return true;
+}</code></pre>
+<p><strong>結果の例</strong></p>
+<pre><code>                       個別描画    インスタンシング
+Draw Call                 1000            1
+Frame                   28.4 ms      16.1 ms
+FPS                        35           60</code></pre>
+<div class="note" style="--lv: var(--warn);">
+<span class="h"><code>FindGOs</code> を毎フレーム呼ぶのは、少しもったいない</span>
+<strong><code>FindGOs</code> は名前で検索するので、
+それ自体にコストがあります。</strong>
+<br><br>
+<u>数が固定なら、<code>StarRender</code> 側に
+<code>std::vector&lt;Star*&gt;</code> を持たせて、
+生成時に登録するほうが速いです。</u>
+<pre style="margin-top:8px;"><code>void StarRender::Register(Star* s) { m_stars.push_back(s); }</code></pre>
+<strong>ただし、削除されたときの管理が必要になります。</strong>
+<a href="2-09_GOHandle.html">GOHandle</a> を使うか、
+<u>そもそも Star を <code>IGameObject</code> にせず、
+StarRender が直接データを持つ</u>（<a href="5-06_AosSoa.html">5-06</a> の形）
+のが、いちばん速くて安全です。
+</div>
+		</details>
+
+		<h3>演習3（減らす）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>カリング</strong>を入れて、ドローコールがどれくらい減るか測る。<kbd>F1</kbd> の Draw Call を、入れる前と後で比べる。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>段階1 ― 距離でカリング（いちばん簡単）</strong></p>
+<pre><code>namespace {
+    const float DRAW_DISTANCE = 3000.0f;
+}
+
+void Enemy::Render(RenderContext&amp; rc)
+{
+    Vector3 toMe = m_position - g_camera3D-&gt;GetPosition();
+    if (toMe.LengthSq() &gt; DRAW_DISTANCE * DRAW_DISTANCE) {
+        return;                       // 遠すぎる
+    }
+    m_modelRender.Draw(rc);
+}</code></pre>
+<p><strong>段階2 ― カメラの後ろを除外</strong></p>
+<pre><code>void Enemy::Render(RenderContext&amp; rc)
+{
+    Vector3 toMe = m_position - g_camera3D-&gt;GetPosition();
+
+    // ★ 内積がマイナス = カメラの後ろ
+    if (toMe.Dot(g_camera3D-&gt;GetForward()) &lt; 0.0f) {
+        return;
+    }
+    if (toMe.LengthSq() &gt; DRAW_DISTANCE * DRAW_DISTANCE) {
+        return;
+    }
+    m_modelRender.Draw(rc);
+}</code></pre>
+<p><strong>段階3 ― 画角も考える（視錐台カリングの簡易版）</strong></p>
+<pre><code>void Enemy::Render(RenderContext&amp; rc)
+{
+    Vector3 toMe = m_position - g_camera3D-&gt;GetPosition();
+    float dist = toMe.Length();
+    if (dist &gt; DRAW_DISTANCE) { return; }
+
+    if (dist &gt; 0.001f) {
+        toMe /= dist;                              // 正規化
+        float d = toMe.Dot(g_camera3D-&gt;GetForward());
+
+        // 画角60度なら、半分の30度。少し余裕をもって cos(45度) で判定
+        if (d &lt; 0.707f) { return; }
+    }
+    m_modelRender.Draw(rc);
+}</code></pre>
+<p><strong>結果の例（3Dシューティング、敵200体）</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>段階</th><th>Draw Call</th><th>Frame</th></tr></thead>
+<tbody>
+<tr><td>なし</td><td>412</td><td>21.3 ms</td></tr>
+<tr><td>距離のみ</td><td>288</td><td>17.8 ms</td></tr>
+<tr><td><strong>+ 後ろを除外</strong></td><td><strong>151</strong></td>
+	<td><strong>13.2 ms</strong></td></tr>
+<tr><td>+ 画角</td><td>98</td><td>11.9 ms</td></tr>
+</tbody>
+</table>
+</div>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">「後ろを除外」だけで、半分近く減ります</span>
+<strong>コードは1行、内積1回です。</strong>
+<br><br>
+<u>これが <a href="5-01_ReadProfiler.html">5-01</a> で言った
+「そもそもやらない」が、いちばん効くという意味です。</u>
+</div>
+<div class="note" style="--lv: var(--danger);">
+<span class="h">カリングしすぎて、見えるべきものが消えないように</span>
+<strong>大きいオブジェクトは、中心がカメラの後ろでも、
+一部が画面に映っていることがあります。</strong>
+<br><br>
+<u>判定を「中心」ではなく「中心 ± 半径」でやるか、
+判定を少し甘めにしてください。</u>
+<pre style="margin-top:8px;"><code>// 半径ぶん甘くする
+if (toMe.Dot(forward) &lt; -m_boundingRadius) { return; }</code></pre>
+<strong>「たまに消える」は、「少し遅い」よりずっと悪い</strong>です。
+</div>
+<div class="note">
+<span class="h">影のカリングも忘れずに</span>
+<strong>カメラに映っていなくても、
+影がシャドウマップに描かれていることがあります</strong>
+（<a href="3-12_Shadow.html">3-12</a>）。
+<br><br>
+<u>遠くのものは <code>SetShadowCasterFlag(false)</code> にすると、
+シャドウマップのドローコールも減ります。</u>
+</div>
+		</details>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li>ドローコールのコストは、主に CPU と GPU のどちら？</li>
+			<li>インスタンシングの条件は？</li>
+			<li>k2Engine でインスタンシングを有効にするには？</li>
+			<li>ドローコールを減らす方法で、いちばん効くのは？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>CPU。コマンドを積む時間。</li>
+				<li>同じモデル・同じマテリアルであること。
+					（k2Engine ではアニメーションなし）</li>
+				<li><code>ModelRender::Init()</code> に
+					<code>maxInstance</code> を渡し、
+					<code>UpdateInstancingData()</code> で位置を渡す。</li>
+				<li>カリング（画面外のものを描かない）。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="5-09_Ecs.html"><strong>5-09 ECSを自作して比較する</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GPUの中を見る（PIX / RenderDoc）</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n3" href="3-14_Make3D.html">← 前 3-14</a>
+			<a class="navchip n3" href="index.html#lv3">LV3 の目次</a>
+			<a class="navchip n3" href="3-16_Dx12Skeleton.html">次 → 3-16</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l3">
+		<p class="kicker">LV3 表現 ／ 3-15</p>
+		<h1>GPUの中を見る（PIX / RenderDoc）</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span>
+			／ 前提 <a href="3-03_FirstShader.html">3-03</a>
+		</p>
+	</header>
+
+	<section class="level l3">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>1フレームに何が描かれたか</strong>を、目で見て確認できる</li>
+			<li>シェーダの中身をデバッグできる</li>
+			<li>「なぜか映らない」を、推測ではなく<strong>観測</strong>で解決できる</li>
+		</ul>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">02</span>なぜ必要か</h2>
+		<p class="prose">
+			CPUのコードは、<a href="1-18_Debugger.html">1-18</a> でやったように
+			ブレークポイントで止めて、変数の中身を見られます。
+		</p>
+		<p class="prose">
+			<strong>シェーダには、それができません。</strong>
+			GPUで、何千何万ものピクセルについて同時に走っているからです。
+		</p>
+		<p class="prose">
+			だから<u>「色を出して目で見る」</u>という原始的な方法をとってきました
+			（<a href="3-03_FirstShader.html">3-03</a>）。
+			それを<strong>ちゃんとしたツールでやろう</strong>、というのがこの章です。
+		</p>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">03</span>どちらを使うか</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th></th><th>PIX on Windows</th><th>RenderDoc</th></tr></thead>
+			<tbody>
+				<tr><td>作っているところ</td><td>Microsoft</td><td>有志（オープンソース）</td></tr>
+				<tr><td>対応API</td><td>DirectX 12 専用</td><td>DX11/12, Vulkan, OpenGL</td></tr>
+				<tr><td>入手</td><td>Microsoft のサイトから</td><td>renderdoc.org から</td></tr>
+				<tr><td>費用</td><td>無料</td><td>無料</td></tr>
+				<tr><td><strong>おすすめ</strong></td>
+					<td><strong>まずこちら。DX12 向けに作られている</strong></td>
+					<td>軽い。起動が速い</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>どちらも「1フレームを丸ごと記録して、あとから調べる」</strong>
+			という道具です。使い方の考え方は同じなので、
+			<u>片方を覚えればもう片方も使えます。</u>
+		</p>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">インストールは自分でやってください</span>
+			どちらも配布元が更新されるため、
+			<strong>このページに手順を書いても古くなります。</strong>
+			「PIX on Windows」「RenderDoc」で検索して、
+			<u>公式サイトから入手してください。</u>
+		</div>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">04</span>基本の流れ</h2>
+		<ol class="prose">
+			<li>ツールからゲームを起動する（または起動中のゲームにつなぐ）</li>
+			<li>調べたい場面で<strong>キャプチャ</strong>（1フレーム記録）</li>
+			<li><strong>描画コマンドの一覧</strong>が出る</li>
+			<li>1つずつクリックすると、<u>その時点の画面</u>が見られる</li>
+		</ol>
+		<p class="prose">
+			<strong>4番目がすべてです。</strong>
+			「どの描画で絵が変わったか」「どの描画で消えたか」が、
+			<u>一目で分かります。</u>
+		</p>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">05</span>これで解決できること</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>症状</th><th>見るところ</th></tr></thead>
+			<tbody>
+				<tr><td><strong>何も映らない</strong></td>
+					<td>そもそも <code>DrawIndexed</code> が呼ばれているか。
+						<u>呼ばれていなければCPU側の問題</u></td></tr>
+				<tr><td>真っ黒／真っ白に描かれる</td>
+					<td>そのドローの<strong>入力テクスチャ</strong>を見る。
+						読み込みに失敗していないか</td></tr>
+				<tr><td>色がおかしい</td>
+					<td><strong>定数バッファの中身</strong>を見る。
+						<a href="3-04_ConstantBuffer.html">3-04</a> の詰め方のミスが分かる</td></tr>
+				<tr><td>形が崩れる</td>
+					<td>頂点バッファと、頂点シェーダの出力</td></tr>
+				<tr><td>手前のものが隠れる</td>
+					<td><strong>深度バッファ</strong>の中身
+						（<a href="3-07_AlphaDepth.html">3-07</a>）</td></tr>
+				<tr><td>重い</td>
+					<td>ドローコールの数。<strong>どのドローに時間がかかっているか</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note">
+			<span class="h">いちばん価値があるのは、1つめです</span>
+			<strong>「そもそも描こうとしていないのか」「描こうとしたけど見えないのか」</strong><br>
+			この2つは原因がまったく違うのに、
+			<u>画面を見ているだけでは区別がつきません。</u>
+			ここが分かるだけで、調べる範囲が半分になります。
+		</div>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">06</span>ピクセルを1つ選んで追いかける</h2>
+		<p class="prose">
+			<strong>この機能が、GPUデバッガの真価です。</strong>
+		</p>
+		<p class="prose">
+			表示された画面のピクセルを1つクリックすると、
+			<u>そのピクセルの色を決めたピクセルシェーダを、1行ずつ追える</u>のです。
+		</p>
+		<ul class="prose">
+			<li>どのテクスチャから、どんな色を読んだか</li>
+			<li>定数バッファの値が、どう使われたか</li>
+			<li>途中の変数の値</li>
+			<li><strong>最終的にどう計算されて、その色になったか</strong></li>
+		</ul>
+		<p class="prose">
+			CPUのブレークポイントと、まったく同じことができます。
+		</p>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">シェーダにデバッグ情報が要ります</span>
+			最適化されたシェーダは、変数が消えていて追えません。<br>
+			<strong>Debug ビルドで試してください。</strong>
+			それでも追えないときは、シェーダのコンパイルオプションに
+			<code>/Zi</code>（デバッグ情報）<code>/Od</code>（最適化なし）が
+			必要になることがあります。
+		</div>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">07</span>k2Engine のフレームを覗いてみる</h2>
+		<p class="prose">
+			キャプチャすると、<strong>自分が書いていない描画がたくさん並んでいる</strong>
+			ことに気づくはずです。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>だいたいの順番</th><th>何をしている</th></tr></thead>
+			<tbody>
+				<tr><td>シャドウマップ</td>
+					<td>ライトから見た距離を描く（<a href="3-12_Shadow.html">3-12</a>）</td></tr>
+				<tr><td>G-Buffer / モデル描画</td><td>3Dモデルを描く</td></tr>
+				<tr><td>ポストエフェクト</td>
+					<td>ブルーム、トーンマップなど
+						（<a href="3-08_PostEffect.html">3-08</a>）</td></tr>
+				<tr><td>2D描画</td><td>スプライト、フォント</td></tr>
+				<tr><td><strong>ImGui</strong></td>
+					<td><kbd>F1</kbd> のデバッグ画面。最後に描かれる</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>エンジンが何をしているか、いちばん確実に分かる方法がこれです。</strong>
+			コードを読むより速いことすらあります。
+		</p>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">08</span>演習</h2>
+		<h3>演習1（まねる）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">PIX か RenderDoc を入れて、自分のゲームを1フレームキャプチャする。<strong>描画コマンドを上から順にクリックして、絵が組み上がっていくのを見る。</strong></p>
+
+		<h3>演習2（追う）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose"><a href="3-05_DamageFlash.html">3-05</a> で作ったダメージフラッシュのピクセルを1つ選び、<strong>シェーダをステップ実行して、色が決まる過程を見る。</strong></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>手順</strong></p>
+<ol>
+<li>ダメージを受けている瞬間にキャプチャする</li>
+<li>描画コマンド一覧から、<strong>プレイヤーを描いているドロー</strong>を選ぶ</li>
+<li>出力画像の<u>赤くなっている部分</u>のピクセルをクリック</li>
+<li>「Debug Pixel」（PIX）／「Debug this pixel」（RenderDoc）を選ぶ</li>
+</ol>
+<p><strong>見えるはずのもの</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>見るもの</th><th>確認できること</th></tr></thead>
+<tbody>
+<tr><td><code>colorTexture.Sample()</code> の戻り値</td>
+	<td>テクスチャから読んだ<strong>元の色</strong></td></tr>
+<tr><td><code>param0.x</code> の値</td>
+	<td><strong>C++ から送ったフラッシュの強さが、本当に届いているか</strong></td></tr>
+<tr><td><code>lerp()</code> の結果</td><td>赤と混ざったあとの色</td></tr>
+<tr><td>戻り値</td><td>画面に出る最終的な色</td></tr>
+</tbody>
+</table>
+</div>
+<div class="note">
+<span class="h">2つめがこの演習の核心です</span>
+<a href="3-04_ConstantBuffer.html">3-04</a> でいちばん多いミスは、
+<strong>定数バッファの値が、思ったとおりに届いていない</strong>ことでした。
+<br><br>
+<u>16バイト境界の詰め方を間違えると、値が別の場所に入ります。</u>
+画面を見ているだけでは「なぜか効かない」としか分かりませんが、
+<strong>ここを見れば一発で分かります。</strong>
+</div>
+		</details>
+
+		<h3>演習3（調べる）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose">自分のゲームの<strong>ドローコール数</strong>を数える。<kbd>F1</kbd> の Profiler が出している数と合っているか確かめる。<strong>合っていない場合、その差は何か</strong>考える。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>ふつう、ぴったりは合いません。</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>差の原因</th><th>説明</th></tr></thead>
+<tbody>
+<tr><td><strong>ImGui 自身の描画</strong></td>
+	<td><kbd>F1</kbd> の画面も描画コマンドを使う。
+		<u>Profiler が数える前／後で描かれる</u></td></tr>
+<tr><td><code>DrawInstanced</code> 系</td>
+	<td><code>K2_COUNT_DRAW_CALL</code> を入れていない描画関数があれば漏れる</td></tr>
+<tr><td>Clear やコピー</td>
+	<td>画面のクリアやテクスチャのコピーは、ドローではないが GPU の仕事</td></tr>
+<tr><td>Effekseer</td>
+	<td>エフェクトはエンジン外のライブラリが描いている</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>ここで身につけてほしい態度</strong></p>
+<p>
+<code>K2_COUNT_DRAW_CALL</code> は
+<code>RenderContext::DrawIndexed</code> と
+<code>DrawIndexedInstance</code> に入れてあります。
+<strong>つまり Profiler の数字は「エンジンが意図的に数えた数」であって、
+GPU が実際にやった仕事の全部ではありません。</strong>
+</p>
+<div class="note">
+<span class="h">計測器は、必ず何かを見落としています</span>
+<strong>自分が作った計測器が、何を数えていて何を数えていないか。</strong>
+それを知らずに数字を信じるのが、いちばん危険です。
+<br><br>
+GPUデバッガは<u>「本当に起きたこと」</u>を見せてくれます。
+<strong>自作の計測器を検算する道具</strong>として使ってください。
+</div>
+		</details>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">09</span>確認</h2>
+		<ol class="prose">
+			<li>GPUデバッガは、何を記録する？</li>
+			<li>「何も映らない」とき、まず確認すべきことは？</li>
+			<li>ピクセルを選んで何ができる？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>1フレームぶんの描画コマンドと、そのときのリソースの中身。</li>
+				<li>そもそも <code>DrawIndexed</code> が呼ばれているかどうか。
+					呼ばれていなければCPU側の問題。</li>
+				<li>そのピクセルのピクセルシェーダを1行ずつ追える（ステップ実行）。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l3">
+		<h2><span class="n">10</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="3-16_Dx12Skeleton.html"><strong>3-16 DirectX12の骨格を読む</strong></a>
+				— LV3 の最後です</li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

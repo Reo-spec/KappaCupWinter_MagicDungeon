@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>カプセル化</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n4" href="4-01_ReadYourCode.html">← 前 4-01</a>
+			<a class="navchip n4" href="index.html#lv4">LV4 の目次</a>
+			<a class="navchip n4" href="4-03_Composition.html">次 → 4-03</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l4">
+		<p class="kicker">LV4 設計 ／ 4-02</p>
+		<h1>カプセル化</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="4-01_ReadYourCode.html">4-01</a>
+		</p>
+	</header>
+
+	<section class="level l4">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>なぜ <code>public</code> だとまずいのか</strong>を説明できる</li>
+			<li>ただの getter/setter を並べるのが解決でないと分かる</li>
+			<li><code>const</code> を正しく付けられる</li>
+		</ul>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">02</span>問題は「書き換えた犯人が分からない」こと</h2>
+<pre><code>class Player : public IGameObject {
+public:
+    Vector3 m_position;      // ★ public
+    int     m_hp;            // ★ public
+    bool    m_isInvincible;  // ★ public
+};</code></pre>
+		<p class="prose">
+			ある日、<strong>HPが勝手に減る</strong>バグが出たとします。
+			犯人を探そうとして、こう検索します。
+		</p>
+<pre><code>m_hp</code></pre>
+		<p class="prose">
+			<strong>47件ヒットしました。</strong>
+			そのうちどれが書き換えていて、どれが読んでいるだけなのか、
+			<u>1件ずつ目で見るしかありません。</u>
+		</p>
+<pre><code>class Player : public IGameObject {
+public:
+    int GetHp() const { return m_hp; }
+    void Damage(int amount);        // ★ 減らせるのはここだけ
+
+private:
+    int m_hp = 100;
+};</code></pre>
+		<p class="prose">
+			<strong>こう書いてあれば、犯人は <code>Damage()</code> の中にしかいません。</strong>
+			調べる範囲が47か所から1か所になります。
+		</p>
+		<div class="note">
+			<span class="h">カプセル化の目的は「隠すこと」ではありません</span>
+			<strong>「変わりうる場所を、1か所に閉じ込めること」</strong>です。<br>
+			隠すのは手段で、<u>デバッグしやすくするのが目的</u>です。
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">03</span>ただ getter/setter を並べても、意味がありません</h2>
+<pre><code>// これは、public とほとんど同じです
+class Player {
+public:
+    int  GetHp() const { return m_hp; }
+    void SetHp(int hp) { m_hp = hp; }   // ★ 誰でも好きな値を入れられる
+
+private:
+    int m_hp;
+};</code></pre>
+		<p class="prose">
+			<code>SetHp()</code> があるなら、
+			<strong>結局どこからでも書き換えられます。</strong>
+			検索する名前が <code>m_hp</code> から <code>SetHp</code> に変わっただけです。
+		</p>
+		<p class="prose">
+			大事なのは、<strong>「何を」ではなく「どうしたいか」で関数を作る</strong>ことです。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>ダメな作り方（データが主語）</th><th>よい作り方（やりたいことが主語）</th></tr></thead>
+			<tbody>
+				<tr><td><code>SetHp(GetHp() - 10)</code></td>
+					<td><strong><code>Damage(10)</code></strong></td></tr>
+				<tr><td><code>SetHp(100)</code></td>
+					<td><code>FullHeal()</code></td></tr>
+				<tr><td><code>SetIsInvincible(true)</code></td>
+					<td><code>BeginInvincible(2.0f)</code></td></tr>
+				<tr><td><code>SetPosition(GetPosition() + v)</code></td>
+					<td><code>MoveBy(v)</code></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong><code>Damage(10)</code> なら、中でまとめて面倒を見られます。</strong>
+		</p>
+<pre><code>void Player::Damage(int amount)
+{
+    if (m_isInvincible) {
+        return;                       // 無敵中は無効
+    }
+    m_hp -= amount;
+    if (m_hp &lt; 0) {
+        m_hp = 0;                     // マイナスにしない
+    }
+
+    BeginInvincible(1.0f);            // 無敵時間
+    // 演出もここで
+}</code></pre>
+		<p class="prose">
+			<code>SetHp()</code> 方式だと、
+			<u>この「ついでにやること」を、呼び出し側が毎回書く</u>ことになります。
+			<strong>そして、どこかで書き忘れます。</strong>
+		</p>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">04</span>setter が要る場合もあります</h2>
+		<p class="prose">
+			<strong>「設定」は setter で構いません。</strong>
+			生成した直後に一度だけ渡すような値です。
+		</p>
+<pre><code>Enemy* e = NewGO&lt;Enemy&gt;(enPriority_Enemy, "enemy");
+e-&gt;SetPosition({ 100.0f, 0.0f, 0.0f });    // ★ これはよい
+e-&gt;SetHp(50);                              // ★ 初期値ならよい</code></pre>
+		<p class="prose">
+			問題なのは、<strong>ゲーム中にずっと書き換わり続ける値</strong>に
+			setter を付けることです。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th></th><th>setter でよい</th><th>専用の関数にする</th></tr></thead>
+			<tbody>
+				<tr><td>いつ使う</td><td>生成直後の設定</td><td><strong>ゲーム中ずっと</strong></td></tr>
+				<tr><td>例</td><td>初期位置、初期HP、色</td>
+					<td>ダメージ、回復、移動</td></tr>
+				<tr><td>ついでの処理</td><td>無い</td><td><strong>ある</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">05</span>const を付ける</h2>
+		<p class="prose">
+			<a href="1-17_Const.html">1-17</a> でやった <code>const</code> を、
+			ここで使います。
+		</p>
+<pre><code>// 読むだけの関数には const を付ける
+const Vector3&amp; GetPosition() const { return m_position; }
+int  GetHp()   const { return m_hp; }
+bool IsDeadNow() const { return m_hp &lt;= 0; }</code></pre>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>書き方</th><th>意味</th></tr></thead>
+			<tbody>
+				<tr><td><code>int GetHp() <strong>const</strong></code></td>
+					<td><strong>この関数はメンバを書き換えない</strong></td></tr>
+				<tr><td><code><strong>const</strong> Vector3&amp; GetPosition()</code></td>
+					<td>返したものを、呼び出し側が書き換えられない</td></tr>
+				<tr><td><code>void Damage(int amount)</code></td>
+					<td><u><code>const</code> を付けない。</u>書き換える関数だから</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">参照を返すときは、必ず const を付けてください</span>
+<pre style="margin-top:8px;"><code>// 危ない：外から書き換えられる
+Vector3&amp; GetPosition() { return m_position; }
+
+// 呼び出し側で、これができてしまう
+player-&gt;GetPosition().x = 9999.0f;    // ★ private の意味がない</code></pre>
+			<strong><code>const Vector3&amp;</code> にすれば、これはコンパイルエラーになります。</strong>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">06</span>どこまでやるか</h2>
+		<p class="prose">
+			<strong>全部を private にする必要はありません。</strong>
+			判断の目安はこうです。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>そのメンバは…</th><th>どうする</th></tr></thead>
+			<tbody>
+				<tr><td>ほかのクラスから<strong>書き換えられる</strong></td>
+					<td><strong>private ＋ 専用の関数</strong></td></tr>
+				<tr><td>ほかのクラスから<strong>読まれるだけ</strong></td>
+					<td>private ＋ <code>const</code> getter</td></tr>
+				<tr><td>そのクラスの中でしか使わない</td>
+					<td>private。getter も要らない</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note">
+			<span class="h">3つめがいちばん多いはずです</span>
+			<strong>タイマー、内部状態、演出用の変数。</strong>
+			これらに getter を付けている人が多いのですが、
+			<u>ほとんどは誰も使っていません。</u><br>
+			使われていない getter は<strong>消してください。</strong>
+			クラスの「外から見える顔」が小さいほど、扱いやすくなります。
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（直す）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>Player</code> のメンバ変数を全部 <code>private</code> にして、ビルドが通るところまで直す。</p>
+
+		<h3>演習2（置き換える）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>SetHp()</code> を消して、<code>Damage()</code> と <code>Heal()</code> にする。<strong>無敵時間の処理を <code>Damage()</code> の中に入れる。</strong></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>// Player.h
+class Player : public IGameObject {
+public:
+    bool Start()  override;
+    void Update() override;
+
+    //----- 外から使うもの -----
+    int  GetHp() const { return m_hp; }
+    bool IsAlive() const { return m_hp &gt; 0; }
+
+    /// &lt;summary&gt;ダメージを与える。無敵中は何も起きない。&lt;/summary&gt;
+    void Damage(int amount);
+    /// &lt;summary&gt;回復する。最大HPは超えない。&lt;/summary&gt;
+    void Heal(int amount);
+
+    //----- 生成直後に一度だけ使うもの -----
+    void SetPosition(const Vector3&amp; pos) { m_position = pos; }
+
+private:
+    void BeginInvincible(float time);
+
+    Vector3 m_position = Vector3::Zero;
+    int     m_hp       = MAX_HP;
+    float   m_invincibleTimer = 0.0f;
+};
+
+// Player.cpp
+namespace {
+    const int   MAX_HP           = 100;
+    const float INVINCIBLE_TIME  = 1.0f;
+}
+
+void Player::Damage(int amount)
+{
+    if (m_invincibleTimer &gt; 0.0f) {
+        return;                              // 無敵中
+    }
+    if (m_hp &lt;= 0) {
+        return;                              // もう死んでいる
+    }
+
+    m_hp -= amount;
+    if (m_hp &lt; 0) { m_hp = 0; }
+
+    BeginInvincible(INVINCIBLE_TIME);
+
+    if (m_hp == 0) {
+        // 死亡演出はここから
+    }
+}
+
+void Player::Heal(int amount)
+{
+    if (m_hp &lt;= 0) {
+        return;                              // 死んでいたら回復しない
+    }
+    m_hp += amount;
+    if (m_hp &gt; MAX_HP) { m_hp = MAX_HP; }
+}
+
+void Player::BeginInvincible(float time)
+{
+    m_invincibleTimer = time;
+}
+
+void Player::Update()
+{
+    if (m_invincibleTimer &gt; 0.0f) {
+        m_invincibleTimer -= g_gameTime-&gt;GetFrameDeltaTime();
+    }
+    ...
+}</code></pre>
+<p><strong>まとめて面倒を見られるようになったこと</strong></p>
+<ul>
+<li>無敵中は無効</li>
+<li><strong>死んでいるときは、それ以上ダメージも回復もしない</strong></li>
+<li>HPが0未満・最大値超えにならない</li>
+<li>ダメージのたびに無敵時間が始まる（書き忘れようがない）</li>
+</ul>
+<div class="note">
+<span class="h">「死んでいるのに死亡演出が2回出る」バグが消えます</span>
+<code>SetHp()</code> 方式だと、<u>同じフレームに複数の弾が当たったとき</u>に
+死亡処理が何回も走ることがあります。
+<br><br>
+<strong><code>if (m_hp &lt;= 0) return;</code> の1行が、
+その事故をまとめて防いでいます。</strong>
+こういう「1か所に書けば済む守り」が、カプセル化の実利です。
+</div>
+		</details>
+
+		<h3>演習3（消す）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">自分のコードの getter を全部見て、<strong>どこからも呼ばれていないものを消す。</strong>（<kbd>Shift</kbd>+<kbd>F12</kbd> で参照を検索できます）</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>やり方</strong></p>
+<ol>
+<li>getter の名前の上で <kbd>Shift</kbd>+<kbd>F12</kbd>（すべての参照を検索）</li>
+<li>結果が<strong>「定義の1件だけ」</strong>なら、誰も使っていない</li>
+<li>消す。ビルドが通れば、本当に使われていなかった</li>
+</ol>
+<p><strong>たいてい、こういうものが残っています</strong></p>
+<pre><code>float GetShotTimer() const { return m_shotTimer; }      // 内部タイマー
+int   GetAnimFrame() const { return m_animFrame; }      // 演出用
+bool  GetIsFirstUpdate() const { return m_isFirst; }    // 初期化フラグ
+Vector3 GetMoveSpeed() const { return m_moveSpeed; }    // 作ったけど使わなかった</code></pre>
+<p>
+<strong>「あとで使うかもしれない」は、消す理由になります。</strong>
+必要になったら、そのとき1行書けばよいだけです。
+<u>使われていないコードは、読む人の時間を奪うだけの負債です。</u>
+</p>
+<div class="note" style="--lv: var(--warn);">
+<span class="h">消す前に、コミットしておいてください</span>
+消してビルドが通っても、<strong>あとで「あれ、あの関数どこ？」</strong>
+となることがあります。
+<br><br>
+Git に入っていれば戻せます（<a href="1-03_Git.html">1-03</a>）。
+<u>安心して消せるようにしておくのが、Git を使う理由のひとつです。</u>
+</div>
+<p><strong>おまけ：クラスの「顔」を見る</strong></p>
+<p>
+消し終わったら、<code>.h</code> の <code>public:</code> だけを眺めてください。
+<strong>そこに並んでいるものが、そのクラスの全機能です。</strong>
+</p>
+<pre><code>// これくらいなら、ひと目で分かる
+public:
+    bool Start()  override;
+    void Update() override;
+    void Render(RenderContext&amp; rc) override;
+
+    int  GetHp() const;
+    bool IsAlive() const;
+    void Damage(int amount);
+    void Heal(int amount);
+    const Vector3&amp; GetPosition() const;
+    void SetPosition(const Vector3&amp; pos);</code></pre>
+<p>
+<strong>ここが20行を超えるなら、クラスが大きすぎます。</strong>
+<a href="4-07_Component.html">4-07</a> で分ける方法をやります。
+</p>
+		</details>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li>カプセル化の目的は？</li>
+			<li><code>SetHp()</code> が <code>public</code> なメンバとほぼ同じなのはなぜ？</li>
+			<li>参照を返す getter に <code>const</code> を付けないと、何が起きる？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>変わりうる場所を1か所に閉じ込めて、
+					デバッグしやすくすること。</li>
+				<li>結局どこからでも好きな値を入れられるから。
+					検索する名前が変わっただけ。</li>
+				<li>呼び出し側が中身を直接書き換えられる。
+					<code>private</code> にした意味がなくなる。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="4-03_Composition.html"><strong>4-03 継承の落とし穴とコンポジション</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

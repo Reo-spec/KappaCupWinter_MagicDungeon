@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strategy ― 中身だけを差し替える</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n4" href="4-08_Observer.html">← 前 4-08</a>
+			<a class="navchip n4" href="index.html#lv4">LV4 の目次</a>
+			<a class="navchip n4" href="4-10_Factory.html">次 → 4-10</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l4">
+		<p class="kicker">LV4 設計 ／ 4-09</p>
+		<h1>Strategy ― 中身だけを差し替える</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="4-03_Composition.html">4-03</a>
+		</p>
+	</header>
+
+	<section class="level l4">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>コピペした似たクラスを、1つにまとめられる</strong></li>
+			<li>弾の軌道を、組み合わせで作れる</li>
+			<li>State との違いが説明できる</li>
+		</ul>
+		<p class="prose">
+			<a href="4-03_Composition.html">4-03</a> で作った
+			<code>IMover</code> が、まさにこれです。
+			<strong>この章では、名前と使いどころをはっきりさせます。</strong>
+		</p>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">02</span>困っている形</h2>
+<pre><code>// Bullet.cpp     ― まっすぐ飛ぶ
+// HomingBullet.cpp ― 追尾する
+// WaveBullet.cpp   ― 波打って飛ぶ
+// LaserBullet.cpp  ― 伸びる</code></pre>
+		<p class="prose">
+			<strong>4つとも、違うのは <code>Update()</code> の中の数行だけ。</strong>
+			当たり判定も、描画も、画面外判定も、寿命の管理も、全部同じです。
+		</p>
+		<p class="prose">
+			ある日「弾がプレイヤーに当たったときの処理」を変えることになりました。
+			<strong>4ファイル直します。そして1つ直し忘れます。</strong>
+		</p>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">03</span>Strategy ― 変わる部分だけを外に出す</h2>
+<pre><code>// BulletMotion.h
+/// &lt;summary&gt;弾の飛び方。&lt;/summary&gt;
+class IBulletMotion {
+public:
+    virtual ~IBulletMotion() {}
+
+    /// &lt;summary&gt;撃たれたとき、1回だけ。&lt;/summary&gt;
+    virtual void OnFire(const Vector3&amp; startPos, const Vector3&amp; dir) {}
+
+    /// &lt;summary&gt;毎フレーム、位置を動かす。&lt;/summary&gt;
+    virtual void Move(Vector3&amp; position, float dt) = 0;
+};
+
+class StraightMotion : public IBulletMotion {
+public:
+    explicit StraightMotion(float speed) : m_speed(speed) {}
+    void OnFire(const Vector3&amp; startPos, const Vector3&amp; dir) override
+    {
+        m_velocity = dir * m_speed;
+    }
+    void Move(Vector3&amp; position, float dt) override
+    {
+        position += m_velocity * dt;
+    }
+private:
+    float   m_speed;
+    Vector3 m_velocity = Vector3::Zero;
+};
+
+class HomingMotion : public IBulletMotion {
+public:
+    HomingMotion(float speed, float turnRate)
+        : m_speed(speed), m_turnRate(turnRate) {}
+
+    void OnFire(const Vector3&amp; startPos, const Vector3&amp; dir) override
+    {
+        m_velocity = dir * m_speed;
+    }
+    void Move(Vector3&amp; position, float dt) override
+    {
+        Enemy* target = FindNearestEnemy(position);
+        if (target != nullptr) {
+            Vector3 toTarget = target-&gt;GetPosition() - position;
+            toTarget.Normalize();
+            // 少しずつ、目標の方向へ寄せる
+            m_velocity += toTarget * m_turnRate * dt;
+            m_velocity.Normalize();
+            m_velocity *= m_speed;
+        }
+        position += m_velocity * dt;
+    }
+private:
+    float   m_speed, m_turnRate;
+    Vector3 m_velocity = Vector3::Zero;
+};</code></pre>
+<pre><code>// Bullet.cpp ― 1つだけになる
+void Bullet::Reset(const Vector3&amp; pos, const Vector3&amp; dir,
+                   std::unique_ptr&lt;IBulletMotion&gt; motion)
+{
+    m_position = pos;
+    m_motion   = std::move(motion);
+    m_motion-&gt;OnFire(pos, dir);
+    m_lifeTime = 0.0f;
+}
+
+void Bullet::Update()
+{
+    const float dt = g_gameTime-&gt;GetFrameDeltaTime();
+
+    m_motion-&gt;Move(m_position, dt);     // ★ ここだけが差し替わる
+
+    // 以下は全部の弾で共通
+    m_lifeTime += dt;
+    if (m_lifeTime &gt; MAX_LIFE || IsOutOfScreen()) {
+        Deactivate();
+        return;
+    }
+    CheckHit();
+    m_spriteRender.SetPosition(m_position);
+    m_spriteRender.Update();
+}</code></pre>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">04</span>State との違い</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th></th><th>Strategy</th><th>State</th></tr></thead>
+			<tbody>
+				<tr><td>形</td><td colspan="2"><strong>どちらも「中身を差し替える」。形はほぼ同じ</strong></td></tr>
+				<tr><td>いつ差し替わる</td>
+					<td><strong>外から決められて、基本そのまま</strong></td>
+					<td><strong>自分で次の状態を決めて、自動で変わる</strong></td></tr>
+				<tr><td>互いを知っているか</td>
+					<td>知らない</td>
+					<td><u>次の状態を知っている</u></td></tr>
+				<tr><td>例</td><td>弾の軌道、敵の動き方、AIの難易度</td>
+					<td>ボスのフェーズ、キャラの待機／歩き／攻撃</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note">
+			<span class="h">迷ったら、どちらでも構いません</span>
+			<strong>コードの形はほとんど同じです。</strong>
+			名前の違いは「意図の違い」を表しているだけで、
+			<u>間違えても動かなくなることはありません。</u><br>
+			面接で聞かれたときに答えられれば充分です。
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">05</span>組み合わせられるのが強み</h2>
+		<p class="prose">
+			軌道と見た目を別々に指定できるようになります。
+		</p>
+<pre><code>// 追尾する赤い弾
+pool-&gt;Fire(pos, dir,
+    std::make_unique&lt;HomingMotion&gt;(400.0f, 8.0f),
+    enBulletVisual_Red);
+
+// まっすぐ飛ぶ赤い弾
+pool-&gt;Fire(pos, dir,
+    std::make_unique&lt;StraightMotion&gt;(800.0f),
+    enBulletVisual_Red);
+
+// 波打つ青い弾
+pool-&gt;Fire(pos, dir,
+    std::make_unique&lt;WaveMotion&gt;(300.0f, 100.0f, 5.0f),
+    enBulletVisual_Blue);</code></pre>
+		<p class="prose">
+			<strong>軌道4種 × 見た目3種 = 12通り。</strong>
+			クラスは4 + 3 = 7個。
+			<a href="4-03_Composition.html">4-03</a> の掛け算の話と同じです。
+		</p>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">06</span>毎回 new するのが気になる場合</h2>
+		<p class="prose">
+			<code>std::make_unique</code> を撃つたびに呼ぶと、
+			<a href="4-06_ObjectPool.html">4-06</a> でやった問題が戻ってきます。
+		</p>
+		<p class="prose">
+			<strong>状態を持たない Strategy なら、使い回せます。</strong>
+		</p>
+<pre><code>// 速度だけ渡して、内部に状態を持たない形にする
+class IBulletMotion {
+public:
+    virtual ~IBulletMotion() {}
+    virtual void Move(Vector3&amp; position, Vector3&amp; velocity, float dt) const = 0;
+};
+
+class StraightMotion : public IBulletMotion {
+public:
+    void Move(Vector3&amp; position, Vector3&amp; velocity, float dt) const override
+    {
+        position += velocity * dt;
+    }
+};</code></pre>
+<pre><code>// 1個ずつ作っておいて、ポインタだけ渡す
+namespace {
+    StraightMotion s_straight;
+    HomingMotion   s_homing;
+    WaveMotion     s_wave;
+}
+
+pool-&gt;Fire(pos, dir * 800.0f, &amp;s_straight);</code></pre>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">状態を持たせられるかどうかで、書き方が変わります</span>
+			<strong>持たせるなら、弾ごとに1つ必要（<code>unique_ptr</code>）。</strong><br>
+			<strong>持たせないなら、1個を全員で共有できる（ポインタ）。</strong><br>
+			<u>状態は弾側（<code>velocity</code> など）に置けないか、先に考えてください。</u>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（まとめる）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">コピペで作った弾クラスを<strong>1つにまとめて</strong>、軌道を <code>IBulletMotion</code> にする。</p>
+
+		<h3>演習2（増やす）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>波打つ弾</strong>と<strong>加速する弾</strong>を足す。<u><code>Bullet.cpp</code> は1行も触らずに。</u></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>/// &lt;summary&gt;進行方向に対して、左右に波打ちながら飛ぶ。&lt;/summary&gt;
+class WaveMotion : public IBulletMotion {
+public:
+    WaveMotion(float speed, float width, float cycle)
+        : m_speed(speed), m_width(width), m_cycle(cycle) {}
+
+    void OnFire(const Vector3&amp; startPos, const Vector3&amp; dir) override
+    {
+        m_forward = dir;
+        m_forward.Normalize();
+
+        // 進行方向に対して垂直な向きを作る（Y軸まわりに90度回す）
+        m_side = { -m_forward.z, 0.0f, m_forward.x };
+
+        m_basePos = startPos;
+        m_time    = 0.0f;
+    }
+
+    void Move(Vector3&amp; position, float dt) override
+    {
+        m_time += dt;
+        m_basePos += m_forward * m_speed * dt;
+
+        float offset = sinf(m_time * m_cycle) * m_width;
+        position = m_basePos + m_side * offset;
+    }
+
+private:
+    float   m_speed, m_width, m_cycle;
+    Vector3 m_forward = Vector3::Zero;
+    Vector3 m_side    = Vector3::Zero;
+    Vector3 m_basePos = Vector3::Zero;
+    float   m_time    = 0.0f;
+};
+
+/// &lt;summary&gt;だんだん速くなる。&lt;/summary&gt;
+class AccelMotion : public IBulletMotion {
+public:
+    AccelMotion(float startSpeed, float accel, float maxSpeed)
+        : m_speed(startSpeed), m_accel(accel), m_maxSpeed(maxSpeed) {}
+
+    void OnFire(const Vector3&amp; startPos, const Vector3&amp; dir) override
+    {
+        m_dir = dir;
+        m_dir.Normalize();
+    }
+
+    void Move(Vector3&amp; position, float dt) override
+    {
+        m_speed += m_accel * dt;
+        if (m_speed &gt; m_maxSpeed) { m_speed = m_maxSpeed; }
+        position += m_dir * m_speed * dt;
+    }
+
+private:
+    float   m_speed, m_accel, m_maxSpeed;
+    Vector3 m_dir = Vector3::Zero;
+};</code></pre>
+<p><strong>使う</strong></p>
+<pre><code>pool-&gt;Fire(pos, dir, std::make_unique&lt;WaveMotion&gt;(400.0f, 80.0f, 8.0f));
+pool-&gt;Fire(pos, dir, std::make_unique&lt;AccelMotion&gt;(100.0f, 900.0f, 1200.0f));</code></pre>
+<div class="note" style="--lv: var(--ok);">
+<span class="h"><code>Bullet.cpp</code> を1行も触っていません</span>
+<strong>新しいファイルを足しただけです。</strong>
+これが <a href="4-04_Solid.html">4-04</a> の O（開放閉鎖）です。
+<br><br>
+コピペ方式だったら、<u>2ファイル増えて、共通処理も2つコピーされていた</u>はずです。
+</div>
+<div class="note" style="--lv: var(--warn);">
+<span class="h"><code>WaveMotion</code> の <code>m_basePos</code> に注意</span>
+<strong><code>position</code> をそのまま揺らすと、揺れが累積して発散します。</strong>
+<br><br>
+「まっすぐ進む中心（<code>m_basePos</code>）」を別に持って、
+<u>そこからのズレとして位置を決める</u>のが正解です。
+波・回転・振動の実装で、ほぼ必ず出てくる落とし穴です。
+</div>
+<p><strong>加速弾の値の目安</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>狙い</th><th>startSpeed</th><th>accel</th></tr></thead>
+<tbody>
+<tr><td>じわっと速くなる</td><td>200</td><td>300</td></tr>
+<tr><td><strong>置いてから急発進（避けにくい）</strong></td><td>50</td><td>1500</td></tr>
+<tr><td>最初から速い</td><td>800</td><td>200</td></tr>
+</tbody>
+</table>
+</div>
+		</details>
+
+		<h3>演習3（考える）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">自分のコードから<strong>Strategy に向いている場所</strong>をもう1つ見つけて、書き直す。<strong>本文には答えがありません。</strong></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>シューティングで Strategy が効く場所</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>場所</th><th>差し替えるもの</th><th>効果</th></tr></thead>
+<tbody>
+<tr><td>敵の動き</td><td><code>IMover</code></td>
+	<td>4-03でやった。<strong>いちばん効く</strong></td></tr>
+<tr><td><strong>敵の撃ち方</strong></td><td><code>IShotPattern</code></td>
+	<td>単発／3方向／全方位／自機狙い</td></tr>
+<tr><td>アイテムの効果</td><td><code>IItemEffect</code></td>
+	<td>回復／パワーアップ／ボム／スコア</td></tr>
+<tr><td>難易度</td><td><code>IDifficulty</code></td>
+	<td>敵のHP倍率・弾速・出現間隔をまとめて</td></tr>
+<tr><td>スコア計算</td><td><code>IScoreRule</code></td>
+	<td>コンボ倍率のルールを差し替える</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>おすすめは「敵の撃ち方」です</strong></p>
+<pre><code>class IShotPattern {
+public:
+    virtual ~IShotPattern() {}
+    /// &lt;summary&gt;1回撃つ。&lt;/summary&gt;
+    virtual void Shot(const Vector3&amp; from, BulletPool&amp; pool) = 0;
+};
+
+/// &lt;summary&gt;プレイヤーを狙って1発。&lt;/summary&gt;
+class AimShot : public IShotPattern {
+public:
+    void Shot(const Vector3&amp; from, BulletPool&amp; pool) override
+    {
+        Player* p = FindGO&lt;Player&gt;("player");
+        if (p == nullptr) { return; }
+
+        Vector3 dir = p-&gt;GetPosition() - from;
+        dir.Normalize();
+        pool.Fire(from, dir);
+    }
+};
+
+/// &lt;summary&gt;扇状に n 発。&lt;/summary&gt;
+class FanShot : public IShotPattern {
+public:
+    FanShot(int num, float totalAngleDeg)
+        : m_num(num), m_total(totalAngleDeg) {}
+
+    void Shot(const Vector3&amp; from, BulletPool&amp; pool) override
+    {
+        if (m_num &lt;= 0) { return; }
+
+        float step  = (m_num == 1) ? 0.0f : m_total / (m_num - 1);
+        float start = -m_total * 0.5f;
+
+        for (int i = 0; i &lt; m_num; i++) {
+            Quaternion rot;
+            rot.SetRotationDegY(start + step * i);
+
+            Vector3 dir = { 0.0f, 0.0f, -1.0f };
+            rot.Apply(dir);
+            pool.Fire(from, dir);
+        }
+    }
+private:
+    int   m_num;
+    float m_total;
+};
+
+/// &lt;summary&gt;全方位。&lt;/summary&gt;
+class CircleShot : public IShotPattern {
+public:
+    explicit CircleShot(int num) : m_num(num) {}
+    void Shot(const Vector3&amp; from, BulletPool&amp; pool) override
+    {
+        for (int i = 0; i &lt; m_num; i++) {
+            Quaternion rot;
+            rot.SetRotationDegY(360.0f / m_num * i);
+
+            Vector3 dir = { 0.0f, 0.0f, -1.0f };
+            rot.Apply(dir);
+            pool.Fire(from, dir);
+        }
+    }
+private:
+    int m_num;
+};</code></pre>
+<p><strong>ボスのフェーズごとに撃ち方を変える</strong></p>
+<pre><code>// 4-05 の State と組み合わせる
+void BossMoveState::OnEnter(Boss&amp; boss)
+{
+    boss.SetShotPattern(std::make_unique&lt;FanShot&gt;(3, 60.0f));
+}
+
+void BossRageState::OnEnter(Boss&amp; boss)
+{
+    boss.SetShotPattern(std::make_unique&lt;CircleShot&gt;(16));
+}</code></pre>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">State × Strategy の組み合わせが効きます</span>
+<strong>State が「いつ」を決め、Strategy が「何を」決める。</strong>
+<br><br>
+この2つを組み合わせると、
+<u>弾幕のパターンを増やすのが、クラスを1つ足すだけの作業になります。</u>
+ボス戦の作り込みが、一気に楽しくなるところです。
+</div>
+		</details>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li>Strategy と State の違いは？</li>
+			<li>Strategy を使い回せるようにするには、何を避ける？</li>
+			<li>波打つ動きを書くとき、位置を直接揺らしてはいけないのはなぜ？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>Strategy は外から決められてそのまま。
+					State は自分で次の状態を決めて自動で変わる。</li>
+				<li>内部に状態を持たせないこと。
+					持たなければ1個を全員で共有できる。</li>
+				<li>揺れが累積して発散するから。
+					中心の位置を別に持ち、そこからのズレとして決める。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="4-10_Factory.html"><strong>4-10 Factory</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

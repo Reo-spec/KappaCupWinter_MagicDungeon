@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>スコアとHP、UI</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n2" href="2-17_DeathTiming.html">← 前 2-17</a>
+			<a class="navchip n2" href="index.html#lv2">LV2 の目次</a>
+			<a class="navchip n2" href="2-19_Sound.html">次 → 2-19</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l2">
+		<p class="kicker">LV2 基礎 ／ 2-18</p>
+		<h1>スコアとHP、UI</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="2-12_FontRender.html">2-12</a>
+		</p>
+	</header>
+
+	<section class="level l2">
+		<h2><span class="n">00</span>入場チェック</h2>
+		<ul class="checklist prose">
+			<li>文字を画面に出せる？ → <a href="2-12_FontRender.html">2-12</a></li>
+			<li>優先度で描画順が決まることを知っている？ → <a href="2-04_Priority.html">2-04</a></li>
+		</ul>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li>スコア・残機・HPを画面に出せる</li>
+			<li><strong>「データをどこに置くか」を自分で決められる</strong></li>
+		</ul>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">02</span>スコアはどこに置くのか</h2>
+		<p class="prose">
+			敵を倒したとき、スコアを増やしたい。でも
+			<strong>スコアの変数は、誰が持つべきでしょうか。</strong>
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>置き場所</th><th>良いところ</th><th>困るところ</th></tr></thead>
+			<tbody>
+				<tr><td>グローバル変数</td><td>どこからでも触れる</td>
+					<td><strong>どこからでも触れる</strong>。誰が変えたか追えない</td></tr>
+				<tr><td><code>GameScene</code> が持つ</td><td>持ち主がはっきりする</td>
+					<td>敵から <code>FindGO</code> する必要がある</td></tr>
+				<tr><td>UIクラスが持つ</td><td>表示と同じ場所</td>
+					<td>「表示のためのクラス」がデータを持つのは、役割がずれている</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>いまは <code>GameScene</code> に持たせるのがおすすめです。</strong>
+			「ゲームの進行」を管理しているのがそこだからです。
+		</p>
+		<div class="note">
+			<span class="h">正解はひとつではありません</span>
+			この「どこに置くか」の判断こそが<strong>設計</strong>です。
+			<a href="index.html#lv4">LV4</a> で、
+			もっと良いやり方（ObserverパターンやSingletonの是非）を扱います。
+			<strong>いまは動くものを作ることを優先してください。</strong>
+		</div>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">03</span>書いてみる</h2>
+<pre><code>// GameScene.h
+class GameScene : public IGameObject {
+public:
+    bool Start() override;
+    void Update() override;
+
+    void AddScore(int value) { m_score += value; }
+    int  GetScore() const    { return m_score; }
+
+    void DamagePlayer(int damage);
+    int  GetLife() const     { return m_life; }
+
+private:
+    int m_score = 0;
+    int m_life  = 3;
+};</code></pre>
+
+<pre><code>// 敵がやられたとき
+void Enemy::TakeDamage(int damage)
+{
+    ...
+    if (m_hp &lt;= 0) {
+        GameScene* scene = FindGO&lt;GameScene&gt;("gameScene");
+        if (scene != nullptr) {
+            scene-&gt;AddScore(100);
+        }
+        ...
+    }
+}</code></pre>
+		<p class="prose">
+			<strong>倒されるのはめったに起きないので、ここは <code>FindGO</code> で構いません。</strong>
+			毎フレーム呼ぶわけではないからです（<a href="2-07_FindGO.html">2-07</a>）。
+			気になるなら <code>GOHandle</code> に覚えさせてください。
+		</p>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">04</span>UIクラス</h2>
+<pre><code>// GameUi.h
+class GameUi : public IGameObject {
+public:
+    bool Start() override;
+    void Update() override;
+    void Render(RenderContext&amp; rc) override;
+private:
+    FontRender      m_scoreFont;
+    FontRender      m_lifeFont;
+    GOHandle&lt;GameScene&gt; m_scene;
+};</code></pre>
+
+<pre><code>bool GameUi::Start()
+{
+    m_scene.Reset(FindGO&lt;GameScene&gt;("gameScene"));
+
+    m_scoreFont.SetPosition({ -920.0f, 500.0f, 0.0f });
+    m_scoreFont.SetScale(1.4f);
+    m_scoreFont.SetShadowParam(true, 2.0f, { 0.0f, 0.0f, 0.0f, 1.0f });
+
+    m_lifeFont.SetPosition({ -920.0f, 440.0f, 0.0f });
+    m_lifeFont.SetScale(1.4f);
+    m_lifeFont.SetShadowParam(true, 2.0f, { 0.0f, 0.0f, 0.0f, 1.0f });
+    return true;
+}
+
+void GameUi::Update()
+{
+    GameScene* scene = m_scene.Get();
+    if (scene == nullptr) {
+        return;
+    }
+    wchar_t text[256];
+
+    swprintf_s(text, 256, L"SCORE %06d", scene-&gt;GetScore());
+    m_scoreFont.SetText(text);
+
+    swprintf_s(text, 256, L"LIFE %d", scene-&gt;GetLife());
+    m_lifeFont.SetText(text);
+}
+
+void GameUi::Render(RenderContext&amp; rc)
+{
+    m_scoreFont.Draw(rc);
+    m_lifeFont.Draw(rc);
+}</code></pre>
+		<p class="prose">
+			<strong>UIの優先度はいちばん大きくしてください。</strong>
+			そうしないと、敵や弾の下に隠れます（<a href="2-04_Priority.html">2-04</a>）。
+		</p>
+<pre><code>NewGO&lt;GameUi&gt;(enPriority_Ui, "gameUi");</code></pre>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">05</span>HPバーを作る</h2>
+		<p class="prose">
+			数字より、棒グラフのほうが直感的です。
+			<strong>スプライトの横幅を変えるだけ</strong>で作れます。
+		</p>
+<pre><code>bool BossHpBar::Start()
+{
+    m_barSprite.Init("Assets/sprite/hpBar.dds", 400.0f, 24.0f);
+    // 左端を基準にすると、左から減るようになる。
+    m_barSprite.SetPivot({ 0.0f, 0.5f });
+    m_barSprite.SetPosition({ -200.0f, 480.0f, 0.0f });
+    return true;
+}
+
+void BossHpBar::Update()
+{
+    float rate = (float)m_hp / (float)m_maxHp;    // 0.0 〜 1.0
+    m_barSprite.SetScale({ rate, 1.0f, 1.0f });   // 横だけ縮める
+    m_barSprite.Update();
+}</code></pre>
+		<div class="note">
+			<span class="h"><code>SetPivot</code> が効く</span>
+			ピボット（基準点）を <code>{0.5, 0.5}</code>（中心）のままにすると、
+			<strong>左右から均等に縮みます。</strong>
+			<code>{0.0, 0.5}</code>（左端）にすると、右から減っていきます。
+		</div>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">06</span>よくあるエラー</h2>
+		<h3>UIが敵に隠れる</h3>
+		<p class="prose">
+			<strong>原因：</strong>優先度が小さい。<br>
+			<strong>直し方：</strong>UIは <code>enPriority_Ui</code>（いちばん大きい値）にする。
+		</p>
+
+		<h3>スコアが増えない</h3>
+		<p class="prose">
+			<strong>原因：</strong><code>FindGO&lt;GameScene&gt;</code> が <code>nullptr</code>。
+			名前の打ち間違いか、まだ作られていない。<br>
+			<strong>直し方：</strong>GameObject List で名前を確認する。
+		</p>
+
+		<h3>数字がガタガタして読みにくい</h3>
+		<p class="prose">
+			<strong>原因：</strong>桁数が変わると幅が変わる。<br>
+			<strong>直し方：</strong><code>L"SCORE %06d"</code> のように<strong>桁をそろえる。</strong>
+			<code>%06d</code> は「6桁、足りない分は0で埋める」という意味です。
+		</p>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（まねる）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">スコアと残機を画面に出す。</p>
+
+		<h3>演習2（増やす）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">HPバーを作って、被弾すると減るようにする。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>// BossHpBar.h
+private:
+    SpriteRender m_frameSprite;      // 枠（背景）
+    SpriteRender m_barSprite;        // 中身
+    GOHandle&lt;Boss&gt; m_boss;
+    static const float BAR_WIDTH;
+
+// BossHpBar.cpp
+const float BossHpBar::BAR_WIDTH = 800.0f;
+
+bool BossHpBar::Start()
+{
+    m_boss.Reset(FindGO&lt;Boss&gt;("boss"));
+
+    // 枠は暗い色で、バーと同じ大きさ。
+    m_frameSprite.Init("Assets/sprite/white.dds", BAR_WIDTH, 24.0f);
+    m_frameSprite.SetPivot({ 0.0f, 0.5f });
+    m_frameSprite.SetMulColor({ 0.2f, 0.2f, 0.2f, 0.8f });
+    m_frameSprite.SetPosition({ -BAR_WIDTH * 0.5f, 480.0f, 0.0f });
+
+    m_barSprite.Init("Assets/sprite/white.dds", BAR_WIDTH, 24.0f);
+    m_barSprite.SetPivot({ 0.0f, 0.5f });      // ★ 左端が基準
+    m_barSprite.SetPosition({ -BAR_WIDTH * 0.5f, 480.0f, 0.0f });
+    return true;
+}
+
+void BossHpBar::Update()
+{
+    Boss* boss = m_boss.Get();
+    if (boss == nullptr) {
+        return;
+    }
+    float rate = (float)boss-&gt;GetHp() / (float)boss-&gt;GetMaxHp();
+    rate = max(0.0f, min(1.0f, rate));
+
+    // 残りが少ないほど赤くする。
+    m_barSprite.SetMulColor({ 1.0f, rate, rate, 1.0f });
+    m_barSprite.SetScale({ rate, 1.0f, 1.0f });
+
+    m_frameSprite.Update();
+    m_barSprite.Update();
+}
+
+void BossHpBar::Render(RenderContext&amp; rc)
+{
+    m_frameSprite.Draw(rc);    // 先に枠
+    m_barSprite.Draw(rc);      // あとで中身（上に重なる）
+}</code></pre>
+<p><strong>ポイント</strong></p>
+<ul>
+<li><strong>枠を先に描く。</strong>あとから描いたものが上に重なります</li>
+<li><code>SetPivot({0.0f, 0.5f})</code> で左端基準にすると、右から減ります</li>
+<li>位置を <code>-BAR_WIDTH * 0.5f</code> にすると、画面中央にそろいます</li>
+<li><code>white.dds</code> は真っ白な1枚の画像。
+	<code>SetMulColor</code> で色を変えれば、1枚でいろいろ使い回せます</li>
+</ul>
+		</details>
+
+		<h3>演習3（自分で書く）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			スコアが増えたとき、<strong>数字が一気に変わるのではなく、
+			パラパラと目標値まで増えていく</strong>ようにする。
+			<strong>本文には答えがありません。</strong>
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>// ScoreUi.h
+private:
+    int m_displayScore = 0;      // 表示している値
+    int m_targetScore  = 0;      // 本当の値
+
+// ScoreUi.cpp
+void ScoreUi::Update()
+{
+    GameScene* scene = m_scene.Get();
+    if (scene != nullptr) {
+        m_targetScore = scene-&gt;GetScore();
+    }
+
+    // 表示を目標値に近づける。
+    if (m_displayScore &lt; m_targetScore) {
+        int diff = m_targetScore - m_displayScore;
+
+        // 差が大きいほど速く増やす。最低でも1は増やす。
+        int step = max(1, diff / 10);
+        m_displayScore += step;
+
+        if (m_displayScore &gt; m_targetScore) {
+            m_displayScore = m_targetScore;
+        }
+    }
+
+    wchar_t text[256];
+    swprintf_s(text, 256, L"SCORE %06d", m_displayScore);
+    m_fontRender.SetText(text);
+}</code></pre>
+<p><strong>ポイント</strong></p>
+<ul>
+<li><strong>「表示用の値」と「本当の値」を分ける</strong>のがコツです。
+	ゲームのロジックは <code>m_targetScore</code> だけ見ればよく、
+	見せ方はUI側だけで完結します</li>
+<li><code>diff / 10</code> にすると、最初は速く、近づくとゆっくりになります。
+	一定の値で増やすより気持ちよく見えます</li>
+<li><code>max(1, ...)</code> を忘れると、差が10未満のときに <code>step</code> が0になり、
+	<strong>永遠に追いつきません</strong></li>
+</ul>
+<p>
+これは <strong>「見せ方」と「データ」を分ける</strong>という設計の練習にもなっています。
+<a href="index.html#lv4">LV4</a> で扱う考え方です。
+</p>
+		</details>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li>UIの優先度を大きくするのはなぜ？</li>
+			<li><code>%06d</code> は何をする？</li>
+			<li>HPバーを左から減らすには、何を設定する？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>あとから描かれるほど手前に出るから。UIは全部の上に出したい。</li>
+				<li>6桁で表示し、足りない桁は0で埋める。桁数が変わっても幅がそろう。</li>
+				<li><code>SetPivot({0.0f, 0.5f})</code> で基準点を左端にする。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="2-19_Sound.html"><strong>2-19 サウンド</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

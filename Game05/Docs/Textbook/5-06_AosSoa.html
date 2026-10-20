@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AoS と SoA — データの並べ方</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n5" href="5-05_AccessOrder.html">← 前 5-05</a>
+			<a class="navchip n5" href="index.html#lv5">LV5 の目次</a>
+			<a class="navchip n5" href="5-07_Allocator.html">次 → 5-07</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l5">
+		<p class="kicker">LV5 最適化 ／ 5-06</p>
+		<h1>AoS と SoA — データの並べ方</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span>
+			／ 前提 <a href="5-05_AccessOrder.html">5-05</a>
+		</p>
+	</header>
+
+	<section class="level l5">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>データの持ち方を変えて、数倍速くできる</strong></li>
+			<li>AoS と SoA の使い分けが分かる</li>
+			<li>LV4 の設計と、LV5 の速さが対立することを実感する</li>
+		</ul>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">02</span>2つの持ち方</h2>
+<pre><code>// AoS（Array of Structures）― 構造体の配列
+struct Bullet {
+    Vector3 position;
+    Vector3 velocity;
+    float   life;
+    bool    isActive;
+};
+std::vector&lt;Bullet&gt; bullets;        // ★ ふつうの書き方
+
+
+// SoA（Structure of Arrays）― 配列の構造体
+struct BulletArray {
+    std::vector&lt;Vector3&gt; positions;
+    std::vector&lt;Vector3&gt; velocities;
+    std::vector&lt;float&gt;   lives;
+    std::vector&lt;bool&gt;    actives;
+};
+BulletArray bullets;                // ★ メンバごとに別の配列</code></pre>
+
+		<figure>
+			<svg viewBox="0 0 740 340" role="img"
+			     aria-label="AoSとSoAのメモリ配置の比較図。AoSでは1つの弾の全メンバが連続して並ぶため、位置だけを読みたくても速度や寿命まで一緒にキャッシュに運ばれる。SoAでは位置だけが連続して並ぶため、64バイトに5個分の位置が入り無駄がない">
+				<g class="fig-head" color="currentColor">
+					<text class="fig-t sm cwarn" x="20" y="22">AoS ― 位置だけ欲しくても、全部運ばれる</text>
+
+					<rect class="fig-box b5" x="20" y="36" width="60" height="30" rx="3"/>
+					<text class="fig-m c5" x="50" y="56" text-anchor="middle">pos0</text>
+					<rect class="fig-box" x="82" y="36" width="60" height="30" rx="3"/>
+					<text class="fig-m" x="112" y="56" text-anchor="middle">vel0</text>
+					<rect class="fig-box" x="144" y="36" width="40" height="30" rx="3"/>
+					<text class="fig-m" x="164" y="56" text-anchor="middle">life</text>
+					<rect class="fig-box" x="186" y="36" width="34" height="30" rx="3"/>
+					<text class="fig-m" x="203" y="56" text-anchor="middle">act</text>
+
+					<rect class="fig-box b5" x="222" y="36" width="60" height="30" rx="3"/>
+					<text class="fig-m c5" x="252" y="56" text-anchor="middle">pos1</text>
+					<rect class="fig-box" x="284" y="36" width="60" height="30" rx="3"/>
+					<text class="fig-m" x="314" y="56" text-anchor="middle">vel1</text>
+					<rect class="fig-box" x="346" y="36" width="40" height="30" rx="3"/>
+					<text class="fig-m" x="366" y="56" text-anchor="middle">life</text>
+					<rect class="fig-box" x="388" y="36" width="34" height="30" rx="3"/>
+					<text class="fig-m" x="405" y="56" text-anchor="middle">act</text>
+
+					<rect class="fig-box b5" x="424" y="36" width="60" height="30" rx="3"/>
+					<text class="fig-m c5" x="454" y="56" text-anchor="middle">pos2</text>
+					<rect class="fig-box" x="486" y="36" width="60" height="30" rx="3"/>
+					<text class="fig-m" x="516" y="56" text-anchor="middle">vel2</text>
+					<rect class="fig-box" x="548" y="36" width="40" height="30" rx="3"/>
+					<text class="fig-m" x="568" y="56" text-anchor="middle">life</text>
+					<rect class="fig-box" x="590" y="36" width="34" height="30" rx="3"/>
+					<text class="fig-m" x="607" y="56" text-anchor="middle">act</text>
+
+					<rect class="fig-warn" x="20" y="76" width="404" height="22" rx="3"/>
+					<text class="fig-m cwarn" x="222" y="92" text-anchor="middle">1本のキャッシュライン（64B）</text>
+					<text class="fig-m cwarn" x="436" y="92">→ 位置は 2個分だけ（残りは、この処理で使わないデータ）</text>
+
+					<path class="fig-dash" d="M 20 120 L 720 120"/>
+
+					<text class="fig-t sm cok" x="20" y="148">SoA ― 位置だけが連続して並ぶ</text>
+
+					<rect class="fig-box b5" x="20" y="162" width="56" height="30" rx="3"/>
+					<text class="fig-m c5" x="48" y="182" text-anchor="middle">pos0</text>
+					<rect class="fig-box b5" x="78" y="162" width="56" height="30" rx="3"/>
+					<text class="fig-m c5" x="106" y="182" text-anchor="middle">pos1</text>
+					<rect class="fig-box b5" x="136" y="162" width="56" height="30" rx="3"/>
+					<text class="fig-m c5" x="164" y="182" text-anchor="middle">pos2</text>
+					<rect class="fig-box b5" x="194" y="162" width="56" height="30" rx="3"/>
+					<text class="fig-m c5" x="222" y="182" text-anchor="middle">pos3</text>
+					<rect class="fig-box b5" x="252" y="162" width="56" height="30" rx="3"/>
+					<text class="fig-m c5" x="280" y="182" text-anchor="middle">pos4</text>
+					<rect class="fig-box b5" x="310" y="162" width="56" height="30" rx="3"/>
+					<text class="fig-m c5" x="338" y="182" text-anchor="middle">pos5</text>
+					<text class="fig-m" x="374" y="182">…</text>
+
+					<rect class="fig-box" x="20" y="200" width="56" height="26" rx="3"/>
+					<text class="fig-m" x="48" y="218" text-anchor="middle">vel0</text>
+					<rect class="fig-box" x="78" y="200" width="56" height="26" rx="3"/>
+					<text class="fig-m" x="106" y="218" text-anchor="middle">vel1</text>
+					<rect class="fig-box" x="136" y="200" width="56" height="26" rx="3"/>
+					<text class="fig-m" x="164" y="218" text-anchor="middle">vel2</text>
+					<text class="fig-m" x="200" y="218">…　（別の配列）</text>
+
+					<rect class="fig-box b4" x="20" y="238" width="290" height="22" rx="3"/>
+					<text class="fig-m c4" x="165" y="254" text-anchor="middle">1本のキャッシュライン（64B）</text>
+					<text class="fig-t sm cok" x="322" y="254">→ 位置が 5個分。無駄ゼロ</text>
+
+					<rect class="fig-box" x="20" y="278" width="700" height="50" rx="6"/>
+					<text class="fig-t sm" x="370" y="300" text-anchor="middle">「その処理が実際に読むデータ」だけが並んでいるほど、速い</text>
+					<text class="fig-m" x="370" y="320" text-anchor="middle">逆に言えば、全部のメンバを毎回使うなら AoS のほうがよい</text>
+				</g>
+			</svg>
+			<figcaption>
+				<strong>同じデータでも、並べ方で運ばれる量が変わります。</strong>
+				この例では、位置だけを使う処理が 2.5倍の効率になります。
+			</figcaption>
+		</figure>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">03</span>どちらが速いかは、処理による</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>処理</th><th>速いほう</th><th>理由</th></tr></thead>
+			<tbody>
+				<tr><td><strong>全員の位置だけ更新</strong></td>
+					<td><strong>SoA</strong></td>
+					<td>位置だけが連続。無駄なく運べる</td></tr>
+				<tr><td>当たり判定（位置と半径だけ）</td>
+					<td><strong>SoA</strong></td><td>同上</td></tr>
+				<tr><td>1個の弾の全情報を見る</td>
+					<td><strong>AoS</strong></td>
+					<td>1か所にまとまっている</td></tr>
+				<tr><td>弾を1個消す</td><td><strong>AoS</strong></td>
+					<td>SoA は全部の配列を触る必要がある</td></tr>
+				<tr><td>コードの読みやすさ</td><td><strong>AoS</strong></td>
+					<td><u>SoA は明らかに読みにくい</u></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">LV4 と LV5 が、ここで正面から対立します</span>
+			<strong>LV4 では「Bullet クラスにまとめなさい」と教えました。</strong>
+			カプセル化です。<br>
+			<strong>LV5 は「ばらしなさい」と言っています。</strong><br><br>
+			<u>どちらも正しい。場面が違うだけです。</u><br>
+			<strong>SoA にするのは、「測って、そこが遅いと分かったとき」だけ</strong>です。
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">04</span>現実的な折衷案</h2>
+		<p class="prose">
+			<strong>全部を SoA にする必要はありません。</strong>
+			<u>ホットな部分だけ切り出すのが現実的です。</u>
+		</p>
+<pre><code>// 当たり判定に使うものだけ、別に持つ
+class BulletPool {
+public:
+    void UpdateAll(float dt)
+    {
+        // ★ ここは SoA。位置と速度だけ
+        for (size_t i = 0; i &lt; m_count; i++) {
+            m_positions[i] += m_velocities[i] * dt;
+        }
+    }
+
+    int FindHit(const Vector3&amp; center, float radius) const
+    {
+        // ★ ここも SoA。位置だけを読む
+        const float r2 = radius * radius;
+        for (size_t i = 0; i &lt; m_count; i++) {
+            Vector3 d = m_positions[i] - center;
+            if (d.LengthSq() &lt; r2) { return (int)i; }
+        }
+        return -1;
+    }
+
+private:
+    // 毎フレーム全部なめるもの → SoA
+    std::vector&lt;Vector3&gt; m_positions;
+    std::vector&lt;Vector3&gt; m_velocities;
+
+    // たまにしか使わないもの → まとめて AoS
+    struct BulletInfo {
+        int   damage;
+        int   ownerId;
+        float lifeTime;
+        EnBulletVisual visual;
+    };
+    std::vector&lt;BulletInfo&gt; m_infos;
+
+    size_t m_count = 0;
+};</code></pre>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h">これが、実際のゲームエンジンでよくある形です</span>
+			<strong>「毎フレーム全部なめるもの」だけ SoA、
+			残りは AoS のまま。</strong><br>
+			<u>読みやすさをあまり犠牲にせず、効果の大部分を得られます。</u>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">05</span>削除をどうするか</h2>
+		<p class="prose">
+			<strong>SoA でいちばん面倒なのは、途中の1個を消すことです。</strong>
+		</p>
+<pre><code>// ★ 遅い：後ろを全部ずらす
+m_positions.erase(m_positions.begin() + i);
+m_velocities.erase(m_velocities.begin() + i);
+m_infos.erase(m_infos.begin() + i);</code></pre>
+<pre><code>// ○ 速い：最後の要素を持ってきて、size を減らす
+void BulletPool::Remove(size_t i)
+{
+    const size_t last = m_count - 1;
+    if (i != last) {
+        m_positions[i]  = m_positions[last];
+        m_velocities[i] = m_velocities[last];
+        m_infos[i]      = m_infos[last];
+    }
+    m_count--;
+}</code></pre>
+		<p class="prose">
+			<strong>「swap and pop」と呼ばれるやり方です。</strong>O(1) です。
+		</p>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">順番が変わります</span>
+			<strong>弾の並び順が入れ替わるので、
+			「何番目の弾」という参照は無効になります。</strong><br>
+			<u>弾の描画順が変わる、といった影響もあります。</u>
+			順番が意味を持つものには使えません。
+		</div>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">ループの中で消すときは、要注意</span>
+<pre style="margin-top:8px;"><code>// ★ バグ：消した位置に、最後の要素が来る。それを飛ばしてしまう
+for (size_t i = 0; i &lt; m_count; i++) {
+    if (ShouldRemove(i)) { Remove(i); }
+}
+
+// ○ 消したときは、i を進めない
+for (size_t i = 0; i &lt; m_count; ) {
+    if (ShouldRemove(i)) { Remove(i); }
+    else                 { i++; }
+}</code></pre>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">06</span>測ってから決める</h2>
+		<p class="prose">
+			<strong>SoA にする前に、必ず AoS で測ってください。</strong>
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>条件</th><th>SoA にする価値</th></tr></thead>
+			<tbody>
+				<tr><td>要素が<strong>数千個以上</strong></td><td><strong>ある</strong></td></tr>
+				<tr><td>毎フレーム全部なめる</td><td><strong>ある</strong></td></tr>
+				<tr><td>使うメンバが、全体の一部</td><td><strong>ある</strong></td></tr>
+				<tr><td>要素が数十個</td><td><u>ない。全部L1に乗る</u></td></tr>
+				<tr><td>たまにしか触らない</td><td><u>ない</u></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note">
+			<span class="h">敵50体を SoA にしても、まず速くなりません</span>
+			<strong>50体 × 数百バイト ＝ 数十KB。L1〜L2 に収まります。</strong><br>
+			<u>もともとキャッシュに乗っているものを並べ替えても、意味はありません。</u>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（測る）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>AoS と SoA を両方書いて、「10万個の位置を更新する」時間を比べる。</strong></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>#include &lt;vector&gt;
+#include "Bench.h"
+
+namespace {
+
+const int N = 100000;
+
+struct BulletAoS {
+    Vector3 position;
+    Vector3 velocity;
+    float   life;
+    int     damage;
+    int     ownerId;
+    bool    isActive;
+};
+
+struct BulletSoA {
+    std::vector&lt;Vector3&gt; positions;
+    std::vector&lt;Vector3&gt; velocities;
+    std::vector&lt;float&gt;   lives;
+    std::vector&lt;int&gt;     damages;
+    std::vector&lt;int&gt;     ownerIds;
+    std::vector&lt;char&gt;    actives;     // vector&lt;bool&gt; は特殊なので char
+};
+
+}  // namespace
+
+void CompareAosSoa()
+{
+    const float dt = 1.0f / 60.0f;
+
+    //----- AoS -----
+    std::vector&lt;BulletAoS&gt; aos(N);
+    for (int i = 0; i &lt; N; i++) {
+        aos[i].position = { (float)i, 0.0f, 0.0f };
+        aos[i].velocity = { 1.0f, 2.0f, 3.0f };
+        aos[i].isActive = true;
+    }
+
+    //----- SoA -----
+    BulletSoA soa;
+    soa.positions.resize(N);
+    soa.velocities.resize(N);
+    soa.lives.resize(N);
+    soa.damages.resize(N);
+    soa.ownerIds.resize(N);
+    soa.actives.resize(N, 1);
+    for (int i = 0; i &lt; N; i++) {
+        soa.positions[i]  = { (float)i, 0.0f, 0.0f };
+        soa.velocities[i] = { 1.0f, 2.0f, 3.0f };
+    }
+
+    // 100回ずつ回して測る
+    {
+        BENCH("AoS  位置更新 x100");
+        for (int k = 0; k &lt; 100; k++) {
+            for (int i = 0; i &lt; N; i++) {
+                aos[i].position += aos[i].velocity * dt;
+            }
+        }
+    }
+
+    {
+        BENCH("SoA  位置更新 x100");
+        for (int k = 0; k &lt; 100; k++) {
+            for (int i = 0; i &lt; N; i++) {
+                soa.positions[i] += soa.velocities[i] * dt;
+            }
+        }
+    }
+
+    // 消されないように結果を使う
+    char buf[128];
+    sprintf_s(buf, "aos[0].x=%f soa[0].x=%f\n",
+              aos[0].position.x, soa.positions[0].x);
+    OutputDebugStringA(buf);
+}</code></pre>
+<p><strong>典型的な結果（Release）</strong></p>
+<pre><code>AoS  位置更新 x100           :   52.310 ms
+SoA  位置更新 x100           :   28.774 ms     ← 1.8倍速い</code></pre>
+<p><strong>なぜ 1.8倍か</strong></p>
+<pre><code>BulletAoS の sizeof = 40 バイト
+  うち、この処理で使うのは position(12) + velocity(24までの差分) = 24バイト
+  → 40バイト運んで、24バイトしか使わない（60%）
+
+SoA
+  positions(12) と velocities(12) を別々に連続で読む
+  → 運んだぶんを 100% 使う</code></pre>
+<div class="note" style="--lv: var(--warn);">
+<span class="h">1.8倍。「10倍」ではありません</span>
+<strong>AoS でも、<code>vector</code> なので連続して並んでいます。</strong>
+キャッシュには乗るのです。
+<u>無駄が 40% あるぶんだけ遅い、という差です。</u>
+<br><br>
+<strong>10倍の差が出るのは、ポインタの配列
+（<code>vector&lt;Bullet*&gt;</code>）の場合です。</strong>
+そちらも試してみてください。
+</div>
+<p><strong>おまけ ― ポインタの配列も測る</strong></p>
+<pre><code>std::vector&lt;BulletAoS*&gt; ptrs;
+for (int i = 0; i &lt; N; i++) {
+    ptrs.push_back(new BulletAoS(aos[i]));   // ★ バラバラに確保される
+}
+
+{
+    BENCH("ポインタ配列 x100");
+    for (int k = 0; k &lt; 100; k++) {
+        for (int i = 0; i &lt; N; i++) {
+            ptrs[i]-&gt;position += ptrs[i]-&gt;velocity * dt;
+        }
+    }
+}</code></pre>
+<pre><code>AoS  位置更新 x100           :   52.310 ms
+SoA  位置更新 x100           :   28.774 ms
+ポインタ配列 x100            :  198.442 ms     ← SoA の 6.9倍遅い</code></pre>
+<div class="note" style="--lv: var(--danger);">
+<span class="h">これが、あなたのゲームで実際に起きていることです</span>
+<strong><code>NewGO</code> で作った弾を
+<code>std::vector&lt;Bullet*&gt;</code> や <code>std::list</code> で持つのは、
+このいちばん遅い形です。</strong>
+<br><br>
+<u>ただし、弾が200発なら差は測れません。</u>
+問題になるのは、数千個からです。
+</div>
+		</details>
+
+		<h3>演習2（書き直す）<span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span></h3>
+		<p class="prose">自分の<strong>弾の更新と当たり判定</strong>を SoA にする。<u>削除は swap and pop で。</u>ゲームが前と同じように動くか確認する。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>設計方針</strong></p>
+<ul>
+<li>毎フレーム全部なめるもの（位置・速度）→ <strong>SoA</strong></li>
+<li>当たったときだけ使うもの（ダメージ・所有者）→ <strong>AoS でまとめる</strong></li>
+<li><code>IGameObject</code> は<u>プール1個だけ</u>にする（弾ごとには作らない）</li>
+</ul>
+<pre><code>// BulletSystem.h
+#pragma once
+
+class BulletSystem : public IGameObject {
+public:
+    bool Start()  override;
+    void Update() override;
+    void Render(RenderContext&amp; rc) override;
+
+    /// &lt;summary&gt;弾を1発撃つ。&lt;/summary&gt;
+    bool Fire(const Vector3&amp; pos, const Vector3&amp; vel, int damage);
+
+    /// &lt;summary&gt;円と当たっている弾を探す。&lt;/summary&gt;
+    /// &lt;returns&gt;見つかった添字。無ければ -1&lt;/returns&gt;
+    int  FindHit(const Vector3&amp; center, float radius) const;
+
+    int  GetDamage(int index) const { return m_infos[index].damage; }
+    void Remove(int index);
+
+    int  GetCount() const { return m_count; }
+
+private:
+    static const int MAX = 4096;
+
+    // ---- 毎フレーム全部なめる（SoA）----
+    std::vector&lt;Vector3&gt; m_positions;
+    std::vector&lt;Vector3&gt; m_velocities;
+
+    // ---- 当たったときだけ使う（AoS）----
+    struct Info {
+        int   damage  = 0;
+        int   ownerId = 0;
+        float life    = 0.0f;
+    };
+    std::vector&lt;Info&gt; m_infos;
+
+    int m_count = 0;
+
+    // 描画はインスタンシングで1回（5-08）
+    ModelRender m_modelRender;
+};</code></pre>
+<pre><code>// BulletSystem.cpp
+namespace {
+    const float BULLET_RADIUS = 8.0f;
+    const float MAX_LIFE      = 5.0f;
+}
+
+bool BulletSystem::Start()
+{
+    m_positions.resize(MAX);
+    m_velocities.resize(MAX);
+    m_infos.resize(MAX);
+
+    m_modelRender.Init("Assets/modelData/bullet.tkm",
+                       nullptr, 0, enModelUpAxisZ, true, MAX);
+    return true;
+}
+
+bool BulletSystem::Fire(const Vector3&amp; pos, const Vector3&amp; vel, int damage)
+{
+    if (m_count &gt;= MAX) {
+        return false;
+    }
+    m_positions[m_count]  = pos;
+    m_velocities[m_count] = vel;
+    m_infos[m_count]      = { damage, 0, 0.0f };
+    m_count++;
+    return true;
+}
+
+void BulletSystem::Remove(int i)
+{
+    const int last = m_count - 1;
+    if (i != last) {
+        m_positions[i]  = m_positions[last];
+        m_velocities[i] = m_velocities[last];
+        m_infos[i]      = m_infos[last];
+    }
+    m_count--;
+}
+
+void BulletSystem::Update()
+{
+    K2_PROFILE_SCOPE("BulletSystem");
+    const float dt = g_gameTime-&gt;GetFrameDeltaTime();
+
+    // ★ ここが SoA の効くところ。位置と速度しか触らない
+    for (int i = 0; i &lt; m_count; i++) {
+        m_positions[i] += m_velocities[i] * dt;
+    }
+
+    // 寿命と画面外の判定（消すので、後ろから見る）
+    for (int i = m_count - 1; i &gt;= 0; i--) {
+        m_infos[i].life += dt;
+        if (m_infos[i].life &gt; MAX_LIFE || IsOutOfScreen(m_positions[i])) {
+            Remove(i);
+        }
+    }
+}
+
+int BulletSystem::FindHit(const Vector3&amp; center, float radius) const
+{
+    const float r2 = (radius + BULLET_RADIUS) * (radius + BULLET_RADIUS);
+
+    // ★ 位置だけを連続で読む
+    for (int i = 0; i &lt; m_count; i++) {
+        Vector3 d = m_positions[i] - center;
+        if (d.LengthSq() &lt; r2) {
+            return i;
+        }
+    }
+    return -1;
+}</code></pre>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">消すループを「後ろから」にすると、swap and pop の罠を避けられます</span>
+<strong>後ろから見ていれば、
+最後の要素を持ってきても、すでに見終わった位置</strong>です。
+<br><br>
+<pre style="margin-top:8px;"><code>for (int i = m_count - 1; i &gt;= 0; i--) {
+    if (...) { Remove(i); }
+}</code></pre>
+<u>前から見るときの「i を進めない」より、こちらのほうが素直です。</u>
+</div>
+<div class="note" style="--lv: var(--danger);">
+<span class="h">弾が <code>IGameObject</code> ではなくなります</span>
+<strong>これは大きな変更です。</strong>
+<ul style="margin-bottom:0;">
+<li><code>FindGO&lt;Bullet&gt;</code> が使えなくなる</li>
+<li>弾ごとの <code>Update()</code> / <code>Render()</code> が呼ばれない</li>
+<li><strong>優先度による描画順の制御ができなくなる</strong></li>
+</ul>
+<br>
+<u>そのぶん、4096発でも更新が 0.1ms 程度で終わります。</u>
+<br><br>
+<strong>「どちらを取るか」が、この章の問いです。</strong>
+弾が200発で足りるゲームなら、<u>この変更は割に合いません。</u>
+</div>
+<p><strong>確認のしかた</strong></p>
+<ol>
+<li>書き直す前に、<code>K2_PROFILE_SCOPE</code> で数字を記録</li>
+<li>書き直したあと、同じ場面で測る</li>
+<li><strong>遊んでみて、弾の挙動が変わっていないか確認</strong></li>
+<li><a href="4-14_Testable.html">4-14</a> のテストパネルがあれば、それも走らせる</li>
+</ol>
+		</details>
+
+		<h3>演習3（判断する）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>自分のゲームで、SoA にする価値があるものと、ないものを分類する。</strong>理由も書く。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>分類の例</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>対象</th><th>個数</th><th>SoA？</th><th>理由</th></tr></thead>
+<tbody>
+<tr><td><strong>弾</strong></td><td>〜2000</td><td><strong>する</strong></td>
+	<td>毎フレーム全部なめる。位置しか使わない</td></tr>
+<tr><td><strong>パーティクル</strong></td><td>〜10000</td><td><strong>する</strong></td>
+	<td>いちばん数が多い。処理も単純</td></tr>
+<tr><td>敵</td><td>〜50</td><td><u>しない</u></td>
+	<td>全部L1に乗る。個体ごとの処理が複雑</td></tr>
+<tr><td>プレイヤー</td><td>1</td><td><u>しない</u></td><td>—</td></tr>
+<tr><td>ボス</td><td>1</td><td><u>しない</u></td><td>—</td></tr>
+<tr><td>UI要素</td><td>〜20</td><td><u>しない</u></td><td>—</td></tr>
+<tr><td>アイテム</td><td>〜30</td><td><u>しない</u></td><td>—</td></tr>
+<tr><td>背景のオブジェクト</td><td>〜500</td><td><u>たぶんしない</u></td>
+	<td>動かないので、そもそも更新しない</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>判断の手順</strong></p>
+<ol>
+<li><strong>個数は数千以上か</strong> — 違えばここで終わり</li>
+<li>毎フレーム全部なめているか</li>
+<li>使うメンバは、全体の一部か</li>
+<li><strong>測って、実際にボトルネックか</strong></li>
+</ol>
+<p>
+<strong>4つ全部に「はい」でなければ、AoS のままにしてください。</strong>
+</p>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">この判断ができることが、この章のゴールです</span>
+<strong>SoA を書けることではありません。</strong>
+<br><br>
+<u>「ここは SoA にする価値がない」と言えるほうが、
+実務では価値があります。</u>
+<br><br>
+面接でも、<strong>「弾とパーティクルだけ SoA にして、
+敵はそのままにしました。敵は50体しかいないので、
+測っても差が出なかったからです」</strong>
+と言えれば、非常に強いです。
+</div>
+<div class="note" style="--lv: var(--warn);">
+<span class="h">LV4 とのバランス</span>
+<a href="4-16_Redesign.html">4-16</a> で整理したコードを、
+<strong>ここで崩すことになります。</strong>
+<br><br>
+<u>崩してよいのは、測って効果が確認できた場所だけ</u>です。
+そして<strong>崩した理由をコメントに残してください。</strong>
+<pre style="margin-top:8px;"><code>// 【SoA化】弾は最大4096発なので、位置と速度だけ別配列にしている。
+// AoS だと更新に 1.8ms かかっていたが、0.6ms になった。
+// 読みにくいのは承知のうえ。敵（50体）は AoS のままでよい。</code></pre>
+</div>
+		</details>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li>SoA が速くなるのは、どんな処理？</li>
+			<li>AoS のほうがよいのは、どんなとき？</li>
+			<li>swap and pop の欠点は？</li>
+			<li>要素が50個しかないとき、SoA にする価値は？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>大量の要素の、一部のメンバだけを毎フレームなめる処理。</li>
+				<li>1個の全情報を見るとき、削除が多いとき、
+					読みやすさを優先したいとき。</li>
+				<li>順番が変わる。「何番目」という参照が無効になる。</li>
+				<li>ない。もともとキャッシュに乗っているので変わらない。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="5-07_Allocator.html"><strong>5-07 new/delete のコストとアロケータ自作</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

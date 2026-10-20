@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>関数</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n1" href="1-09_Loop.html">← 前 1-09</a>
+			<a class="navchip n1" href="index.html#lv1">LV1 の目次</a>
+			<a class="navchip n1" href="1-11_Array.html">次 → 1-11</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l1">
+		<p class="kicker">LV1 入門 ／ 1-10</p>
+		<h1>関数 ― 処理に名前をつける</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="1-09_Loop.html">1-09</a>
+		</p>
+	</header>
+
+	<section class="level l1">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li>処理をまとめて、名前をつけられる</li>
+			<li>引数と戻り値を使える</li>
+			<li><strong><code>Update()</code> を短く保てる</strong></li>
+		</ul>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">02</span>なぜ関数に分けるのか</h2>
+		<p class="prose">
+			<code>Update()</code> にすべてを書いていくと、こうなります。
+		</p>
+<pre><code>void Game::Update()
+{
+    // 移動の処理 20行
+    // 画面外チェック 10行
+    // 弾を撃つ処理 25行
+    // 当たり判定 30行
+    // アニメーション 15行
+    // ... 気づけば300行
+}</code></pre>
+		<p class="prose">
+			<strong>どこを直せばいいのか分からなくなります。</strong>
+			名前をつけて分けると、こうなります。
+		</p>
+<pre><code>void Game::Update()
+{
+    Move();
+    ClampToScreen();
+    Shoot();
+    CheckHit();
+    UpdateAnimation();
+}</code></pre>
+		<p class="prose">
+			<strong><code>Update()</code> を読むだけで「何をしているか」が分かります。</strong>
+			直したい場所も、名前から見当がつきます。
+		</p>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">03</span>書き方</h2>
+		<p class="prose">
+			クラスの関数（メンバ関数）は、<strong><code>.h</code> に宣言、
+			<code>.cpp</code> に中身</strong>を書きます。
+		</p>
+<pre><code>// Game.h
+class Game : public IGameObject
+{
+public:
+    bool Start();
+    void Update();
+    void Render(RenderContext&amp; rc);
+
+private:
+    void Move();                  // ★ 宣言
+    void ClampToScreen();         // ★ 宣言
+
+private:
+    FontRender m_fontRender;
+    float m_posX  = 0.0f;
+    float m_speed = 3.0f;
+};</code></pre>
+
+<pre><code>// Game.cpp
+void Game::Move()                 // ★ Game:: を忘れない
+{
+    m_posX += m_speed;
+}
+
+void Game::ClampToScreen()
+{
+    if (m_posX &gt; 900.0f) {
+        m_posX = 900.0f;
+        m_speed = -m_speed;
+    }
+    if (m_posX &lt; -900.0f) {
+        m_posX = -900.0f;
+        m_speed = -m_speed;
+    }
+}
+
+void Game::Update()
+{
+    Move();
+    ClampToScreen();
+    ...
+}</code></pre>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h"><code>Game::</code> を忘れると <code>LNK2019</code></span>
+			<code>.cpp</code> で <code>void Move()</code> と書くと、
+			<strong>Game とは無関係の、まったく別の関数</strong>になってしまいます。
+			結果、<code>Game::Move</code> の中身が見つからずリンクエラーです
+			（<a href="1-05_ErrorMessage.html">1-05</a>）。
+		</div>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">04</span>引数と戻り値</h2>
+<pre><code>// 引数：外から値を受け取る
+void SetHp(int hp)
+{
+    m_hp = hp;
+}
+
+// 戻り値：結果を返す
+int GetHp()
+{
+    return m_hp;
+}
+
+// 両方
+int Add(int a, int b)
+{
+    return a + b;
+}</code></pre>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>書き方</th><th>意味</th></tr></thead>
+			<tbody>
+				<tr><td><code>void</code></td><td>戻り値なし。<code>return</code> を書かなくてよい</td></tr>
+				<tr><td><code>int</code></td><td><code>int</code> を返す。<strong><code>return</code> が必須</strong></td></tr>
+				<tr><td><code>( )</code> の中</td><td>引数。無いなら空でよい</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<code>void</code> の関数でも、<strong><code>return;</code> で途中で抜けられます。</strong>
+			これはよく使います。
+		</p>
+<pre><code>void Game::Shoot()
+{
+    if (m_coolTime &gt; 0.0f) {
+        return;              // まだ撃てないので、何もせず帰る
+    }
+    // ここから下は、撃てるときだけ通る
+    ...
+}</code></pre>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">05</span>よい関数の作り方</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>こころがけ</th><th>理由</th></tr></thead>
+			<tbody>
+				<tr><td><strong>ひとつのことだけをする</strong></td>
+					<td>名前が付けやすくなる。<code>MoveAndShoot()</code> は分けるべき</td></tr>
+				<tr><td><strong>名前は動詞から始める</strong></td>
+					<td><code>Move()</code>, <code>CheckHit()</code>, <code>IsAlive()</code></td></tr>
+				<tr><td><strong>20行を超えたら分割を考える</strong></td>
+					<td>目安。長い関数は読めない</td></tr>
+				<tr><td><code>bool</code> を返すなら <code>Is</code> / <code>Has</code> で始める</td>
+					<td><code>IsAlive()</code>、<code>HasKey()</code>。読んだとき自然な文になる</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note">
+			<span class="h">名前がうまく付けられない関数は、たぶん分けるべきです</span>
+			<strong>「これ何をする関数？」に一言で答えられないなら、
+			2つ以上のことをしています。</strong>
+			名前を考えることが、そのまま設計の練習になります。
+		</div>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">06</span>演習</h2>
+		<h3>演習1（まねる）<span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>Update()</code> の中身を <code>Move()</code> と <code>ClampToScreen()</code> に分ける。</p>
+
+		<h3>演習2（作る）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>2つの数を受け取って、大きいほうを返す関数</strong> <code>int Max2(int a, int b)</code> を作って使う。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>// Game.h
+private:
+    int Max2(int a, int b);
+
+// Game.cpp
+int Game::Max2(int a, int b)
+{
+    if (a &gt; b) {
+        return a;
+    }
+    return b;
+}</code></pre>
+<p>
+<code>else</code> を書かなくてよいことに注目してください。
+<strong><code>return</code> したら、そこで関数は終わります。</strong>
+</p>
+<p>ちなみに、C++には最初から <code>max</code> と <code>min</code> があります。</p>
+<pre><code>int big   = max(a, b);
+int small = min(a, b);
+int clamped = max(0, min(100, hp));   // 0〜100 に収める（よく使う）</code></pre>
+<p>
+<strong>最後の書き方は、この先ずっと使います。</strong>覚えておいてください。
+</p>
+		</details>
+
+		<h3>演習3（分ける）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">いままで書いた <code>Update()</code> を見直して、<strong>3つ以上の関数に分ける。</strong>そのあと、<code>Update()</code> が何をしているか一目で分かるか確かめる。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>// Game.cpp
+void Game::Update()
+{
+    UpdateInput();
+    Move();
+    ClampToScreen();
+    UpdateHpState();
+    UpdateText();
+}</code></pre>
+<p>
+<strong>これが目標の形です。</strong>
+<code>Update()</code> を見ただけで、このゲームが毎フレーム何をしているか分かります。
+</p>
+<p><strong>分けるときのコツ</strong></p>
+<ul>
+<li><strong>コメントを書きたくなったところが、分けどころです。</strong>
+	<code>// 移動の処理</code> と書きたくなったら、
+	それは <code>Move()</code> という関数にできます</li>
+<li>関数名がコメントの代わりになるので、<strong>コメントが減ります</strong></li>
+<li>分けすぎても害はほとんどありません。迷ったら分けてください</li>
+</ul>
+<div class="note">
+<span class="h">この感覚が LV4 につながります</span>
+「長い関数を分ける」は、設計のいちばん基本の一歩です。
+<a href="4-04_Solid.html">LV4-04</a> で「1000行の Update」を扱いますが、
+<strong>いまこの習慣を付けておけば、そもそもそうなりません。</strong>
+</div>
+		</details>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">07</span>確認</h2>
+		<ol class="prose">
+			<li>メンバ関数の中身を <code>.cpp</code> に書くとき、名前の前に何を付ける？</li>
+			<li><code>void</code> の関数で <code>return;</code> を書くのはどんなとき？</li>
+			<li>関数を分ける目安は？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>クラス名と <code>::</code>。例：<code>void Game::Move()</code></li>
+				<li>条件を満たさないとき、途中で処理をやめて抜けるとき。</li>
+				<li>ひとつのことだけをするように。20行を超えたら考える。
+					コメントを書きたくなったら分けどき。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l1">
+		<h2><span class="n">08</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="1-11_Array.html"><strong>1-11 配列と std::vector</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

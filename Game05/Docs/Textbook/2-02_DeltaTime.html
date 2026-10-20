@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>デルタタイムとフレーム</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n2" href="2-01_GameLoop.html">← 前 2-01</a>
+			<a class="navchip n2" href="index.html#lv2">LV2 の目次</a>
+			<a class="navchip n2" href="2-03_MyGameObject.html">次 → 2-03</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l2">
+		<p class="kicker">LV2 基礎 ／ 2-02</p>
+		<h1>デルタタイムとフレーム</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span>
+			／ 前提 <a href="2-01_GameLoop.html">2-01</a>
+		</p>
+	</header>
+
+	<section class="level l2">
+		<h2><span class="n">00</span>入場チェック</h2>
+		<ul class="checklist prose">
+			<li><code>Update()</code> は1秒に何回くらい呼ばれる？ → 答えられないなら <a href="2-01_GameLoop.html">2-01</a> へ戻る</li>
+			<li><code>float</code> と <code>int</code> の違いは？ → 答えられないなら <a href="1-06_Variable.html">1-06</a> へ戻る</li>
+		</ul>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>PCの速さに左右されない</strong>動きが書ける</li>
+			<li><code>g_gameTime-&gt;GetFrameDeltaTime()</code> が何の値か説明できる</li>
+			<li>「1フレームで何ピクセル」ではなく「1秒で何ピクセル」で考えられる</li>
+		</ul>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">02</span>やってはいけない書き方</h2>
+		<p class="prose">
+			キャラクターを右に動かしたいとき、こう書きたくなります。
+		</p>
+<pre><code>void Player::Update()
+{
+    m_position.x += 5.0f;    // 毎フレーム 5 進む
+}</code></pre>
+		<p class="prose">
+			自分のPCでは、ちょうどいい速さで動くかもしれません。
+			<strong>でも、これは壊れています。</strong>
+		</p>
+
+		<figure>
+			<svg viewBox="0 0 720 230" role="img"
+			     aria-label="毎フレーム5ピクセル動かすと、60fpsのPCでは1秒で300ピクセル、30fpsのPCでは150ピクセルしか進まず、速さが変わってしまうことを示す図">
+				<g class="fig-head" color="currentColor">
+					<text class="fig-t" x="20" y="24">毎フレーム +5 で動かすと…</text>
+
+					<text class="fig-m" x="20" y="64">60fps のPC</text>
+					<rect class="fig-box b2" x="140" y="46" width="520" height="26" rx="4"/>
+					<text class="fig-t sm c2" x="400" y="64" text-anchor="middle">1秒で 300 進む</text>
+
+					<text class="fig-m" x="20" y="114">30fps のPC</text>
+					<rect class="fig-danger" x="140" y="96" width="260" height="26" rx="4"/>
+					<text class="fig-t sm cdanger" x="270" y="114" text-anchor="middle">1秒で 150 しか進まない</text>
+					<text class="fig-t sm cdanger" x="412" y="114">← 半分の速さ</text>
+
+					<path class="fig-dash" d="M 20 146 L 700 146"/>
+
+					<text class="fig-t" x="20" y="176">デルタタイムを掛けると…</text>
+					<rect class="fig-box b2" x="140" y="188" width="520" height="26" rx="4"/>
+					<text class="fig-t sm cok" x="400" y="206" text-anchor="middle">どちらも 1秒で 300 進む</text>
+					<text class="fig-m" x="20" y="206">どのPCでも</text>
+				</g>
+			</svg>
+			<figcaption>
+				<strong>フレームの回数は、PCの速さや画面の描画負荷で変わります。</strong>
+				「1フレームで5進む」と書くと、重いPCではゲームがスローモーションになります。
+			</figcaption>
+		</figure>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">03</span>デルタタイムを掛ける</h2>
+		<p class="prose">
+			<strong>デルタタイム</strong>とは、<strong>前のフレームから今のフレームまでにかかった秒数</strong>です。
+			60fps なら約 0.0166 秒、30fps なら約 0.0333 秒になります。
+		</p>
+<pre><code>void Player::Update()
+{
+    // 1秒で 300 進む。
+    m_position.x += 300.0f * g_gameTime-&gt;GetFrameDeltaTime();
+}</code></pre>
+		<p class="prose">
+			60fps なら <code>300 × 0.0166 = 約5</code>、30fps なら <code>300 × 0.0333 = 約10</code>。
+			<strong>1フレームで進む量は変わりますが、1秒で進む距離は同じになります。</strong>
+		</p>
+		<div class="note">
+			<span class="h">速さは「1秒あたり」で考える</span>
+			<code>300.0f</code> という数字は<strong>「1秒で300ピクセル進む」</strong>という意味です。
+			「1フレームで5」ではなく「1秒で300」で考える癖をつけてください。
+			この考え方は、Unityでも Unreal Engine でも同じです。
+		</div>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">04</span>どこに掛けるのか</h2>
+		<p class="prose">
+			<strong>「時間とともに変化するもの」すべてに掛けます。</strong>
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>やりたいこと</th><th>書き方</th></tr></thead>
+			<tbody>
+				<tr><td>移動</td><td><code>m_position += m_velocity * dt;</code></td></tr>
+				<tr><td>回転</td><td><code>m_angle += 90.0f * dt;</code>（1秒で90度）</td></tr>
+				<tr><td>時間を数える</td><td><code>m_timer += dt;</code></td></tr>
+				<tr><td>連射のクールタイム</td><td><code>m_coolTime -= dt;</code></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			毎回 <code>g_gameTime-&gt;GetFrameDeltaTime()</code> と書くのは長いので、
+			関数の先頭で受けておくと読みやすくなります。
+		</p>
+<pre><code>void Player::Update()
+{
+    const float dt = g_gameTime-&gt;GetFrameDeltaTime();
+
+    m_position.x += 300.0f * dt;
+    m_timer      += dt;
+}</code></pre>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">05</span>掛けてはいけないもの</h2>
+		<p class="prose">
+			<strong>「時間と関係ないもの」には掛けません。</strong>
+		</p>
+<pre><code>// ダメな例
+m_hp -= 10 * dt;          // ダメージは時間で変わらない
+
+// 正しい
+m_hp -= 10;</code></pre>
+		<p class="prose">
+			ただし<strong>「毒で1秒に5ダメージ」</strong>のようなものは、
+			時間とともに変化するので掛けます。
+			<strong>「1秒あたりの量なのか、1回あたりの量なのか」</strong>で判断してください。
+		</p>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">06</span>動かして確かめる</h2>
+		<p class="prose">
+			k2Engine は標準で 60fps に制限されています。
+			わざと重くして、違いを見てみましょう。
+		</p>
+<pre><code>void Game::Update()
+{
+    // わざと重い処理を入れる。
+    if (g_pad[0]-&gt;IsPress(enButtonA)) {
+        volatile double x = 0.0;
+        for (int i = 0; i &lt; 20000000; i++) { x += i * 0.5; }
+    }
+}</code></pre>
+		<p class="prose">
+			Aボタンを押しながら、Profilerパネル（<kbd>F1</kbd> → Profiler）で
+			フレーム時間が伸びるのを見てください。
+		</p>
+		<ul class="checklist prose">
+			<li>デルタタイムを掛けていないものは、押した瞬間スローモーションになる</li>
+			<li>デルタタイムを掛けたものは、<strong>カクカクするが、進む速さは変わらない</strong></li>
+		</ul>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">07</span>よくあるエラー</h2>
+		<h3>デルタタイムを2回掛けてしまう</h3>
+		<p class="prose">
+			<strong>原因：</strong><code>m_velocity</code> にすでに掛けたのに、
+			<code>m_position += m_velocity * dt;</code> でもう一度掛けている。<br>
+			<strong>直し方：</strong><strong>「速度」は1秒あたりの量、「位置」は距離</strong>と決めて、
+			位置に足すときだけ掛ける。
+		</p>
+
+		<h3>動きが速すぎる／遅すぎる</h3>
+		<p class="prose">
+			<strong>原因：</strong>数字を「1フレームあたり」のつもりで書いている。<br>
+			<strong>直し方：</strong>1秒でどれだけ動いてほしいかを考える。
+			画面幅1920を2秒で横切るなら <code>960.0f</code> です。
+		</p>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">08</span>演習</h2>
+		<h3>演習1（まねる）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">デルタタイムを使って、3秒で画面を横切るスプライトを作る。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>void Game::Update()
+{
+    const float dt = g_gameTime-&gt;GetFrameDeltaTime();
+
+    // 画面幅1920を3秒で横切る → 1秒あたり640
+    m_position.x += 640.0f * dt;
+
+    // 右端まで行ったら左端に戻す
+    if (m_position.x &gt; 960.0f) {
+        m_position.x = -960.0f;
+    }
+
+    m_spriteRender.SetPosition(m_position);
+    m_spriteRender.Update();
+}</code></pre>
+<p><code>1920 ÷ 3 = 640</code> です。速さは「1秒あたり」で考えます。</p>
+		</details>
+
+		<h3>演習2（比べる）<span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			デルタタイムを掛けたものと掛けないものを両方置いて、
+			上の「重い処理」を入れたときの違いを見る。
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>void Game::Update()
+{
+    const float dt = g_gameTime-&gt;GetFrameDeltaTime();
+
+    m_goodPos.x += 300.0f * dt;     // デルタタイムあり
+    m_badPos.x  += 5.0f;            // デルタタイムなし
+
+    // 重くする
+    if (g_pad[0]-&gt;IsPress(enButtonA)) {
+        volatile double x = 0.0;
+        for (int i = 0; i &lt; 20000000; i++) { x += i * 0.5; }
+    }
+    ...
+}</code></pre>
+<p>
+Aボタンを押すと、<strong>デルタタイムなしのほうだけが急に遅くなります。</strong>
+デルタタイムありのほうは、カクカクはしますが、同じ時間で同じ距離を進みます。
+</p>
+<p>
+これが「PCの速さに左右されない」ということです。
+遊ぶ人のPCは、あなたのPCより遅いかもしれません。
+</p>
+		</details>
+
+		<h3>演習3（自分で書く）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			<strong>3秒たったら自分を消す</strong>オブジェクトを作る。
+			<code>m_timer</code> と <code>dt</code> を使うこと。
+			<strong>本文には答えがありません。</strong>
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>// TimedObject.h
+private:
+    float m_timer = 0.0f;
+
+// TimedObject.cpp
+void TimedObject::Update()
+{
+    m_timer += g_gameTime-&gt;GetFrameDeltaTime();
+
+    if (m_timer &gt;= 3.0f) {
+        DeleteGO(this);
+        return;              // ★ 忘れない
+    }
+    ...
+}</code></pre>
+<p>
+<code>m_timer</code> を<strong>足していく</strong>書き方と、
+決まった秒数から<strong>引いていく</strong>書き方があります。どちらでも構いません。
+</p>
+<pre><code>// 引いていく書き方
+m_life -= g_gameTime-&gt;GetFrameDeltaTime();
+if (m_life &lt;= 0.0f) { DeleteGO(this); return; }</code></pre>
+<p>
+なお <code>DeleteGO</code> がいつ効くのかは
+<a href="2-05_Lifetime.html">2-05</a> でくわしくやります。
+</p>
+		</details>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">09</span>確認</h2>
+		<ol class="prose">
+			<li>デルタタイムとは何の値？</li>
+			<li><code>m_position.x += 5.0f;</code> の何がいけない？</li>
+			<li><code>m_hp -= 10 * dt;</code> は正しい？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>前のフレームから今のフレームまでにかかった秒数。60fpsなら約0.0166。</li>
+				<li>PCの速さで進む距離が変わってしまう。重いPCではスローモーションになる。</li>
+				<li>ふつうは間違い。ダメージは「1回あたり」の量なので掛けない。
+					ただし「1秒に10ダメージの毒」なら正しい。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l2">
+		<h2><span class="n">10</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="2-03_MyGameObject.html"><strong>2-03 自分のゲームオブジェクトを作る</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>【制作課題】自分のシューティングを設計し直す</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n4" href="4-15_Teamwork.html">← 前 4-15</a>
+			<a class="navchip n4" href="index.html#lv4">LV4 の目次</a>
+			<a class="navchip n4" href="4-17_Portfolio.html">次 → 4-17</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l4">
+		<p class="kicker">LV4 設計 ／ 4-16</p>
+		<h1>【制作課題】自分のシューティングを設計し直す</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span>
+			／ 前提 <a href="4-01_ReadYourCode.html">4-01</a> , <a href="4-14_Testable.html">4-14</a>
+		</p>
+	</header>
+
+			<div class="note" style="--lv: var(--ok);">
+			<span class="h">行き詰まったら、完成形を見てください</span>
+			<strong><code>Sample/Goal_LV4</code></strong> に、
+			この章に到達した状態のプロジェクトが入っています。<br>
+			<u>先に見てしまっても構いません。</u>
+			読んで理解してから、自分のコードに戻ってください。<br>
+			<strong>読む順番は <code>Goal_LV4/readme.txt</code> に書いてあります。</strong>
+			<code>Sample/Goal_LV2</code> と2つ並べて開いて、同じファイルを見比べるのがいちばん早いです。
+		</div>
+
+	<section class="level l4">
+		<h2><span class="n">01</span>やること</h2>
+		<p class="prose">
+			<strong>ゲームの遊びを1ミリも変えずに、中身を作り替えます。</strong>
+		</p>
+		<p class="prose">
+			<a href="3-14_Make3D.html">3-14</a> は「見せ方」を変えました。
+			今回は<u>見た目も遊びも変えません。</u>
+		</p>
+		<div class="note">
+			<span class="h">これが LV4 のゴールです</span>
+			<strong>「外から見て何も変わっていないのに、中身がまるで違う」</strong>
+			 という状態を作れること。<br>
+			<u>これができる人は、現場で最初から戦力になります。</u>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">02</span>進め方 ― 順番が大事です</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>手順</th><th>やること</th><th>章</th></tr></thead>
+			<tbody>
+				<tr><td><strong>0</strong></td>
+					<td><strong>ブランチを切る。いまの数字を測る</strong></td>
+					<td><a href="4-15_Teamwork.html">4-15</a>、
+						<a href="4-01_ReadYourCode.html">4-01</a></td></tr>
+				<tr><td>1</td><td>計算を <code>GameRule</code> に切り出し、テストを書く</td>
+					<td><a href="4-14_Testable.html">4-14</a></td></tr>
+				<tr><td>2</td><td>マジックナンバーを定数に</td>
+					<td><a href="4-01_ReadYourCode.html">4-01</a></td></tr>
+				<tr><td>3</td><td>早期リターン、関数の切り出し</td>
+					<td><a href="4-13_Refactoring.html">4-13</a></td></tr>
+				<tr><td>4</td><td>メンバを private に、専用の関数を作る</td>
+					<td><a href="4-02_Encapsulation.html">4-02</a></td></tr>
+				<tr><td>5</td><td>敵の動きを Strategy に</td>
+					<td><a href="4-09_Strategy.html">4-09</a></td></tr>
+				<tr><td>6</td><td>生成を Factory に、表にする</td>
+					<td><a href="4-10_Factory.html">4-10</a></td></tr>
+				<tr><td>7</td><td>弾をプールに</td>
+					<td><a href="4-06_ObjectPool.html">4-06</a></td></tr>
+				<tr><td>8</td><td>スコアや音を Observer に</td>
+					<td><a href="4-08_Observer.html">4-08</a></td></tr>
+				<tr><td>9</td><td>ボスを State に</td>
+					<td><a href="4-05_State.html">4-05</a></td></tr>
+				<tr><td>10</td><td>もう一度、数字を測る</td>
+					<td><a href="4-01_ReadYourCode.html">4-01</a></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">1と2を先にやる理由</span>
+			<strong>テストが先にあると、以降の作業が全部安全になります。</strong>
+			マジックナンバーの整理も、
+			<u>あとの作業で数値を見失わないための下ごしらえ</u>です。<br>
+			<strong>いきなり5番から始めないでください。</strong>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">03</span>ルール</h2>
+		<ol class="prose">
+			<li><strong>遊びを変えない。</strong>バランス調整もしない</li>
+			<li><strong>機能を足さない。</strong>やりたくなってもメモに書くだけ</li>
+			<li>1ステップごとに、ビルド・実行・コミット</li>
+			<li>テストが通らなくなったら、<strong>先に進まない</strong></li>
+			<li><u>全部やらなくてよい。</u>できたところまでで構わない</li>
+		</ol>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">2番がいちばん守れません</span>
+			<strong>整理していると、必ず「ここ、こうしたら面白いのに」と思います。</strong>
+			それを我慢するのが、この課題の訓練です。<br>
+			<u>思いついたことは <code>IDEAS.txt</code> に書いて、
+			この課題が終わってからやってください。</u>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">04</span>達成の目安</h2>
+		<ul class="prose">
+			<li>整理の前と後で、<strong>遊んだ感じが変わっていない</strong></li>
+			<li>テストが全部通っている</li>
+			<li><strong>いちばん長い関数が 50行以下</strong></li>
+			<li>いちばんメンバが多いクラスが 15個以下</li>
+			<li>ネストが3段以下</li>
+			<li><strong>敵を1種類足すのに、既存ファイルを1つしか触らない</strong></li>
+			<li>弾を1000発出しても 60FPS</li>
+			<li>コミットが機能単位で分かれている</li>
+			<li><strong>整理の前後で数字を記録した</strong></li>
+		</ul>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">05</span>記録を残す</h2>
+		<p class="prose">
+			<strong>これが <a href="4-17_Portfolio.html">4-17</a> の材料になります。</strong>
+			必ず残してください。
+		</p>
+<pre><code># REFACTOR_LOG.md
+
+## 測定
+
+|                        | 前    | 後   |
+|------------------------|-------|------|
+| いちばん長い関数        | 182行 | 34行 |
+| Player のメンバ変数     | 23    | 5    |
+| いちばん深いネスト      | 5段   | 2段  |
+| FindGO の回数           | 31    | 6    |
+| 弾1000発時のFPS         | 22    | 60   |
+| 敵を1種類足すとき触るファイル | 3   | 1    |
+
+## やったこと（コミット順）
+
+1. GameRule に計算を切り出し、テスト18件を追加
+2. マジックナンバー34個を定数化
+3. Player::Update を7つの関数に分割
+...
+
+## 苦労したところ
+
+Observer にしたとき、ComboUi が購読を解除せずに削除されて、
+再現性のないクラッシュが出た。Subscription クラス（RAII）を作って解決。
+
+## やらなかったこと
+
+- コンポーネントシステムの汎用化
+  → 実行中の付け外しが不要だったので、ただのメンバで済ませた</code></pre>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h">「やらなかったこと」を書けるのが、いちばん強いです</span>
+			<strong>「知っているけど、今回は要らないと判断した」</strong>
+			というのは、<u>知識よりも一段上の話です。</u>
+		</div>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">06</span>演習</h2>
+		<h3>演習1（下ごしらえ）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">手順0〜2をやる。ブランチを切り、数字を測り、<code>GameRule</code> とテストを作り、マジックナンバーを整理する。</p>
+
+		<h3>演習2（作り替える）<span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span></h3>
+		<p class="prose">手順3〜9から、<strong>自分のコードでいちばん困っているもの3つ</strong>を選んでやる。<u>全部やらなくてよい。</u></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>選び方 ― 自分の症状から選ぶ</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>いちばん困っていること</th><th>やるべき手順</th></tr></thead>
+<tbody>
+<tr><td><code>Player.cpp</code> が長すぎて読めない</td>
+	<td><strong>3 →  4 → （<a href="4-07_Component.html">4-07</a>）</strong></td></tr>
+<tr><td>敵を足すのが面倒</td><td><strong>5 → 6</strong></td></tr>
+<tr><td>弾を出すと重い</td><td><strong>7</strong></td></tr>
+<tr><td>ボスのコードが追えない</td><td><strong>9</strong></td></tr>
+<tr><td>あちこち <code>FindGO</code> だらけ</td><td><strong>8</strong></td></tr>
+<tr><td>HPが勝手に変わるバグが出た</td><td><strong>4</strong></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>迷ったらこの3つ</strong></p>
+<ol>
+<li><strong>手順3（関数の切り出し）</strong> — 効果が大きく、失敗しにくい</li>
+<li><strong>手順5〜6（Strategy + Factory）</strong> — 敵の追加が劇的に楽になる</li>
+<li><strong>手順8（Observer）</strong> — 依存が減り、設計の話ができるようになる</li>
+</ol>
+<p><strong>コミットの粒度の例</strong></p>
+<pre><code>a1b2c3d GameRule に当たり判定を切り出し
+e4f5g6h GameRule のテストを18件追加
+i7j8k9l マジックナンバーを定数化（Player）
+m1n2o3p マジックナンバーを定数化（Enemy, Bullet）
+q4r5s6t Player::Update を7つの関数に分割
+u7v8w9x Enemy に IMover の入り口を追加（旧処理は残す）
+y1z2a3b Zako を StraightMover に移行
+c4d5e6f Shooter を ZigzagMover に移行
+g7h8i9j Tank を StraightMover に移行
+k1l2m3n Enemy の旧移動処理を削除
+o4p5q6r EnemyFactory を追加、生成を1か所に集約
+s7t8u9v 敵の定義をテーブル駆動に</code></pre>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">この履歴そのものが、成果物です</span>
+<strong>面接で <code>git log</code> を見せられると、非常に強い</strong>です。
+<br><br>
+<u>「小さく刻んで、常に動く状態を保ちながら作り替えられる」</u>
+というのは、コードの見た目以上に評価される能力です。
+</div>
+<div class="note" style="--lv: var(--warn);">
+<span class="h">詰まったら、そのステップを飛ばしてください</span>
+<strong>「Observer にしようとしたが、うまく分けられなかった」
+というのも、記録に残す価値のある結果です。</strong>
+<br><br>
+<u>なぜ難しかったのかを書いておけば、それも立派な考察です。</u>
+無理に完成させるより、正直に書いてください。
+</div>
+		</details>
+
+		<h3>演習3（測る）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>もう一度、<a href="4-01_ReadYourCode.html">4-01</a> の4つの数字を測る。</strong><code>REFACTOR_LOG.md</code> にまとめる。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>測り直すもの</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>項目</th><th>測り方</th></tr></thead>
+<tbody>
+<tr><td>いちばん長い関数</td><td>行番号の差</td></tr>
+<tr><td>いちばん多いメンバ</td><td><code>.h</code> の <code>m_</code> を数える</td></tr>
+<tr><td>いちばん深いネスト</td><td>目視</td></tr>
+<tr><td><code>FindGO</code> の回数</td>
+	<td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> の件数</td></tr>
+<tr><td><strong>敵を1種類足すとき触るファイル数</strong></td>
+	<td><strong>実際に1種類足してみる</strong></td></tr>
+<tr><td>弾1000発時のFPS</td><td><kbd>F1</kbd> → Profiler</td></tr>
+<tr><td>ビルド時間</td><td>出力ウィンドウ（<a href="5-15_BuildTime.html">5-15</a>）</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>5番目が、この課題でいちばん意味のある数字です</strong></p>
+<p>
+実際に敵を1種類足してみてください。
+<strong>Factory とテーブル駆動ができていれば、
+<code>EnemyFactory.cpp</code> の表に1行足すだけ</strong>のはずです。
+</p>
+<pre><code>== 敵「Bomber」を追加する作業 ==
+
+【リファクタ前】
+1. Enemy を継承した BomberEnemy.h / .cpp を新規作成（180行コピペ）
+2. Spawner.cpp の switch に1行
+3. BossStage.cpp の switch に1行
+4. DebugPanel.cpp の switch に1行
+5. Game.vcxproj にファイル追加
+所要: 40分。3の追加を忘れて、ボスステージに出ないバグ。
+
+【リファクタ後】
+1. EnemyFactory.cpp の enum に1行
+2. ENEMY_TABLE に1行
+所要: 3分。static_assert があるので、片方忘れるとビルドが止まる。</code></pre>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">数字が改善していなくても、失敗ではありません</span>
+<strong>「ファイル数は8個に増えた」というのも、正直に書いてください。</strong>
+<br><br>
+<u>トレードオフを認識している</u>ということが伝わります。
+「全部良くなりました」より、ずっと信用されます。
+</div>
+<p><strong>最後に ― 遊んで確かめる</strong></p>
+<p>
+<strong>数字を測ったら、必ず一度、最初から最後まで遊んでください。</strong>
+</p>
+<ul>
+<li>整理する前と、同じ感触か</li>
+<li>気づかないうちに変わったところはないか</li>
+<li>テストが拾えなかった変化はないか</li>
+</ul>
+<p>
+<u>「外から見て何も変わっていない」</u>を、自分の目で確認します。
+<strong>これができたら、LV4 は達成です。</strong>
+</p>
+		</details>
+	</section>
+	<section class="level l4">
+		<h2><span class="n">07</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="4-17_Portfolio.html"><strong>4-17 ポートフォリオと技術面接</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

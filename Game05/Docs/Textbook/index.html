@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>k2Engine 教材 目次</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="レベル">
+			<a class="navchip n1" href="#lv1">LV1 入門</a>
+			<a class="navchip n2" href="#lv2">LV2 基礎</a>
+			<a class="navchip n3" href="#lv3">LV3 表現</a>
+			<a class="navchip n4" href="#lv4">LV4 設計</a>
+			<a class="navchip n5" href="#lv5">LV5 最適化</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead">
+		<p class="kicker">k2Engine / C++ / DirectX 12</p>
+		<h1>未経験から、ゲーム会社で通用するところまで</h1>
+		<p class="lead">
+			プログラミングをやったことがない人が、シューティングゲームを1本完成させ、
+			その先で設計と最適化まで進むための教材です。
+			<strong>学年ではなく難易度で分かれています。</strong>
+			自分のいる場所から始めてください。
+		</p>
+	</header>
+
+	<!-- ================================================================= -->
+	<section id="levels">
+		<h2><span class="n">01</span>5つのレベル</h2>
+
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead>
+				<tr><th>LV</th><th>名前</th><th>中心の問い</th><th>ここを抜けると</th></tr>
+			</thead>
+			<tbody>
+				<tr><td><b class="c1">LV1</b></td><td>入門</td><td>どう書けば動く？</td><td>C++で画面のものを動かせる</td></tr>
+				<tr><td><b class="c2">LV2</b></td><td>基礎</td><td>どう作れば完成する？</td><td><strong>シューティングゲームが1本完成する</strong></td></tr>
+				<tr><td><b class="c3">LV3</b></td><td>表現</td><td>どうすれば良く見える？</td><td>シェーダを自分で書き換えられる</td></tr>
+				<tr><td><b class="c4">LV4</b></td><td>設計</td><td>なぜそう書く？</td><td>自分の設計を人に説明できる</td></tr>
+				<tr><td><b class="c5">LV5</b></td><td>最適化</td><td>なぜ遅い？どう測る？</td><td>計測して速くできる</td></tr>
+			</tbody>
+		</table>
+		</div>
+
+		<figure>
+			<svg viewBox="0 0 780 250" role="img"
+			     aria-label="LV1からLV2へ進み、そこからLV3表現とLV4設計に分岐し、どちらを先にやってもよく、両方を終えてLV5最適化に合流する図">
+				<defs>
+					<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5"
+					        markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+						<path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+					</marker>
+				</defs>
+
+				<g class="fig-head" color="currentColor">
+					<!-- LV1 -->
+					<rect class="fig-box b1" x="10" y="96" width="150" height="58" rx="6"/>
+					<text class="fig-n c1" x="26" y="120">LV1</text>
+					<text class="fig-t" x="26" y="141">入門</text>
+
+					<!-- LV2 -->
+					<rect class="fig-box b2" x="206" y="96" width="150" height="58" rx="6"/>
+					<text class="fig-n c2" x="222" y="120">LV2</text>
+					<text class="fig-t" x="222" y="141">基礎</text>
+					<text class="fig-m c2" x="281" y="176" text-anchor="middle">ここで1本完成させる</text>
+
+					<!-- LV3 -->
+					<rect class="fig-box b3" x="412" y="28" width="150" height="58" rx="6"/>
+					<text class="fig-n c3" x="428" y="52">LV3</text>
+					<text class="fig-t" x="428" y="73">表現</text>
+
+					<!-- LV4 -->
+					<rect class="fig-box b4" x="412" y="164" width="150" height="58" rx="6"/>
+					<text class="fig-n c4" x="428" y="188">LV4</text>
+					<text class="fig-t" x="428" y="209">設計</text>
+
+					<!-- LV5 -->
+					<rect class="fig-box b5" x="618" y="96" width="150" height="58" rx="6"/>
+					<text class="fig-n c5" x="634" y="120">LV5</text>
+					<text class="fig-t" x="634" y="141">最適化</text>
+
+					<!-- LV1 -> LV2 -->
+					<line class="fig-line" x1="160" y1="125" x2="200" y2="125" marker-end="url(#ah)"/>
+
+					<!-- LV2 -> 分岐 -->
+					<polyline class="fig-line" points="356,125 384,125 384,57 404,57" marker-end="url(#ah)"/>
+					<polyline class="fig-line" points="356,125 384,125 384,193 404,193" marker-end="url(#ah)"/>
+
+					<!-- 合流 -> LV5 -->
+					<polyline class="fig-line" points="562,57 590,57 590,125 610,125" marker-end="url(#ah)"/>
+					<polyline class="fig-line" points="562,193 590,193 590,125"/>
+
+					<text class="fig-m" x="487" y="121" text-anchor="middle">どちらを先に</text>
+					<text class="fig-m" x="487" y="139" text-anchor="middle">やってもよい</text>
+				</g>
+			</svg>
+			<figcaption>
+				<strong>LV3とLV4は並んでいます。</strong>
+				絵を作るのが好きならLV3から、コードをきれいにするのが気になるならLV4から。
+				どちらか片方だけでLV5に進むこともできますが、
+				LV5の「データ指向」はLV4のコンポーネント指向を知っているほうが理解が早くなります。
+			</figcaption>
+		</figure>
+	</section>
+
+	<!-- ================================================================= -->
+	<section id="spine">
+		<h2><span class="n">02</span>同じゲームを3回作り直す</h2>
+
+		<p class="prose">
+			この教材には背骨があります。
+			<strong>LV2で作ったシューティングを、そのままLV3・LV4・LV5で作り直していきます。</strong>
+			毎回ゼロから作るより、自分が書いて痛い目を見たコードを直すほうが、はるかに身につきます。
+		</p>
+
+		<figure>
+			<svg viewBox="0 0 580 420" role="img"
+			     aria-label="LV2で作った1本のシューティングゲームを、LV3で3D化し、LV4で設計し直し、LV5で速くする流れの図。4つの段階すべてが同じ1本のゲームであることを左側の括弧が示している">
+				<defs>
+					<marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5"
+					        markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+						<path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+					</marker>
+				</defs>
+				<g class="fig-head" color="currentColor">
+					<!-- 左の括弧「同じ1本のゲーム」 -->
+					<path class="fig-line" d="M 72 8 L 56 8 L 56 400 L 72 400"/>
+					<text class="fig-m fig-vert" x="38" y="120">同じ1本のゲーム</text>
+
+					<!-- LV2 -->
+					<rect class="fig-box b2" x="100" y="8" width="400" height="62" rx="6"/>
+					<text class="fig-n c2" x="120" y="33">LV2</text>
+					<text class="fig-t" x="120" y="56">2Dシューティングを作る</text>
+					<text class="fig-m" x="482" y="56" text-anchor="end">2-24</text>
+
+					<!-- LV3 -->
+					<rect class="fig-box b3" x="100" y="118" width="400" height="62" rx="6"/>
+					<text class="fig-n c3" x="120" y="143">LV3</text>
+					<text class="fig-t" x="120" y="166">3Dにする</text>
+					<text class="fig-m" x="482" y="166" text-anchor="end">3-14</text>
+
+					<!-- LV4 -->
+					<rect class="fig-box b4" x="100" y="228" width="400" height="62" rx="6"/>
+					<text class="fig-n c4" x="120" y="253">LV4</text>
+					<text class="fig-t" x="120" y="276">設計し直す</text>
+					<text class="fig-m" x="482" y="276" text-anchor="end">4-16</text>
+
+					<!-- LV5 -->
+					<rect class="fig-box b5" x="100" y="338" width="400" height="62" rx="6"/>
+					<text class="fig-n c5" x="120" y="363">LV5</text>
+					<text class="fig-t" x="120" y="386">速くする</text>
+					<text class="fig-m" x="482" y="386" text-anchor="end">5-16</text>
+
+					<!-- 矢印と、そこで何が変わるか -->
+					<line class="fig-line" x1="170" y1="70" x2="170" y2="114" marker-end="url(#ah2)"/>
+					<text class="fig-t sm" x="186" y="98">見た目だけ差し替える（ルールは触らない）</text>
+
+					<line class="fig-line" x1="170" y1="180" x2="170" y2="224" marker-end="url(#ah2)"/>
+					<text class="fig-t sm" x="186" y="208">挙動を変えずに中身を作り替える</text>
+
+					<line class="fig-line" x1="170" y1="290" x2="170" y2="334" marker-end="url(#ah2)"/>
+					<text class="fig-t sm" x="186" y="318">計測して、根拠をもって速くする</text>
+				</g>
+			</svg>
+			<figcaption>
+				<strong>矢印に書いてあることが、そのレベルで問われる力です。</strong>
+				LV3で「見た目を差し替えるだけ」で済んだなら、LV2の設計が良かったということ。
+				たくさん書き直すことになったなら、それがLV4を学ぶ理由になります。
+				そして、この作り直しの履歴（Gitのログ）そのものが、就職活動で見せられる成果になります。
+			</figcaption>
+		</figure>
+
+		<div class="note">
+			<span class="h">だから、自分のコードを必ず残してください</span>
+			<strong>LV1の最初（1-03）で自分のGitリポジトリを作り、毎章コミットしてください。</strong>
+			ここを飛ばすと、LV3以降の制作課題が成立しません。
+		</div>
+	</section>
+
+	<!-- ================================================================= -->
+	<section id="rules">
+		<h2><span class="n">03</span>自己学習のルール</h2>
+
+		<h3>① 分からないまま進まない</h3>
+		<p class="prose">
+			各章の先頭に<strong>「入場チェック」</strong>があります。
+			答えられない項目があったら、書いてある章まで戻ってください。
+			<strong>戻るのは後退ではありません。</strong>ここを飛ばすと、必ずあとで詰まります。
+		</p>
+
+		<h3>② 完成品と比べる</h3>
+		<p class="prose">
+			各章には完成プロジェクトが付いています。自分のコードと見比べて、
+			違うところがあれば「なぜ違うのか」を考えてください。
+			答えが同じでも、書き方が違えば学びがあります。
+		</p>
+
+		<h3>③ 難易度とマークの見方</h3>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>表記</th><th>意味</th></tr></thead>
+			<tbody>
+				<tr><td><span class="diff"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td><td>手順どおりにやれば終わる</td></tr>
+				<tr><td><span class="diff"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td><td>少し考えるところがある</td></tr>
+				<tr><td><span class="diff"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td><td>新しい考え方が出てくる</td></tr>
+				<tr><td><span class="diff"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td><td>つまずくのが普通。時間をかけてよい</td></tr>
+				<tr><td><span class="diff"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span></td><td>自分で調べて作る</td></tr>
+				<tr><td><span class="tag tag-goal">制作課題</span></td><td><strong>その先に進むための関門。飛ばさないこと</strong></td></tr>
+				<tr><td><span class="tag tag-gui">GUI</span></td><td>エンジンのデバッグGUIを使う章</td></tr>
+				<tr><td><a class="chlink" href="2-09_GOHandle.html">下線つきのタイトル</a></td><td><strong>クリックで本文が開く。</strong>全92章そろっています</td></tr>
+			</tbody>
+		</table>
+		</div>
+	</section>
+
+	<!-- ================================================================= -->
+	<section class="level l1" id="lv1">
+		<div class="level-head">
+			<span class="badge">LV1</span>
+			<h2>入門 — 動かす</h2>
+			<span class="q">中心の問い： <b>どう書けば動く？</b></span>
+		</div>
+		<p class="level-goal">
+			<b>ゴール：</b>C++の文法をひととおり知り、デバッガでバグを追えるようになる。
+		</p>
+		<p class="prose">
+			ここでは <code>Game.cpp</code> の <code>Start()</code> / <code>Update()</code> / <code>Render()</code>
+			の中だけにコードを書きます。クラスもポインタもまだ知らなくて大丈夫です。
+			<strong>書いたものがすぐ画面に出ます。</strong>
+		</p>
+		<div class="tbl-scroll">
+		<table class="chapters">
+			<thead><tr><th>章</th><th>タイトル</th><th>難易度</th><th>前提</th><th>ゴール</th></tr></thead>
+			<tbody>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch1-01"></a>1-01</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="1-01_Setup.html">環境構築とビルド</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提"><span class="none">—</span></td>
+				  <td class="goal" data-l="ゴール">Visual Studioでビルドして実行できる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch1-02"></a>1-02</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="1-02_Samples.html">サンプルを全部動かしてみる</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">1-01</td>
+				  <td class="goal" data-l="ゴール">何が作れるのかを知る（<code>Sample_00</code>〜<code>27</code>、<code>DemoGame_01</code>）</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch1-03"></a>1-03</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="1-03_Git.html">Gitで自分のリポジトリを作る</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">1-01</td>
+				  <td class="goal" data-l="ゴール">コミットとプッシュができる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch1-04"></a>1-04</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="1-04_FirstChange.html">はじめての改造</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">1-01</td>
+				  <td class="goal" data-l="ゴール">モデルを差し替え、位置を変えられる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch1-05"></a>1-05</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="1-05_ErrorMessage.html">エラーメッセージの読み方</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">1-04</td>
+				  <td class="goal" data-l="ゴール"><code>C2065</code> <code>C2143</code> <code>LNK2019</code> を自力で直せる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch1-06"></a>1-06</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="1-06_Variable.html">変数と型</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">1-04</td>
+				  <td class="goal" data-l="ゴール">数値を画面に表示できる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch1-07"></a>1-07</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="1-07_Calc.html">計算と代入 — 物を動かす</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">1-06</td>
+				  <td class="goal" data-l="ゴール">毎フレーム座標を足して動かせる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch1-08"></a>1-08</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="1-08_If.html">if文 — 画面の端で止める</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">1-07</td>
+				  <td class="goal" data-l="ゴール">条件で処理を分けられる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch1-09"></a>1-09</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="1-09_Loop.html">for文・while文</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">1-08</td>
+				  <td class="goal" data-l="ゴール">同じものを並べて出せる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch1-10"></a>1-10</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="1-10_Function.html">関数 — 処理に名前をつける</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">1-09</td>
+				  <td class="goal" data-l="ゴール">引数と戻り値を使える</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch1-11"></a>1-11</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="1-11_Array.html">配列と <code>std::vector</code></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">1-10</td>
+				  <td class="goal" data-l="ゴール">たくさんの値をまとめて持てる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch1-12"></a>1-12</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="1-12_Class.html">構造体とクラス</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">1-11</td>
+				  <td class="goal" data-l="ゴール">メンバ変数・メンバ関数・アクセス指定子</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch1-13"></a>1-13</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="1-13_HeaderCpp.html">ヘッダとcppの分け方</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">1-12</td>
+				  <td class="goal" data-l="ゴール"><code>#pragma once</code>、宣言と定義の違い</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch1-14"></a>1-14</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="1-14_Pointer.html"><strong>ポインタと参照</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">1-13</td>
+				  <td class="goal" data-l="ゴール">アドレスとは何かを説明できる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch1-15"></a>1-15</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="1-15_NewDelete.html"><code>new</code> / <code>delete</code> と「所有」</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">1-14</td>
+				  <td class="goal" data-l="ゴール">誰が解放する責任を持つのかが分かる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch1-16"></a>1-16</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="1-16_Inheritance.html">継承と仮想関数</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">1-15</td>
+				  <td class="goal" data-l="ゴール"><code>IGameObject</code> の正体が読める</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch1-17"></a>1-17</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="1-17_Const.html"><code>const</code> と参照渡し</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">1-14</td>
+				  <td class="goal" data-l="ゴール">値渡しのコストが分かる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch1-18"></a>1-18</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="1-18_Debugger.html"><strong>デバッガを使う</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">1-12</td>
+				  <td class="goal" data-l="ゴール">ブレークポイント・ウォッチ・コールスタック</td>
+				</tr>
+				<tr class="milestone written">
+				  <td class="num" data-l="章"><a id="ch1-19"></a>1-19</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="1-19_BugHunt.html"><strong><span class="tag tag-goal">制作課題</span>バグ取り演習10本</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">1-18</td>
+				  <td class="goal" data-l="ゴール">壊れたコードをデバッガだけで直せる</td>
+				</tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note">
+			<span class="h">1-14 と 1-18 が山場です</span>
+			ポインタが分からないまま先に進むと、LV2で必ず行き詰まります。
+			そして1-18のデバッガは、この先ずっと使う道具です。
+			<strong>「クラッシュしたらコールスタックを読む」</strong>が身についていないと、
+			LV2の事故が自力で直せません。
+		</div>
+	</section>
+
+	<!-- ================================================================= -->
+	<section class="level l2" id="lv2">
+		<div class="level-head">
+			<span class="badge">LV2</span>
+			<h2>基礎 — 完成させる</h2>
+			<span class="q">中心の問い： <b>どう作れば完成する？</b></span>
+		</div>
+		<p class="level-goal">
+			<b>ゴール：</b>2Dシューティングゲームを1本完成させる。
+		</p>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">画像・音・エフェクトは、この教材に付いていません</span>
+			本文に出てくるファイル名は例です。<strong>自分で用意してください。</strong>
+			まずは <code>Sample/</code> に入っているものをコピーして動かすのが早道です。
+			<strong><a href="assets-guide.html">→ 素材の用意のしかた（探し方・変換・ライセンス）</a></strong>
+		</div>
+		<p class="prose">
+			ここから k2Engine の作法を使います。
+			<strong>設計のきれいさは気にしなくてかまいません。動けば合格です。</strong>
+			（ここで書いた汚いコードが、そのままLV4の教材になります）
+		</p>
+		<div class="tbl-scroll">
+		<table class="chapters">
+			<thead><tr><th>章</th><th>タイトル</th><th>難易度</th><th>前提</th><th>ゴール</th></tr></thead>
+			<tbody>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch2-01"></a>2-01</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-01_GameLoop.html">ゲームループを読む</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">1-16</td>
+				  <td class="goal" data-l="ゴール"><code>main.cpp</code> と <code>Start</code>/<code>Update</code>/<code>Render</code> が分かる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch2-02"></a>2-02</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-02_DeltaTime.html">デルタタイムとフレーム</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-01</td>
+				  <td class="goal" data-l="ゴール">PCの速さに左右されない動きを書ける</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch2-03"></a>2-03</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-03_MyGameObject.html">自分のゲームオブジェクトを作る</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-01</td>
+				  <td class="goal" data-l="ゴール"><code>IGameObject</code> を継承して <code>NewGO</code> できる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch2-04"></a>2-04</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-04_Priority.html">優先度(priority)と処理順・描画順</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-03</td>
+				  <td class="goal" data-l="ゴール">数字直書きをやめ、<code>enum</code> で管理できる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch2-05"></a>2-05</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-05_Lifetime.html"><strong><code>DeleteGO</code> とオブジェクトの寿命</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-03</td>
+				  <td class="goal" data-l="ゴール">「死亡予約」と「実際の破棄」のズレを説明できる</td>
+				</tr>
+				<tr class="gui written">
+				  <td class="num" data-l="章"><a id="ch2-06"></a>2-06</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-06_GameObjectList.html"><span class="tag tag-gui">GUI</span>GameObject List で寿命を見る</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-05</td>
+				  <td class="goal" data-l="ゴール">消し忘れ・削除待ちを目で確認できる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch2-07"></a>2-07</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-07_FindGO.html"><code>FindGO</code> / <code>FindGOs</code> / <code>QueryGOs</code></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-03</td>
+				  <td class="goal" data-l="ゴール">名前検索のコストを知る</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch2-08"></a>2-08</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-08_DanglingPointer.html"><strong>事故を起こしてみる</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-05, 1-18</td>
+				  <td class="goal" data-l="ゴール">削除済みアクセスを再現し、デバッガで原因を特定できる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch2-09"></a>2-09</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-09_GOHandle.html"><strong><code>GOHandle</code> で安全に参照する</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-08</td>
+				  <td class="goal" data-l="ゴール">生ポインタをメンバに持たない書き方ができる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch2-10"></a>2-10</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-10_Input.html">入力（<code>g_pad</code>）</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-03</td>
+				  <td class="goal" data-l="ゴール">ボタンとスティックを扱える（<code>Sample_01</code>）</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch2-11"></a>2-11</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-11_SpriteRender.html">スプライト表示（<code>SpriteRender</code>）</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-03</td>
+				  <td class="goal" data-l="ゴール">画像を出せる（<code>Sample_06</code>）</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch2-12"></a>2-12</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-12_FontRender.html">文字の表示（<code>FontRender</code>）</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-03</td>
+				  <td class="goal" data-l="ゴール">スコアを出せる（<code>Sample_18</code>）</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch2-13"></a>2-13</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-13_PlayerMove.html">自機を動かす</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-10, 2-11</td>
+				  <td class="goal" data-l="ゴール">入力で動く自機ができる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch2-14"></a>2-14</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-14_Shoot.html">弾を撃つ</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-13, 2-05</td>
+				  <td class="goal" data-l="ゴール">連射のクールタイムを作れる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch2-15"></a>2-15</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-15_Collision.html"><strong>ベクトルと当たり判定</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-14</td>
+				  <td class="goal" data-l="ゴール">円と円の判定を自分で書ける</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch2-16"></a>2-16</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-16_Spawner.html">敵を出す（スポナー）</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-15</td>
+				  <td class="goal" data-l="ゴール">出現パターンをファイルに外出しできる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch2-17"></a>2-17</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-17_DeathTiming.html"><strong>撃破処理と <code>DeleteGO</code> のタイミング設計</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-16, 2-09</td>
+				  <td class="goal" data-l="ゴール">同じフレームで相打ちになっても壊れない</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch2-18"></a>2-18</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-18_ScoreUi.html">スコアとHP、UI</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-12</td>
+				  <td class="goal" data-l="ゴール">ゲームらしい情報表示ができる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch2-19"></a>2-19</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-19_Sound.html">サウンド</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-03</td>
+				  <td class="goal" data-l="ゴール">BGMと効果音を鳴らせる（<code>Sample_13</code>）</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch2-20"></a>2-20</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-20_Effect.html">エフェクト（Effekseer）</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-17</td>
+				  <td class="goal" data-l="ゴール">爆発を出せる（<code>Sample_17</code>）</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch2-21"></a>2-21</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-21_SceneChange.html">シーン遷移</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-04, 2-05</td>
+				  <td class="goal" data-l="ゴール">タイトル→ゲーム→リザルトを作れる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch2-22"></a>2-22</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-22_Boss.html">ボスを作る</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-21</td>
+				  <td class="goal" data-l="ゴール">行動パターンを切り替えられる</td>
+				</tr>
+				<tr class="gui written">
+				  <td class="num" data-l="章"><a id="ch2-23"></a>2-23</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-23_MyDebugPanel.html"><span class="tag tag-gui">GUI</span>自分のデバッグパネルを作る</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-13</td>
+				  <td class="goal" data-l="ゴール"><code>DebugGuiPanel</code> で調整用スライダーを作れる</td>
+				</tr>
+				<tr class="milestone written">
+				  <td class="num" data-l="章"><a id="ch2-24"></a>2-24</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="2-24_Complete.html"><strong><span class="tag tag-goal">制作課題</span>2Dシューティングを完成させる</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span></td>
+				  <td class="pre" data-l="前提">2-01〜2-23</td>
+				  <td class="goal" data-l="ゴール"><strong>遊べるゲームが1本できる</strong></td>
+				</tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note">
+			<span class="h">2-05 → 2-08 → 2-09 がこの教材の核です</span>
+			k2Engineで一番多い事故が「削除済みオブジェクトへのアクセス」です。
+			<strong>わざと事故を起こして、デバッガで原因を見て、<code>GOHandle</code>で直す。</strong>
+			この体験をしないと、同じバグを何度も踏みます。
+			くわしくは <a href="../DebugGui.html">デバッグGUI と GOHandle</a> を見てください。
+		</div>
+	</section>
+
+	<!-- ================================================================= -->
+	<section class="level l3" id="lv3">
+		<div class="level-head">
+			<span class="badge">LV3</span>
+			<h2>表現 — 良く見せる</h2>
+			<span class="q">中心の問い： <b>どうすれば良く見える？</b></span>
+		</div>
+		<p class="level-goal">
+			<b>ゴール：</b>シェーダを自分で書き換えられるようになる。
+		</p>
+		<p class="prose">
+			<strong>いきなりコードを書きません。</strong>
+			まずデバッグGUIのスライダーを動かして「この値をいじると絵がこう変わる」を
+			体で覚えてから、その中身を開けます。
+		</p>
+		<div class="tbl-scroll">
+		<table class="chapters">
+			<thead><tr><th>章</th><th>タイトル</th><th>難易度</th><th>前提</th><th>ゴール</th></tr></thead>
+			<tbody>
+				<tr class="gui written">
+				  <td class="num" data-l="章"><a id="ch3-01"></a>3-01</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="3-01_TouchTheLook.html"><span class="tag tag-gui">GUI</span>まず絵をいじってみる</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 1 / 5"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-24</td>
+				  <td class="goal" data-l="ゴール">Light / Post Effect パネルで絵作りを体験する</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch3-02"></a>3-02</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="3-02_GpuPipeline.html">GPUは何をしているのか</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">3-01</td>
+				  <td class="goal" data-l="ゴール">頂点→VS→ラスタライズ→PS→画面 を説明できる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch3-03"></a>3-03</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="3-03_FirstShader.html"><strong>はじめてのシェーダ改造</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">3-02</td>
+				  <td class="goal" data-l="ゴール"><code>.fx</code> を開いて色を変えられる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch3-04"></a>3-04</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="3-04_ConstantBuffer.html"><strong>定数バッファ</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">3-03</td>
+				  <td class="goal" data-l="ゴール">C++からシェーダに値を渡せる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch3-05"></a>3-05</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="3-05_DamageFlash.html">被弾したら赤く光らせる</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">3-04</td>
+				  <td class="goal" data-l="ゴール">自分のゲームに演出を入れられる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch3-06"></a>3-06</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="3-06_TextureUv.html">テクスチャとUV</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">3-04</td>
+				  <td class="goal" data-l="ゴール">背景を無限スクロールさせられる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch3-07"></a>3-07</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="3-07_AlphaDepth.html">αブレンドと描画順・深度</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">3-03, 2-04</td>
+				  <td class="goal" data-l="ゴール">半透明が壊れる理由を説明できる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch3-08"></a>3-08</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="3-08_PostEffect.html">ポストエフェクトを自作する</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span></td>
+				  <td class="pre" data-l="前提">3-06</td>
+				  <td class="goal" data-l="ゴール">画面全体にかかる効果を作れる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch3-09"></a>3-09</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="3-09_ModelRender.html">3Dモデルを表示する</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-03</td>
+				  <td class="goal" data-l="ゴール"><code>ModelRender</code> を使える（<code>Sample_00</code>）</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch3-10"></a>3-10</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="3-10_Camera.html">カメラ</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">3-09</td>
+				  <td class="goal" data-l="ゴール">追従・TPS・バネ（<code>Sample_08</code>〜<code>11</code>）</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch3-11"></a>3-11</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="3-11_Lighting.html">ライティングを理解する</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">3-01, 3-09</td>
+				  <td class="goal" data-l="ゴール">ディレクショナル／ポイント／スポット（<code>Sample_05</code>, <code>26</code>）</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch3-12"></a>3-12</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="3-12_Shadow.html">影（シャドウマップ）</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">3-11</td>
+				  <td class="goal" data-l="ゴール">影がどう作られているかを説明できる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch3-13"></a>3-13</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="3-13_Animation.html">アニメーション</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">3-09</td>
+				  <td class="goal" data-l="ゴール">モデルを動かせる（<code>Sample_03</code>）</td>
+				</tr>
+				<tr class="milestone written">
+				  <td class="num" data-l="章"><a id="ch3-14"></a>3-14</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="3-14_Make3D.html"><strong><span class="tag tag-goal">制作課題</span>シューティングを3D化する</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span></td>
+				  <td class="pre" data-l="前提">3-09〜3-13</td>
+				  <td class="goal" data-l="ゴール"><strong>ゲームロジックをほぼ触らずに見た目を変えられた</strong></td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch3-15"></a>3-15</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="3-15_GpuDebug.html">PIX / RenderDoc でフレームを覗く</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">3-08</td>
+				  <td class="goal" data-l="ゴール">1フレームの描画を順番に追える</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch3-16"></a>3-16</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="3-16_Dx12Skeleton.html">DirectX12の骨格を読む</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span></td>
+				  <td class="pre" data-l="前提">3-15</td>
+				  <td class="goal" data-l="ゴール">コマンドリスト・PSO・ルートシグネチャ・ディスクリプタヒープ</td>
+				</tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note">
+			<span class="h">3-14 がこのレベルの山です</span>
+			2Dで作ったゲームを3Dに差し替えたとき、
+			<strong>ゲームのルールを書いたコードをほとんど触らずに済んだなら、設計がよかった</strong>ということです。
+			たくさん書き直すことになったなら、それがLV4で学ぶ理由になります。
+		</div>
+	</section>
+
+	<!-- ================================================================= -->
+	<section class="level l4" id="lv4">
+		<div class="level-head">
+			<span class="badge">LV4</span>
+			<h2>設計 — 説明できるようにする</h2>
+			<span class="q">中心の問い： <b>なぜそう書く？</b></span>
+		</div>
+		<p class="level-goal">
+			<b>ゴール：</b>「なぜその設計にしたか」を90秒で説明できるようになる。
+		</p>
+		<p class="prose">
+			教材の題材は<strong>LV2で自分が書いたコード</strong>です。
+			他人のサンプルより、自分が書いて痛い目を見たコードのほうが、はるかに理解が早いです。
+			この表の一番右の列が「ゴール」ではなく<strong>「解決する痛み」</strong>になっているのは、
+			そういう理由です。
+		</p>
+		<div class="tbl-scroll">
+		<table class="chapters">
+			<thead><tr><th>章</th><th>タイトル</th><th>難易度</th><th>前提</th><th>解決する痛み</th></tr></thead>
+			<tbody>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch4-01"></a>4-01</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="4-01_ReadYourCode.html">自分のコードを読み返す</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-24</td>
+				  <td class="goal" data-l="ゴール">半年前の自分のコードが読めない</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch4-02"></a>4-02</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="4-02_Encapsulation.html">カプセル化</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">4-01</td>
+				  <td class="goal" data-l="ゴール">メンバ変数が全部 <code>public</code></td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch4-03"></a>4-03</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="4-03_Composition.html"><strong>継承の落とし穴とコンポジション</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">4-02</td>
+				  <td class="goal" data-l="ゴール">敵クラスを継承しすぎて破綻した</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch4-04"></a>4-04</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="4-04_Solid.html">SOLID原則で自分のコードを点検する</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">4-03</td>
+				  <td class="goal" data-l="ゴール">1000行の <code>Update()</code></td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch4-05"></a>4-05</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="4-05_State.html"><strong>State</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">4-03</td>
+				  <td class="goal" data-l="ゴール">ボスの行動が巨大な <code>if</code> の塊</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch4-06"></a>4-06</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="4-06_ObjectPool.html"><strong>Object Pool</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-05</td>
+				  <td class="goal" data-l="ゴール">弾を撃つたびに <code>NewGO</code>／<code>DeleteGO</code> で重い</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch4-07"></a>4-07</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="4-07_Component.html"><strong>Component</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span></td>
+				  <td class="pre" data-l="前提">4-03</td>
+				  <td class="goal" data-l="ゴール"><code>Player</code> が1000行に膨らんだ</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch4-08"></a>4-08</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="4-08_Observer.html"><strong>Observer</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-07</td>
+				  <td class="goal" data-l="ゴール">スコア更新のたびに <code>FindGO</code> している</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch4-09"></a>4-09</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="4-09_Strategy.html">Strategy</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">4-03</td>
+				  <td class="goal" data-l="ゴール">弾の軌道ごとにクラスをコピペした</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch4-10"></a>4-10</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="4-10_Factory.html">Factory</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-16</td>
+				  <td class="goal" data-l="ゴール">敵の種類分岐が <code>switch</code> で散らばった</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch4-11"></a>4-11</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="4-11_Command.html">Command</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-10</td>
+				  <td class="goal" data-l="ゴール">キーコンフィグもリプレイも作れない</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch4-12"></a>4-12</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="4-12_Singleton.html"><strong>Singletonの何が悪いのか</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">4-04</td>
+				  <td class="goal" data-l="ゴール">どこからでも触れて、依存が見えない</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch4-13"></a>4-13</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="4-13_Refactoring.html">リファクタリング — 壊さずに作り替える</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">4-05〜4-12</td>
+				  <td class="goal" data-l="ゴール">直したら別のところが壊れる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch4-14"></a>4-14</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="4-14_Testable.html">テストしやすい設計</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span></td>
+				  <td class="pre" data-l="前提">4-13</td>
+				  <td class="goal" data-l="ゴール">動作確認が毎回手動プレイ</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch4-15"></a>4-15</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="4-15_Teamwork.html">チームで作る</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">1-03</td>
+				  <td class="goal" data-l="ゴール">Gitブランチ・プルリクエスト・レビュー</td>
+				</tr>
+				<tr class="milestone written">
+				  <td class="num" data-l="章"><a id="ch4-16"></a>4-16</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="4-16_Redesign.html"><strong><span class="tag tag-goal">制作課題</span>自分のシューティングを設計し直す</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span></td>
+				  <td class="pre" data-l="前提">4-01〜4-14</td>
+				  <td class="goal" data-l="ゴール"><strong>挙動を変えずに中身を作り替えられた</strong></td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch4-17"></a>4-17</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="4-17_Portfolio.html">ポートフォリオと技術面接</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">4-16</td>
+				  <td class="goal" data-l="ゴール"><strong>設計の理由を90秒で説明できる</strong></td>
+				</tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note">
+			<span class="h">デザインパターンを「使いたいから使う」のは最悪です</span>
+			<p>
+				4-05〜4-12 は、必ず<strong>自分のコードの痛い場所を先に見つけてから</strong>読んでください。
+				痛みがないのに適用すると、無駄に複雑なだけのコードができます。
+			</p>
+			<p>
+				<strong>4-17 は軽視しないでください。</strong>
+				技術面接で落ちる人の多くは、作れていないのではなく、作ったものを説明できないだけです。
+			</p>
+		</div>
+	</section>
+
+	<!-- ================================================================= -->
+	<section class="level l5" id="lv5">
+		<div class="level-head">
+			<span class="badge">LV5</span>
+			<h2>最適化 — 測って速くする</h2>
+			<span class="q">中心の問い： <b>なぜ遅い？どう測る？</b></span>
+		</div>
+		<p class="level-goal">
+			<b>ゴール：</b>「速くなった気がする」ではなく、数字で示せるようになる。
+		</p>
+		<p class="prose">
+			このレベルの課題はすべて
+			<strong>「計測 → 仮説 → 修正 → 再計測」</strong>の形式で提出します。
+			たとえば「3.2ms → 0.8ms。原因はキャッシュミス。Profilerパネルで確認」のように。
+			<strong>「速くなりました」だけは不合格です。</strong>
+		</p>
+		<div class="tbl-scroll">
+		<table class="chapters">
+			<thead><tr><th>章</th><th>タイトル</th><th>難易度</th><th>前提</th><th>ゴール</th></tr></thead>
+			<tbody>
+				<tr class="gui written">
+				  <td class="num" data-l="章"><a id="ch5-01"></a>5-01</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="5-01_ReadProfiler.html"><span class="tag tag-gui">GUI</span>計測せずに最適化するな</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">2-24</td>
+				  <td class="goal" data-l="ゴール">Profilerパネルを読める</td>
+				</tr>
+				<tr class="gui written">
+				  <td class="num" data-l="章"><a id="ch5-02"></a>5-02</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="5-02_ProfileScope.html"><span class="tag tag-gui">GUI</span><code>K2_PROFILE_SCOPE</code> で自分のコードを測る</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 2 / 5"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">5-01</td>
+				  <td class="goal" data-l="ゴール">重い場所を絞り込める</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch5-03"></a>5-03</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="5-03_Cpu.html">CPUの仕組み</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">5-02</td>
+				  <td class="goal" data-l="ゴール">パイプライン・分岐予測を説明できる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch5-04"></a>5-04</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="5-04_CacheLine.html"><strong>メモリ階層とキャッシュライン</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">5-03</td>
+				  <td class="goal" data-l="ゴール">なぜ64バイトなのかを説明できる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch5-05"></a>5-05</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="5-05_AccessOrder.html">実験：アクセス順で10倍変わる</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">5-04</td>
+				  <td class="goal" data-l="ゴール">自分の手で計測して差を見る</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch5-06"></a>5-06</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="5-06_AosSoa.html"><strong>AoS と SoA — データの並べ方</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span></td>
+				  <td class="pre" data-l="前提">5-05</td>
+				  <td class="goal" data-l="ゴール">弾の処理を書き換えて計測できる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch5-07"></a>5-07</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="5-07_Allocator.html"><code>new</code>/<code>delete</code> のコストとアロケータ自作</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span></td>
+				  <td class="pre" data-l="前提">1-15, 5-04</td>
+				  <td class="goal" data-l="ゴール">プールアロケータを作って比較できる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch5-08"></a>5-08</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="5-08_Instancing.html">ドローコールとインスタンシング</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">5-01, 3-09</td>
+				  <td class="goal" data-l="ゴール">描画負荷を下げられる（<code>Sample_22</code>）</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch5-09"></a>5-09</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="5-09_Ecs.html"><strong>ECSを自作して比較する</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span></td>
+				  <td class="pre" data-l="前提">5-06, 4-07</td>
+				  <td class="goal" data-l="ゴール">継承ベースとの違いを数字で説明できる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch5-10"></a>5-10</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="5-10_ThreadBreak.html"><strong>マルチスレッド① まず壊す</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">5-03</td>
+				  <td class="goal" data-l="ゴール">データ競合を自分で再現できる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch5-11"></a>5-11</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="5-11_MutexAtomic.html">マルチスレッド② <code>mutex</code> と <code>atomic</code></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span></td>
+				  <td class="pre" data-l="前提">5-10</td>
+				  <td class="goal" data-l="ゴール">壊れない書き方ができる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch5-12"></a>5-12</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="5-12_JobSystem.html">マルチスレッド③ ジョブシステムを作る</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span></td>
+				  <td class="pre" data-l="前提">5-11</td>
+				  <td class="goal" data-l="ゴール">更新処理を並列化して計測できる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch5-13"></a>5-13</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="5-13_Simd.html">SIMD入門</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span></td>
+				  <td class="pre" data-l="前提">5-06</td>
+				  <td class="goal" data-l="ゴール">当たり判定をまとめて計算できる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch5-14"></a>5-14</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="5-14_CrashDump.html">メモリリークとクラッシュダンプ</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">5-01</td>
+				  <td class="goal" data-l="ゴール">落ちた原因を後から調べられる</td>
+				</tr>
+				<tr class="written">
+				  <td class="num" data-l="章"><a id="ch5-15"></a>5-15</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="5-15_BuildTime.html">ビルド時間を短くする</a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></td>
+				  <td class="pre" data-l="前提">1-13</td>
+				  <td class="goal" data-l="ゴール">pch・前方宣言の効果を測れる</td>
+				</tr>
+				<tr class="milestone written">
+				  <td class="num" data-l="章"><a id="ch5-16"></a>5-16</td>
+				  <td class="title" data-l="タイトル"><a class="chlink" href="5-16_TwiceAsFast.html"><strong><span class="tag tag-goal">研究課題</span>自分のゲームを2倍速くする</strong></a></td>
+				  <td class="dcell" data-l="難易度"><span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span></td>
+				  <td class="pre" data-l="前提">5-01〜5-13</td>
+				  <td class="goal" data-l="ゴール"><strong>根拠のある最適化レポートが書ける</strong></td>
+				</tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note">
+			<span class="h">5-10 は必ず「壊す」ところから</span>
+			<p>
+				2つのスレッドで同じ変数を100万回足しても100万になりません。
+				しかも<strong>10回に1回しか再現せず、デバッガで止めると再現しなくなります。</strong>
+				この気持ち悪さを体験してから、正しい書き方に進んでください。
+			</p>
+			<p>
+				<strong>5-09 で「LV2の設計は間違いだったのか？」と思うはずです。</strong>
+				違います。<strong>要件によって選ぶもの</strong>です。
+				小規模なら継承ベースのほうが速く作れます。大量のオブジェクトを捌くならデータ指向が勝ちます。
+				この判断ができることが、LV5の到達点です。
+			</p>
+		</div>
+	</section>
+
+	<!-- ================================================================= -->
+	<section id="tools">
+		<h2><span class="n">04</span>エンジンのデバッグ機能</h2>
+		<p class="prose">
+			この教材は、k2Engineに組み込んだデバッグGUIを前提にしています。
+			<span class="tag tag-gui">GUI</span> と書かれた章がそれを扱いますが、
+			<strong>どのレベルでも常に使ってください。</strong>
+			<kbd>F1</kbd>キーで表示・非表示が切り替わります。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>パネル</th><th>主に使うレベル</th><th>何が見えるか</th></tr></thead>
+			<tbody>
+				<tr><td>GameObject List</td><td><b class="c2">LV2</b></td><td>生存オブジェクト、削除待ち、消し忘れ</td></tr>
+				<tr><td>Light / Post Effect</td><td><b class="c3">LV3</b></td><td>ライトとポストエフェクトをリアルタイム調整</td></tr>
+				<tr><td>Profiler</td><td><b class="c5">LV5</b></td><td>処理時間の内訳、ドローコール、メモリ</td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			素材の用意については <a href="assets-guide.html">素材の用意のしかた</a> を見てください。
+		</p>
+		<p class="prose">
+			使い方は <a href="../DebugGui.html">デバッグGUI と GOHandle</a> にまとまっています。
+			<strong>LV1のうちに一度ざっと目を通しておいてください。</strong>
+		</p>
+	</section>
+
+	<!-- ================================================================= -->
+	<section id="authoring">
+		<h2><span class="n">05</span>教材を書く人へ</h2>
+		<p class="prose">
+			各章は <a href="chapter-template.html">章のひな形</a> の形式で書きます。
+			教材の形はレベルによって変わります。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>LV</th><th>形式</th><th>中心になるもの</th></tr></thead>
+			<tbody>
+				<tr><td><b class="c1">LV1</b></td><td>写経型</td><td>全文コード、完成画像、エラー集、穴あきプロジェクト</td></tr>
+				<tr><td><b class="c2">LV2</b></td><td>写経＋設計型</td><td>手順＋「なぜそう書くか」＋事故の再現</td></tr>
+				<tr><td><b class="c3">LV3</b></td><td>実験型</td><td>スライダーを動かす → シェーダを開ける</td></tr>
+				<tr><td><b class="c4">LV4</b></td><td>改造型</td><td>痛みのあるコード＋Before/After＋設計判断の解説</td></tr>
+				<tr><td><b class="c5">LV5</b></td><td>計測型</td><td>ベンチ用シーン、計測環境、レポートのひな形</td></tr>
+			</tbody>
+		</table>
+		</div>
+
+		<h3>執筆の優先順位</h3>
+		<p class="prose">全部を一度に書くのは現実的ではありません。効果の大きい順に。</p>
+		<ol class="prose">
+			<li><strong>2-05, 2-06, 2-08, 2-09</strong>（寿命と<code>GOHandle</code>）— 今いちばん事故が多い場所</li>
+			<li><strong>LV2の残り＋2-24</strong>（シューティング完成まで）</li>
+			<li><strong>4-05〜4-12</strong>（デザインパターン8選）— 就職活動に直結</li>
+			<li><strong>LV1</strong>（C++文法）— 分量は多いが、既存の入門書で代替が利く</li>
+			<li><strong>LV3</strong>（描画・シェーダ）</li>
+			<li><strong>LV5</strong>（最適化）— 読み物より<strong>ベンチマーク用プロジェクト</strong>を先に作る</li>
+		</ol>
+
+		<div class="note">
+			<span class="h">章番号は振り直さないこと</span>
+			章は増えても構いませんが、番号を振り直すと前提章の参照（「1-14へ戻る」など）が
+			全部壊れます。追加するときは <code>2-14b</code> のように枝番を使ってください。
+		</div>
+	</section>
+
+	<footer>
+		<p>
+			k2Engine 教材 ／ 全92章（LV1: 19章・LV2: 24章・LV3: 16章・LV4: 17章・LV5: 16章）<br>
+			関連： <a href="assets-guide.html">素材の用意のしかた</a> ・
+			<a href="../DebugGui.html">デバッグGUI と GOHandle</a> ・
+			<a href="chapter-template.html">章のひな形</a>
+		</p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) { /* file:// などで使えないことがあるので握りつぶす */ }
+
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) {
+			// 未指定のときは、いまの見た目の逆にする。
+			now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+		}
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) { /* 保存できなくても動く */ }
+	});
+})();
+</script>
+
+</body>
+</html>

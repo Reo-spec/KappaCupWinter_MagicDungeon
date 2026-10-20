@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>マルチスレッド② mutex と atomic</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n5" href="5-10_ThreadBreak.html">← 前 5-10</a>
+			<a class="navchip n5" href="index.html#lv5">LV5 の目次</a>
+			<a class="navchip n5" href="5-12_JobSystem.html">次 → 5-12</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l5">
+		<p class="kicker">LV5 最適化 ／ 5-11</p>
+		<h1>マルチスレッド② mutex と atomic</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span>
+			／ 前提 <a href="5-10_ThreadBreak.html">5-10</a>
+		</p>
+	</header>
+
+	<section class="level l5">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>壊れない書き方ができる</strong></li>
+			<li><code>mutex</code> と <code>atomic</code> を使い分けられる</li>
+			<li>ロックの落とし穴（デッドロック、偽共有）を知っている</li>
+		</ul>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">02</span>mutex ― 1人ずつ通す</h2>
+<pre><code>#include &lt;mutex&gt;
+
+int        g_counter = 0;
+std::mutex g_mutex;
+
+void CountUp()
+{
+    for (int i = 0; i &lt; 1000000; i++) {
+        std::lock_guard&lt;std::mutex&gt; lock(g_mutex);   // ★ 鍵をかける
+        g_counter++;
+    }   // ★ ここで自動的に解除される
+}</code></pre>
+		<p class="prose">
+			<strong>これで、必ず 4,000,000 になります。</strong>
+		</p>
+		<div class="note">
+			<span class="h"><code>lock_guard</code> は RAII です</span>
+			<strong>これで5回目の RAII です。</strong>
+			<code>{ }</code> を抜けたら、必ず解除されます。<br>
+			<u><code>return</code> で抜けても、例外が出ても、解除されます。</u><br><br>
+			<strong><code>g_mutex.lock()</code> / <code>unlock()</code> を
+			手で書かないでください。</strong>必ずどこかで解除を忘れます。
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">03</span>atomic ― 分割されない操作</h2>
+<pre><code>#include &lt;atomic&gt;
+
+std::atomic&lt;int&gt; g_counter{ 0 };
+
+void CountUp()
+{
+    for (int i = 0; i &lt; 1000000; i++) {
+        g_counter++;        // ★ これだけで安全
+    }
+}</code></pre>
+		<p class="prose">
+			<strong><code>std::atomic</code> は、
+			「読む・足す・書く」を分割されない1つの操作にします。</strong>
+			CPU の専用命令が使われます。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th></th><th><code>mutex</code></th><th><code>atomic</code></th></tr></thead>
+			<tbody>
+				<tr><td>守れるもの</td><td><strong>何でも（複数の変数、複雑な処理）</strong></td>
+					<td><u>1つの変数の、単純な操作だけ</u></td></tr>
+				<tr><td>速さ</td><td>遅い（数十〜数百 ns）</td>
+					<td><strong>速い（数 ns）</strong></td></tr>
+				<tr><td>待ちが発生するか</td><td><strong>する（他が終わるまで止まる）</strong></td>
+					<td>しない</td></tr>
+				<tr><td>使いどころ</td><td>配列の操作、複数変数の更新</td>
+					<td><strong>カウンタ、フラグ</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h"><code>atomic</code> は「1操作」しか守れません</span>
+<pre style="margin-top:8px;"><code>std::atomic&lt;int&gt; g_hp{ 100 };
+
+// ★ これは安全ではない
+if (g_hp &gt; 0) {         // 読む
+    g_hp -= 10;         // ★ この間に、別スレッドが変えているかも
+}</code></pre>
+			<strong>「読んで、判断して、書く」は3操作です。</strong>
+			<u>それぞれは atomic でも、全体としては競合します。</u><br>
+			こういう場合は <code>mutex</code> を使ってください。
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">04</span>ロックは、思ったより高い</h2>
+<pre><code>// ★ 遅い：100万回ロックする
+for (int i = 0; i &lt; 1000000; i++) {
+    std::lock_guard&lt;std::mutex&gt; lock(g_mutex);
+    g_counter++;
+}
+
+// ○ 速い：自分の中で数えて、最後に1回だけ足す
+int local = 0;
+for (int i = 0; i &lt; 1000000; i++) {
+    local++;
+}
+{
+    std::lock_guard&lt;std::mutex&gt; lock(g_mutex);
+    g_counter += local;        // ★ ロックは1回
+}</code></pre>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>やり方</th><th>時間の目安</th></tr></thead>
+			<tbody>
+				<tr><td>ロックなし（壊れる）</td><td>2 ms</td></tr>
+				<tr><td><code>atomic</code></td><td>25 ms</td></tr>
+				<tr><td><code>mutex</code> を毎回</td><td><strong>180 ms</strong></td></tr>
+				<tr><td><strong>ローカルに貯めて最後に1回</strong></td>
+					<td><strong>2 ms</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h">いちばん良いのは「共有しないこと」です</span>
+			<strong>ロックを速くする工夫より、
+			<u>そもそも共有データを作らない</u>ほうが、はるかに効きます。</strong><br><br>
+			<a href="5-10_ThreadBreak.html">5-10</a> の演習3でやった
+			<strong>「スレッドごとに持って、あとで合流」</strong>が、これです。
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">05</span>デッドロック</h2>
+<pre><code>std::mutex mutexA, mutexB;
+
+void Thread1()
+{
+    std::lock_guard&lt;std::mutex&gt; a(mutexA);    // A を取る
+    std::lock_guard&lt;std::mutex&gt; b(mutexB);    // ★ B 待ち
+}
+
+void Thread2()
+{
+    std::lock_guard&lt;std::mutex&gt; b(mutexB);    // B を取る
+    std::lock_guard&lt;std::mutex&gt; a(mutexA);    // ★ A 待ち
+}</code></pre>
+		<p class="prose">
+			<strong>お互いが、相手の持っているものを待ちます。永遠に止まります。</strong>
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>対策</th><th>説明</th></tr></thead>
+			<tbody>
+				<tr><td><strong>ロックの順番を決める</strong></td>
+					<td><strong>必ず A → B の順で取る、と決める</strong></td></tr>
+				<tr><td><code>std::scoped_lock</code> を使う</td>
+					<td>複数を一度に取る。<u>デッドロックしない</u></td></tr>
+				<tr><td><strong>そもそも2つ以上ロックしない</strong></td>
+					<td><strong>いちばん確実</strong></td></tr>
+			</tbody>
+		</table>
+		</div>
+<pre><code>// C++17 以降。順番を気にせず、安全に複数取れる
+std::scoped_lock lock(mutexA, mutexB);</code></pre>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h">ロックを持ったまま、関数を呼ばないでください</span>
+<pre style="margin-top:8px;"><code>std::lock_guard&lt;std::mutex&gt; lock(g_mutex);
+SomeFunction();        // ★ この中でもロックを取っていたら？</code></pre>
+			<strong>呼んだ先で同じ mutex を取ると、自分自身で止まります。</strong>
+			<u>（<code>std::mutex</code> は再帰的にロックできません）</u><br>
+			<strong>ロックしている範囲は、できるだけ短く、単純に。</strong>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">06</span>偽共有（false sharing）</h2>
+		<p class="prose">
+			<strong>ロックも共有変数も使っていないのに、遅くなる現象</strong>です。
+		</p>
+<pre><code>struct Counter {
+    int value;
+};
+Counter g_counters[4];       // ★ スレッドごとに1個
+
+void Work(int id)
+{
+    for (int i = 0; i &lt; 10000000; i++) {
+        g_counters[id].value++;     // ★ 自分のぶんしか触らない
+    }
+}</code></pre>
+		<p class="prose">
+			<strong>安全です。でも、遅いです。</strong>
+		</p>
+		<p class="prose">
+			<code>Counter</code> は4バイト。
+			<strong>4個並べても16バイト ＝ 同じキャッシュライン（64バイト）に収まります</strong>
+			（<a href="5-04_CacheLine.html">5-04</a>）。
+		</p>
+		<p class="prose">
+			コア1が <code>g_counters[0]</code> に書くたびに、
+			<strong>そのキャッシュライン全体が「変更された」扱いになり、
+			コア2のキャッシュが無効化されます。</strong>
+			<u>触っている場所は違うのに、です。</u>
+		</p>
+<pre><code>// 対策：キャッシュライン単位に離す
+struct alignas(64) Counter {
+    int value;
+    char padding[60];
+};
+Counter g_counters[4];       // ★ それぞれ別のキャッシュラインに乗る</code></pre>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h">これだけで、5〜10倍速くなることがあります</span>
+			<strong>「マルチスレッドにしたのに速くならない」の、
+			隠れた原因のひとつです。</strong><br>
+			<u><a href="5-03_Cpu.html">5-03</a> で「L1 はコアごと」と書いた話が、
+			ここで効いてきます。</u>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（直す）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><a href="5-10_ThreadBreak.html">5-10</a> の実験1を、<code>mutex</code> と <code>atomic</code> の両方で直して、<strong>それぞれの時間を測る。</strong></p>
+
+		<h3>演習2（速くする）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>ローカルに貯めて最後に1回だけ足す</strong>形に書き直して、時間を比べる。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>#include &lt;thread&gt;
+#include &lt;mutex&gt;
+#include &lt;atomic&gt;
+#include "Bench.h"
+
+namespace {
+    const int N = 1000000;
+    const int NUM_THREAD = 4;
+}
+
+void CompareLocking()
+{
+    //--- (1) ロックなし（壊れる）---
+    {
+        static int counter = 0;
+        counter = 0;
+        BENCH("(1) ロックなし（壊れる）");
+        std::vector&lt;std::thread&gt; ts;
+        for (int t = 0; t &lt; NUM_THREAD; t++) {
+            ts.emplace_back([]{ for (int i = 0; i &lt; N; i++) { counter++; } });
+        }
+        for (auto&amp; t : ts) { t.join(); }
+        char b[64]; sprintf_s(b, "    -&gt; %d\n", counter);
+        OutputDebugStringA(b);
+    }
+
+    //--- (2) atomic ---
+    {
+        static std::atomic&lt;int&gt; counter{0};
+        counter = 0;
+        BENCH("(2) atomic");
+        std::vector&lt;std::thread&gt; ts;
+        for (int t = 0; t &lt; NUM_THREAD; t++) {
+            ts.emplace_back([]{ for (int i = 0; i &lt; N; i++) { counter++; } });
+        }
+        for (auto&amp; t : ts) { t.join(); }
+        char b[64]; sprintf_s(b, "    -&gt; %d\n", counter.load());
+        OutputDebugStringA(b);
+    }
+
+    //--- (3) mutex を毎回 ---
+    {
+        static int counter = 0;
+        static std::mutex m;
+        counter = 0;
+        BENCH("(3) mutex 毎回");
+        std::vector&lt;std::thread&gt; ts;
+        for (int t = 0; t &lt; NUM_THREAD; t++) {
+            ts.emplace_back([]{
+                for (int i = 0; i &lt; N; i++) {
+                    std::lock_guard&lt;std::mutex&gt; lock(m);
+                    counter++;
+                }
+            });
+        }
+        for (auto&amp; t : ts) { t.join(); }
+        char b[64]; sprintf_s(b, "    -&gt; %d\n", counter);
+        OutputDebugStringA(b);
+    }
+
+    //--- (4) ローカルに貯める ---
+    {
+        static int counter = 0;
+        static std::mutex m;
+        counter = 0;
+        BENCH("(4) ローカルに貯めて1回");
+        std::vector&lt;std::thread&gt; ts;
+        for (int t = 0; t &lt; NUM_THREAD; t++) {
+            ts.emplace_back([]{
+                int local = 0;
+                for (int i = 0; i &lt; N; i++) { local++; }
+                std::lock_guard&lt;std::mutex&gt; lock(m);
+                counter += local;
+            });
+        }
+        for (auto&amp; t : ts) { t.join(); }
+        char b[64]; sprintf_s(b, "    -&gt; %d\n", counter);
+        OutputDebugStringA(b);
+    }
+}</code></pre>
+<p><strong>典型的な結果（Release、4スレッド）</strong></p>
+<pre><code>(1) ロックなし（壊れる）       :    2.104 ms
+    -&gt; 1382914                                ★ 値が違う
+(2) atomic                     :   24.883 ms
+    -&gt; 4000000
+(3) mutex 毎回                 :  182.447 ms
+    -&gt; 4000000
+(4) ローカルに貯めて1回        :    2.011 ms   ★ 速くて正しい
+    -&gt; 4000000</code></pre>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">(4) が (1) と同じ速さで、しかも正しい</span>
+<strong>ロックの回数を 400万回から 4回に減らしただけ</strong>です。
+<br><br>
+<u>「速くて正しい」が両立しています。</u>
+</div>
+<p><strong>なぜ (2) の atomic も遅いのか</strong></p>
+<p>
+<code>atomic</code> の操作自体は数ナノ秒です。
+ところが<strong>4つのコアが同じ変数を取り合うと、
+キャッシュラインがコア間を行ったり来たりします。</strong>
+</p>
+<p>
+これを<u>キャッシュラインのピンポン</u>といいます。
+<strong>偽共有と同じ現象</strong>で、変数が本当に共有されている場合です。
+</p>
+<div class="note" style="--lv: var(--danger);">
+<span class="h">(1) が (4) と同じ速さなのに注意</span>
+<strong>「ロックを外したら速くなった」と喜んではいけません。</strong>
+<br><br>
+<u>速いのは、正しく動いていないからです。</u>
+<br><br>
+必ず<strong>結果の値を確認してください。</strong>
+マルチスレッドでは、速度より先に正しさを確認する癖をつけてください。
+</div>
+		</details>
+
+		<h3>演習3（偽共有を見る）<span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span></h3>
+		<p class="prose"><strong>偽共有を再現して、<code>alignas(64)</code> で直す。</strong>何倍速くなったか。</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>#include &lt;thread&gt;
+#include &lt;vector&gt;
+#include "Bench.h"
+
+namespace {
+    const int N = 10000000;
+    const int NUM_THREAD = 4;
+}
+
+// ★ 詰まっている版
+struct CounterPacked {
+    int value;
+};
+
+// ★ キャッシュラインごとに離した版
+struct alignas(64) CounterPadded {
+    int value;
+    char padding[60];
+};
+
+void FalseSharingTest()
+{
+    //--- 詰まっている ---
+    {
+        static CounterPacked counters[NUM_THREAD] = {};
+        BENCH("詰まっている（偽共有あり）");
+        std::vector&lt;std::thread&gt; ts;
+        for (int t = 0; t &lt; NUM_THREAD; t++) {
+            ts.emplace_back([t]{
+                for (int i = 0; i &lt; N; i++) { counters[t].value++; }
+            });
+        }
+        for (auto&amp; t : ts) { t.join(); }
+
+        char b[128];
+        sprintf_s(b, "    sizeof=%zu  合計=%d\n",
+                  sizeof(CounterPacked),
+                  counters[0].value + counters[1].value
+                + counters[2].value + counters[3].value);
+        OutputDebugStringA(b);
+    }
+
+    //--- 離してある ---
+    {
+        static CounterPadded counters[NUM_THREAD] = {};
+        BENCH("離してある（偽共有なし）");
+        std::vector&lt;std::thread&gt; ts;
+        for (int t = 0; t &lt; NUM_THREAD; t++) {
+            ts.emplace_back([t]{
+                for (int i = 0; i &lt; N; i++) { counters[t].value++; }
+            });
+        }
+        for (auto&amp; t : ts) { t.join(); }
+
+        char b[128];
+        sprintf_s(b, "    sizeof=%zu  合計=%d\n",
+                  sizeof(CounterPadded),
+                  counters[0].value + counters[1].value
+                + counters[2].value + counters[3].value);
+        OutputDebugStringA(b);
+    }
+}</code></pre>
+<p><strong>典型的な結果</strong></p>
+<pre><code>詰まっている（偽共有あり）     :  142.883 ms
+    sizeof=4  合計=40000000
+離してある（偽共有なし）       :   18.201 ms     ← 7.8倍速い
+    sizeof=64  合計=40000000</code></pre>
+<div class="note" style="--lv: var(--danger);">
+<span class="h">どちらも結果は正しいのに、7.8倍違います</span>
+<strong>共有変数は1つもありません。ロックもありません。</strong>
+<br><br>
+<u>それぞれのスレッドが、自分専用の変数しか触っていません。</u>
+<br><br>
+<strong>それでも遅い。これが偽共有の怖さです。</strong>
+</div>
+<p><strong>何が起きているか</strong></p>
+<pre><code>メモリ上の配置（詰まっている版）
+
+  ┌────────── 1本のキャッシュライン（64バイト）──────────┐
+  │ counters[0] │ counters[1] │ counters[2] │ counters[3] │ …   │
+  └──────────────────────────────────────────────────────┘
+       コア0         コア1         コア2         コア3
+
+コア0 が counters[0] に書く
+  → このキャッシュラインが「変更された」状態になる
+  → コア1・2・3 が持っていた同じラインのコピーが無効化される
+  → コア1 が counters[1] を触ろうとすると、
+     自分は何も変えていないのに、メモリから読み直しになる</code></pre>
+<p><strong>これが毎回起きるので、実質メモリアクセスになります。</strong></p>
+<p><strong>実務での対処</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>やり方</th><th>備考</th></tr></thead>
+<tbody>
+<tr><td><strong><code>alignas(64)</code> で離す</strong></td>
+	<td>単純。<u>メモリは食う</u></td></tr>
+<tr><td><strong>ローカル変数に貯めて、最後に書く</strong></td>
+	<td><strong>いちばん良い。演習2と同じ</strong></td></tr>
+<tr><td><code>std::hardware_destructive_interference_size</code></td>
+	<td>C++17。環境ごとの正しい値が取れる</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code>// いちばん良い形
+ts.emplace_back([t]{
+    int local = 0;                        // ★ スタック上。コアごとに別
+    for (int i = 0; i &lt; N; i++) { local++; }
+    counters[t].value = local;            // ★ 書き込みは1回だけ
+});</code></pre>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">結局、いつも同じ結論になります</span>
+<strong>「共有を減らす」「書き込みを減らす」。</strong>
+<br><br>
+<u>ロックの技術を磨くより、
+そもそも触らない設計にするほうが、速くて安全です。</u>
+</div>
+		</details>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li><code>mutex</code> と <code>atomic</code> の使い分けは？</li>
+			<li><code>atomic</code> でも守れないのは、どんな処理？</li>
+			<li>デッドロックを防ぐ、いちばん確実な方法は？</li>
+			<li>偽共有とは？ 対策は？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>複数の変数や複雑な処理は <code>mutex</code>。
+					単一変数のカウンタやフラグは <code>atomic</code>。</li>
+				<li>「読んで、判断して、書く」のように、複数の操作にまたがるもの。</li>
+				<li>2つ以上のロックを同時に取らないこと。
+					取るなら順番を決めるか <code>scoped_lock</code>。</li>
+				<li>別々の変数が同じキャッシュラインに乗り、
+					コア間で無効化し合う現象。<code>alignas(64)</code> で離すか、
+					ローカルに貯めて最後に1回書く。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="5-12_JobSystem.html"><strong>5-12 マルチスレッド③ ジョブシステムを作る</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

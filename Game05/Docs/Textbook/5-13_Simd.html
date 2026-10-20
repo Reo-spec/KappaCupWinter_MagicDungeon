@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIMD入門</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n5" href="5-12_JobSystem.html">← 前 5-12</a>
+			<a class="navchip n5" href="index.html#lv5">LV5 の目次</a>
+			<a class="navchip n5" href="5-14_CrashDump.html">次 → 5-14</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l5">
+		<p class="kicker">LV5 最適化 ／ 5-13</p>
+		<h1>SIMD入門</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span>
+			／ 前提 <a href="5-06_AosSoa.html">5-06</a>
+		</p>
+	</header>
+
+	<section class="level l5">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li><strong>4個まとめて計算する</strong>という発想が分かる</li>
+			<li>当たり判定をまとめて計算できる</li>
+			<li><u>たいていは自分で書かなくてよい</u>と知っている</li>
+		</ul>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">02</span>SIMD とは</h2>
+		<p class="prose">
+			<strong>Single Instruction, Multiple Data</strong> —
+			<u>1つの命令で、複数のデータを同時に処理する</u>仕組みです。
+		</p>
+<pre><code>// ふつう（1個ずつ）
+c[0] = a[0] + b[0];
+c[1] = a[1] + b[1];
+c[2] = a[2] + b[2];
+c[3] = a[3] + b[3];        // ★ 4命令
+
+// SIMD（4個まとめて）
+__m128 va = _mm_load_ps(a);
+__m128 vb = _mm_load_ps(b);
+__m128 vc = _mm_add_ps(va, vb);    // ★ 1命令で4個
+_mm_store_ps(c, vc);</code></pre>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>命令セット</th><th>幅</th><th>float 何個</th></tr></thead>
+			<tbody>
+				<tr><td><strong>SSE</strong></td><td>128 bit</td><td><strong>4個</strong></td></tr>
+				<tr><td>AVX</td><td>256 bit</td><td>8個</td></tr>
+				<tr><td>AVX-512</td><td>512 bit</td><td><u>16個。対応CPUが限られる</u></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<div class="note">
+			<span class="h">実は、もう使っています</span>
+			<strong>k2Engine の <code>Vector3</code> や <code>Matrix</code> は、
+			DirectXMath を使っています。</strong><br>
+			<code>k2EngineLow/math/Vector.h</code> を見ると、
+			<code>DirectX::XMVector3LengthSq</code> などが出てきます。
+			<u>これは中で SIMD 命令を使っています。</u>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">03</span>AoS だと、うまく使えない</h2>
+<pre><code>// AoS：Vector3 が 12バイトずつ並んでいる
+struct Bullet { Vector3 pos; ... };
+std::vector&lt;Bullet&gt; bullets;
+
+// ★ 4個の x をまとめたくても、メモリ上で離れている
+// bullets[0].pos.x, bullets[1].pos.x, ...  → 飛び飛び</code></pre>
+<pre><code>// SoA：x だけ、y だけ、z だけの配列にする
+struct BulletSoA {
+    std::vector&lt;float&gt; x, y, z;
+};
+
+// ★ x[0..3] が連続している → 1命令で読める
+__m128 vx = _mm_load_ps(&amp;x[0]);</code></pre>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h"><a href="5-06_AosSoa.html">5-06</a> の SoA が、ここでも効きます</span>
+			<strong>SIMD を使うには、SoA がほぼ前提です。</strong><br>
+			<u>しかも <code>Vector3</code> の配列ではなく、
+			<code>x</code>・<code>y</code>・<code>z</code> を
+			ばらばらの <code>float</code> 配列にする</u>ところまで必要です。<br><br>
+			<strong>読みやすさは、さらに落ちます。</strong>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">04</span>当たり判定を4個まとめて</h2>
+<pre><code>#include &lt;xmmintrin.h&gt;     // SSE
+
+/// &lt;summary&gt;
+/// 中心 (cx, cy) 半径 r の円と、4個の点の当たりを、まとめて判定する。
+/// &lt;/summary&gt;
+/// &lt;returns&gt;当たった点のビットが立った値（下位4ビット）&lt;/returns&gt;
+int CheckHit4(const float* px, const float* py,
+              float cx, float cy, float r)
+{
+    __m128 vpx = _mm_load_ps(px);          // x を4個
+    __m128 vpy = _mm_load_ps(py);          // y を4個
+
+    __m128 vcx = _mm_set1_ps(cx);          // cx を4つに複製
+    __m128 vcy = _mm_set1_ps(cy);
+
+    __m128 dx = _mm_sub_ps(vpx, vcx);      // 4個ぶんの差
+    __m128 dy = _mm_sub_ps(vpy, vcy);
+
+    __m128 d2 = _mm_add_ps(_mm_mul_ps(dx, dx),
+                           _mm_mul_ps(dy, dy));   // 4個ぶんの距離の2乗
+
+    __m128 vr2 = _mm_set1_ps(r * r);
+    __m128 cmp = _mm_cmplt_ps(d2, vr2);    // 4個ぶんの比較
+
+    return _mm_movemask_ps(cmp);           // ビットに変換
+}</code></pre>
+<pre><code>// 使う（要素数は4の倍数にそろえておく）
+for (int i = 0; i &lt; count; i += 4) {
+    int mask = CheckHit4(&amp;px[i], &amp;py[i], ex, ey, radius);
+    if (mask == 0) { continue; }            // ★ 4個とも外れ。よくある
+
+    for (int k = 0; k &lt; 4; k++) {
+        if (mask &amp; (1 &lt;&lt; k)) { OnHit(i + k); }
+    }
+}</code></pre>
+		<div class="note" style="--lv: var(--ok);">
+			<span class="h"><code>if (mask == 0) continue;</code> が効きます</span>
+			<strong>ほとんどの場合、4個とも外れです。</strong>
+			<u>比較1回で4個をまとめて捨てられます。</u><br>
+			分岐の回数も4分の1になります（<a href="5-03_Cpu.html">5-03</a>）。
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">05</span>アラインメント</h2>
+		<div class="note" style="--lv: var(--danger);">
+			<span class="h"><code>_mm_load_ps</code> は、16バイト境界が必要です</span>
+			<strong>そろっていないとクラッシュします。</strong>
+<pre style="margin-top:8px;"><code>// ★ 危ない：std::vector&lt;float&gt; の要素は16バイト境界とは限らない
+__m128 v = _mm_load_ps(&amp;vec[1]);      // ★ 落ちる
+
+// ○ そろっていなくても読める版（少し遅い）
+__m128 v = _mm_loadu_ps(&amp;vec[1]);     // u = unaligned</code></pre>
+			<u>迷ったら <code>_mm_loadu_ps</code> を使ってください。</u>
+			最近のCPUでは、速度差はほとんどありません。
+		</div>
+<pre><code>// きちんとそろえるなら
+alignas(16) float px[1024];
+alignas(16) float py[1024];</code></pre>
+		<p class="prose">
+			<strong>要素数が4の倍数でないときの端数処理も必要です。</strong>
+		</p>
+<pre><code>int i = 0;
+for (; i + 4 &lt;= count; i += 4) {
+    // SIMD で4個ずつ
+}
+for (; i &lt; count; i++) {
+    // ★ 端数は、ふつうに1個ずつ
+}</code></pre>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">06</span>たいていは、書かなくてよい</h2>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>方法</th><th>手間</th><th>備考</th></tr></thead>
+			<tbody>
+				<tr><td><strong>コンパイラに任せる</strong></td><td><strong>ゼロ</strong></td>
+					<td><strong>単純なループは、勝手にSIMD化される</strong></td></tr>
+				<tr><td>DirectXMath を使う</td><td>小</td>
+					<td>k2Engine が既にやっている</td></tr>
+				<tr><td>組み込み関数を書く</td><td>大</td>
+					<td><u>この章でやったもの</u></td></tr>
+				<tr><td>アセンブリを書く</td><td>超大</td>
+					<td><u>いまどき、ほぼ不要</u></td></tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			<strong>Visual Studio は、条件がそろえば自動でベクトル化します。</strong>
+		</p>
+<pre><code>// プロジェクトのプロパティ → C/C++ → コマンドライン に追加
+/Qvec-report:2</code></pre>
+		<p class="prose">
+			ビルド時に<strong>「このループはベクトル化した／できなかった」</strong>と
+			出力されます。<u>できなかった理由も番号で教えてくれます。</u>
+		</p>
+		<div class="note">
+			<span class="h">自動ベクトル化を助ける書き方</span>
+			<ul style="margin-bottom:0;">
+				<li><strong>ループの中に <code>if</code> を入れない</strong></li>
+				<li>ループの中で関数を呼ばない（インライン化されるものは可）</li>
+				<li><strong>単純な配列を使う（<code>float*</code> や <code>vector&lt;float&gt;</code>）</strong></li>
+				<li>繰り返し回数が、ループの前に確定している</li>
+				<li>ポインタが重なっていないと分かるようにする</li>
+			</ul>
+		</div>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">07</span>演習</h2>
+		<h3>演習1（確かめる）<span class="diff" role="img" aria-label="難易度 3 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose"><code>/Qvec-report:2</code> を付けてビルドし、<strong>自分のコードのどのループがベクトル化されているか</strong>見る。</p>
+
+		<h3>演習2（書く）<span class="diff" role="img" aria-label="難易度 5 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i></span></h3>
+		<p class="prose"><strong>当たり判定を SIMD で書いて、ふつうの書き方と時間を比べる。</strong></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>#include &lt;xmmintrin.h&gt;
+#include "Bench.h"
+
+namespace {
+    const int N = 100000;      // 4の倍数にしておく
+}
+
+void CompareSimd()
+{
+    alignas(16) static float px[N];
+    alignas(16) static float py[N];
+
+    for (int i = 0; i &lt; N; i++) {
+        px[i] = (float)(i % 1000) - 500.0f;
+        py[i] = (float)(i / 1000) - 50.0f;
+    }
+
+    const float cx = 0.0f, cy = 0.0f, r = 50.0f;
+    const int LOOP = 100;
+
+    //--- ふつう ---
+    int count1 = 0;
+    {
+        BENCH("スカラー");
+        for (int k = 0; k &lt; LOOP; k++) {
+            count1 = 0;
+            const float r2 = r * r;
+            for (int i = 0; i &lt; N; i++) {
+                float dx = px[i] - cx;
+                float dy = py[i] - cy;
+                if (dx * dx + dy * dy &lt; r2) { count1++; }
+            }
+        }
+    }
+
+    //--- SIMD ---
+    int count2 = 0;
+    {
+        BENCH("SIMD (SSE)");
+        for (int k = 0; k &lt; LOOP; k++) {
+            count2 = 0;
+            __m128 vcx = _mm_set1_ps(cx);
+            __m128 vcy = _mm_set1_ps(cy);
+            __m128 vr2 = _mm_set1_ps(r * r);
+
+            for (int i = 0; i &lt; N; i += 4) {
+                __m128 vpx = _mm_load_ps(&amp;px[i]);
+                __m128 vpy = _mm_load_ps(&amp;py[i]);
+
+                __m128 dx = _mm_sub_ps(vpx, vcx);
+                __m128 dy = _mm_sub_ps(vpy, vcy);
+                __m128 d2 = _mm_add_ps(_mm_mul_ps(dx, dx),
+                                       _mm_mul_ps(dy, dy));
+
+                int mask = _mm_movemask_ps(_mm_cmplt_ps(d2, vr2));
+                // ビットが何個立っているか数える
+                count2 += __popcnt(mask);
+            }
+        }
+    }
+
+    char buf[128];
+    sprintf_s(buf, "スカラー=%d  SIMD=%d\n", count1, count2);
+    OutputDebugStringA(buf);
+}</code></pre>
+<p><strong>典型的な結果（Release）</strong></p>
+<pre><code>スカラー                     :   34.820 ms
+SIMD (SSE)                   :   12.104 ms     ← 2.9倍
+スカラー=7854  SIMD=7854</code></pre>
+<div class="note" style="--lv: var(--warn);">
+<span class="h">「4倍」にはなりません</span>
+<strong>2.5〜3倍あたりが、現実的なところです。</strong>
+<br><br>
+理由：
+<ul style="margin-bottom:0;">
+<li><u>ロードとストアの回数は減らない</u></li>
+<li>メモリ帯域の制限（<a href="5-12_JobSystem.html">5-12</a> と同じ）</li>
+<li><strong>スカラー版も、コンパイラが勝手にベクトル化していることがある</strong></li>
+</ul>
+</div>
+<div class="note" style="--lv: var(--danger);">
+<span class="h">結果が一致するか、必ず確認してください</span>
+<strong>上のコードで <code>count1 == count2</code> を確認しているのは、
+そのためです。</strong>
+<br><br>
+<u>SIMD のコードは間違えやすく、
+しかも「速いけど答えが違う」という壊れ方をします。</u>
+<br><br>
+<a href="4-14_Testable.html">4-14</a> のテストパネルに、
+<strong>「スカラー版と SIMD 版の結果が一致する」</strong>を
+入れておくと安心です。
+</div>
+<p><strong>コンパイラの自動ベクトル化と比べる</strong></p>
+<pre><code>// スカラー版から if を外すと、自動ベクトル化されやすくなる
+int count = 0;
+for (int i = 0; i &lt; N; i++) {
+    float dx = px[i] - cx;
+    float dy = py[i] - cy;
+    count += (dx * dx + dy * dy &lt; r2) ? 1 : 0;   // ★ 分岐ではなく算術に
+}</code></pre>
+<pre><code>スカラー（if あり）          :   34.820 ms
+スカラー（三項演算子）       :   13.902 ms     ← 自動ベクトル化された
+SIMD（手書き）               :   12.104 ms</code></pre>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">書き方を少し変えるだけで、手書きSIMDにほぼ並びます</span>
+<strong>これが「たいていは自分で書かなくてよい」の意味です。</strong>
+<br><br>
+<u>コンパイラがベクトル化しやすい形に書く</u>ほうが、
+<strong>読みやすく、移植性もあり、間違いも少ない。</strong>
+</div>
+		</details>
+
+		<h3>演習3（判断する）<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span></h3>
+		<p class="prose"><strong>自分のゲームに SIMD が必要か判断する。</strong><u>必要でないなら、なぜかを書く。</u><strong>本文には答えがありません。</strong></p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<p><strong>判断の基準</strong></p>
+<div class="tbl-scroll">
+<table class="plain">
+<thead><tr><th>条件</th><th>SIMD の価値</th></tr></thead>
+<tbody>
+<tr><td>同じ計算を<strong>数万回以上</strong>繰り返す</td><td><strong>ある</strong></td></tr>
+<tr><td>すでに SoA になっている</td><td><strong>ある</strong></td></tr>
+<tr><td>その処理が <strong>1ms 以上</strong>かかっている</td><td><strong>ある</strong></td></tr>
+<tr><td>ループの中に複雑な分岐がある</td><td><u>ない。書けない</u></td></tr>
+<tr><td>AoS のまま</td><td><u>ない。まず SoA にする</u></td></tr>
+<tr><td>数百回程度のループ</td><td><u>ない</u></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>記録の例</strong></p>
+<pre><code>== SIMD 導入の検討 ==
+
+【候補】弾 × 敵 の当たり判定
+  弾 800発 × 敵 30体 = 24,000回
+  計測：0.18 ms（フレーム 11.2ms の 1.6%）
+
+【SIMD にした場合】
+  3倍速くなったとして 0.06 ms → 0.12 ms 浮く
+  フレーム全体：11.2 → 11.1 ms
+
+【判断】導入しない。
+
+【理由】
+1. 0.12ms は 16.6ms の 0.7%。体感に影響しない
+2. すでに 60FPS 出ている
+3. コードが確実に読みにくくなる
+4. アラインメントと端数処理でバグを入れるリスクがある
+
+【代わりにやったこと】
+判定を「三項演算子」に書き換えて、自動ベクトル化されるようにした。
+/Qvec-report:2 で確認したところ、ベクトル化されていた。
+0.18ms → 0.09ms。コードは1行変えただけ。
+
+【将来 SIMD を検討する条件】
+弾が 5000発を超え、当たり判定が 2ms を超えたら再検討する。</code></pre>
+<div class="note" style="--lv: var(--ok);">
+<span class="h">「コンパイラに任せる」が、いちばん賢い選択であることが多い</span>
+<strong>手書き SIMD は、LV5 の中でも
+「効果のわりにコストが高い」部類です。</strong>
+<br><br>
+<u>それより先に、<a href="5-06_AosSoa.html">5-06</a> の SoA 化や、
+<a href="5-01_ReadProfiler.html">5-01</a> の「そもそもやらない」を
+やり尽くしてください。</u>
+</div>
+<div class="note" style="--lv: var(--warn);">
+<span class="h">それでも、知っておく価値はあります</span>
+<strong>「なぜ SoA にすると速いのか」の答えのひとつが、
+「SIMD が使えるようになるから」です。</strong>
+<br><br>
+<u>そして、シェーダ（<a href="3-03_FirstShader.html">3-03</a>）は、
+まさに SIMD の塊です。</u>
+GPU が速いのは、<strong>何千個ものピクセルに、
+同じ命令を同時に適用しているから</strong>です。
+<br><br>
+<strong>SIMD を知ると、GPU がなぜ速いのかも分かります。</strong>
+</div>
+		</details>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">08</span>確認</h2>
+		<ol class="prose">
+			<li>SSE で <code>float</code> を何個まとめられる？</li>
+			<li>SIMD を使うのに、SoA がほぼ前提なのはなぜ？</li>
+			<li><code>_mm_load_ps</code> と <code>_mm_loadu_ps</code> の違いは？</li>
+			<li>手書きする前に、まず何を試す？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>4個（128ビット）。</li>
+				<li>まとめて読む4個が、メモリ上で連続している必要があるから。</li>
+				<li>前者は16バイト境界が必要。後者はそろっていなくても読める。</li>
+				<li>コンパイラの自動ベクトル化。
+					ループから分岐を外すなど、ベクトル化しやすい形に書く。</li>
+			</ol>
+		</details>
+	</section>
+	<section class="level l5">
+		<h2><span class="n">09</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="5-14_CrashDump.html"><strong>5-14 メモリリークとクラッシュダンプ</strong></a></li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>

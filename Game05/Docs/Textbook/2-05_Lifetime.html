@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeleteGO とオブジェクトの寿命</title>
+<link rel="stylesheet" href="assets/textbook.css">
+</head>
+<body>
+
+<div class="topbar">
+	<div class="topbar-inner">
+		<a class="home" href="index.html">k2Engine 教材</a>
+		<nav class="navchips" aria-label="ページ">
+			<a class="navchip n2" href="2-04_Priority.html">← 前 2-04</a>
+			<a class="navchip n2" href="index.html#lv2">LV2 の目次</a>
+			<a class="navchip n2" href="2-06_GameObjectList.html">次 → 2-06</a>
+		</nav>
+		<button class="themetoggle" id="themeToggle" type="button">表示を切り替え</button>
+	</div>
+</div>
+
+<div class="wrap">
+
+	<header class="masthead level l2">
+		<p class="kicker">LV2 基礎 ／ 2-05</p>
+		<h1><code>DeleteGO</code> とオブジェクトの寿命</h1>
+		<p class="lead">
+			難易度
+			<span class="diff" role="img" aria-label="難易度 4 / 5"><i class="don"></i><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i></span>
+			／ 前提 <a href="2-03_MyGameObject.html">2-03</a>
+		</p>
+	</header>
+
+	<section class="level l2">
+		<h2><span class="n">00</span>入場チェック</h2>
+		<p class="prose">この章に入る前に、次の質問に答えられますか。</p>
+		<ul class="checklist prose">
+			<li><code>NewGO&lt;Player&gt;(3, "player")</code> は何をしている？ → 答えられないなら <a href="2-03_MyGameObject.html">2-03</a> へ戻る</li>
+			<li><code>new</code> したメモリは、誰が <code>delete</code> する責任を持つ？ → 答えられないなら <a href="1-15_NewDelete.html">1-15</a> へ戻る</li>
+		</ul>
+		<p class="prose"><strong>分からないまま進まないでください。</strong>ここを飛ばすと必ずあとで詰まります。</p>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">01</span>この章でできるようになること</h2>
+		<ul class="prose">
+			<li>ゲームオブジェクトが<strong>いつ生まれて、いつ消えるのか</strong>を説明できる</li>
+			<li><code>DeleteGO()</code> が「その場で消す関数」ではないことを説明できる</li>
+			<li>「誰が <code>DeleteGO</code> する責任を持つのか」を決めてからコードを書ける</li>
+		</ul>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">02</span>なぜこれが必要なのか</h2>
+		<p class="prose">
+			弾を撃つゲームを作ると、弾は1秒に何十個も生まれて、画面の外に出たら消えます。
+			この「消す」をきちんと理解していないと、次の2つが必ず起きます。
+		</p>
+		<ul class="prose">
+			<li><strong>消し忘れ</strong> — 弾がどんどん溜まって、だんだん重くなる</li>
+			<li><strong>消したものを触る</strong> — ある日とつぜんクラッシュする</li>
+		</ul>
+		<p class="prose">
+			2つめのほうが、はるかにやっかいです。
+			なぜなら <strong>「消したはずなのに、しばらく動いてしまう」</strong> からです。
+			その理由を、この章で見ていきます。
+		</p>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">03</span>生まれるとき ― <code>NewGO</code></h2>
+		<p class="prose">
+			<code>NewGO</code> の中身は、エンジンの
+			<code>k2EngineLow/gameObject/GameObjectManager.h</code> にあります。
+			難しいことはしていません。
+		</p>
+<pre><code>template&lt;class T&gt;
+T* NewGameObject(int prio, const char* objectName)
+{
+    T* newObject = new T();                           // ← ここで new
+    newObject-&gt;SetName(objectName);
+    m_nextInstanceId++;
+    newObject-&gt;m_instanceId = m_nextInstanceId;       // ← 番号を振る
+    m_instanceIdMap.insert({ m_nextInstanceId, newObject });
+    m_gameObjectListArray.at(prio).push_back(newObject);  // ← 優先度のリストに登録
+    return newObject;
+}</code></pre>
+		<p class="prose">
+			<code>new</code> して、名前と番号をつけて、優先度ごとのリストに並べているだけです。
+			<strong>この「番号（インスタンスID）」が、あとで効いてきます。</strong>
+			いま覚えておいてください。
+		</p>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">04</span>消えるとき ― <code>DeleteGO</code> は何をしているか</h2>
+		<p class="prose">では <code>DeleteGO</code> はどうでしょうか。</p>
+<pre><code>void DeleteGameObject(IGameObject* gameObject)
+{
+    if (gameObject != nullptr)
+    {
+        gameObject-&gt;Dead();     // ← これだけ
+    }
+}</code></pre>
+		<p class="prose">そして <code>Dead()</code> の中身は、</p>
+<pre><code>void Dead()
+{
+    m_isDead = true;            // ← フラグを立てるだけ
+}</code></pre>
+
+		<div class="note" style="--lv: var(--warn);">
+			<span class="h">DeleteGO は delete していない</span>
+			<code>DeleteGO()</code> がやっているのは
+			<strong>「このオブジェクトはもう要らない」という予約（死亡フラグ）を立てること</strong>だけです。
+			メモリはまだそこにあります。
+		</div>
+
+		<p class="prose">
+			では、本当に <code>delete</code> されるのはいつでしょうか。
+			<code>GameObjectManager::ExecuteUpdate()</code> の<strong>いちばん先頭</strong>です。
+		</p>
+<pre><code>void GameObjectManager::ExecuteUpdate()
+{
+    // 死亡フラグがついているゲームオブジェクトを破棄する。
+    for (auto&amp; goList : m_gameObjectListArray) {
+        goList.remove_if([&amp;](IGameObject* go) {
+            if (go-&gt;IsDead()) {
+                m_instanceIdMap.erase(go-&gt;GetInstanceID());
+                delete go;                    // ← 本当に消えるのはここ
+                return true;
+            }
+            return false;
+        });
+    }
+
+    // このあとで Start() と Update() が呼ばれる
+    ...
+}</code></pre>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">05</span>1フレームの中で、何がどの順に起きるか</h2>
+
+		<figure>
+			<svg viewBox="0 0 760 300" role="img"
+			     aria-label="1フレームの処理順を示す図。ExecuteUpdateの先頭で死亡フラグの立ったオブジェクトが破棄され、そのあとStart、Update、Renderの順に処理される。フレームNのUpdateでDeleteGOを呼ぶと、そのフレームのRenderからは呼ばれなくなり、フレームN+1の先頭で本当に破棄される">
+				<defs>
+					<marker id="ahF" viewBox="0 0 10 10" refX="9" refY="5"
+					        markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+						<path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+					</marker>
+				</defs>
+				<g class="fig-head" color="currentColor">
+					<text class="fig-m" x="30" y="24">フレーム N</text>
+					<text class="fig-m" x="420" y="24">フレーム N+1</text>
+					<path class="fig-dash" d="M 400 34 L 400 286"/>
+
+					<!-- フレームNの処理 -->
+					<rect class="fig-danger" x="30" y="44" width="110" height="40" rx="4"/>
+					<text class="fig-t sm cdanger" x="85" y="69" text-anchor="middle">死んだGOを破棄</text>
+
+					<rect class="fig-box" x="150" y="44" width="70" height="40" rx="4"/>
+					<text class="fig-t sm" x="185" y="69" text-anchor="middle">Start</text>
+
+					<rect class="fig-box b2" x="230" y="44" width="70" height="40" rx="4"/>
+					<text class="fig-t sm" x="265" y="69" text-anchor="middle">Update</text>
+
+					<rect class="fig-box" x="310" y="44" width="70" height="40" rx="4"/>
+					<text class="fig-t sm" x="345" y="69" text-anchor="middle">Render</text>
+
+					<!-- フレームN+1の処理 -->
+					<rect class="fig-danger" x="420" y="44" width="110" height="40" rx="4"/>
+					<text class="fig-t sm cdanger" x="475" y="69" text-anchor="middle">死んだGOを破棄</text>
+
+					<rect class="fig-box" x="540" y="44" width="70" height="40" rx="4"/>
+					<text class="fig-t sm" x="575" y="69" text-anchor="middle">Start</text>
+
+					<rect class="fig-box" x="620" y="44" width="70" height="40" rx="4"/>
+					<text class="fig-t sm" x="655" y="69" text-anchor="middle">Update</text>
+
+					<!-- DeleteGO の呼び出し -->
+					<path class="fig-line s2" d="M 265 96 L 265 120" marker-end="url(#ahF)"/>
+					<text class="fig-t sm c2" x="265" y="140" text-anchor="middle">ここで DeleteGO(enemy)</text>
+
+					<!-- 生存帯 -->
+					<text class="fig-m" x="30" y="184">enemy の状態</text>
+					<rect class="fig-box b2" x="150" y="166" width="115" height="26" rx="4"/>
+					<text class="fig-t sm" x="207" y="184" text-anchor="middle">生きている</text>
+					<rect class="fig-warn" x="265" y="166" width="210" height="26" rx="4"/>
+					<text class="fig-t sm cwarn" x="370" y="184" text-anchor="middle">DEAD（メモリはまだある）</text>
+					<rect class="fig-danger" x="475" y="166" width="215" height="26" rx="4"/>
+					<text class="fig-t sm cdanger" x="582" y="184" text-anchor="middle">解放済み</text>
+
+					<!-- Update/Render が呼ばれるか -->
+					<text class="fig-m" x="30" y="234">Update / Render は</text>
+					<text class="fig-t sm cok" x="207" y="234" text-anchor="middle">呼ばれる</text>
+					<text class="fig-t sm" x="370" y="234" text-anchor="middle">呼ばれない</text>
+					<text class="fig-m" x="370" y="254" text-anchor="middle">（画面からも消える）</text>
+					<text class="fig-t sm" x="582" y="234" text-anchor="middle">存在しない</text>
+				</g>
+			</svg>
+			<figcaption>
+				<strong>DeleteGO を呼んだ瞬間、画面からは消えます。でもメモリはまだ残っています。</strong>
+				<code>IGameObject</code> の <code>UpdateWrapper()</code> / <code>RenderWrapper()</code> が
+				<code>m_isDead</code> を見て呼び出しをスキップするので、見た目はすぐ消えます。
+				<strong>「消えたように見えるのに、まだメモリがある」この期間が事故のもとです。</strong>
+			</figcaption>
+		</figure>
+
+		<p class="prose">
+			なぜ <code>Update</code> と <code>Render</code> が呼ばれなくなるのかは、
+			<code>IGameObject</code> を読めば分かります。
+		</p>
+<pre><code>void UpdateWrapper()
+{
+    if (m_isActive &amp;&amp; m_isStart &amp;&amp; !m_isDead) {   // ← ここで弾かれる
+        Update();
+    }
+}</code></pre>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">06</span>確かめてみる</h2>
+		<p class="prose">
+			本当にそうなっているか、自分の目で確認します。
+			自分のゲームオブジェクトに、次のコードを入れてください。
+		</p>
+<pre><code>void Enemy::Update()
+{
+    m_frame++;
+    // 出力ウィンドウに出す。
+    char text[256];
+    sprintf_s(text, "Enemy::Update  frame=%d\n", m_frame);
+    OutputDebugStringA(text);
+
+    if (m_frame == 60) {
+        OutputDebugStringA("--- DeleteGO を呼ぶ ---\n");
+        DeleteGO(this);
+        // ここで return しないと、この下の処理が続いてしまう
+        return;
+    }
+}
+
+Enemy::~Enemy()
+{
+    OutputDebugStringA("--- Enemy のデストラクタ ---\n");
+}</code></pre>
+
+		<p class="prose">
+			Visual Studio の<strong>出力ウィンドウ</strong>（<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>O</kbd>）
+			を見ながら実行してください。こう出るはずです。
+		</p>
+<pre><code>Enemy::Update  frame=59
+Enemy::Update  frame=60
+--- DeleteGO を呼ぶ ---
+--- Enemy のデストラクタ ---     ← 次のフレームの先頭
+</code></pre>
+
+		<ul class="checklist prose">
+			<li><code>DeleteGO</code> を呼んだあと、<code>Update</code> がもう呼ばれていない</li>
+			<li>デストラクタは <code>DeleteGO</code> の<strong>直後ではなく、少し遅れて</strong>呼ばれている</li>
+		</ul>
+
+		<div class="note">
+			<span class="h"><code>DeleteGO(this)</code> の直後は必ず return</span>
+			<code>DeleteGO(this)</code> を呼んでも、その関数はそこで終わりません。
+			下に処理が続いていれば、そのまま実行されます。
+			<strong>「自分を消したら、すぐ帰る」</strong>を習慣にしてください。
+		</div>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">07</span>誰が <code>DeleteGO</code> するのか ― 所有のルール</h2>
+		<p class="prose">
+			消し忘れも、二重消しも、原因は同じです。
+			<strong>「誰が消す係なのか」を決めていない</strong>こと。
+		</p>
+		<div class="tbl-scroll">
+		<table class="plain">
+			<thead><tr><th>ルール</th><th>意味</th></tr></thead>
+			<tbody>
+				<tr>
+					<td><strong>1. 自分で自分を消す</strong></td>
+					<td>弾や敵は、画面外に出たとき・やられたときに <code>DeleteGO(this)</code> する。一番かんたんで、間違いが少ない</td>
+				</tr>
+				<tr>
+					<td><strong>2. 作った人が消す</strong></td>
+					<td><code>NewGO</code> した側が <code>DeleteGO</code> する責任を持つ。シーンが自分の中のオブジェクトを片づけるときなど</td>
+				</tr>
+				<tr>
+					<td><strong>3. 消す係はひとりだけ</strong></td>
+					<td>「敵も自分を消す、シーンも敵を消す」はダメ。どちらか片方に決める</td>
+				</tr>
+			</tbody>
+		</table>
+		</div>
+		<p class="prose">
+			シーンが終わるときに、自分が出したオブジェクトを全部片づける例です。
+		</p>
+<pre><code>class GameScene : public IGameObject {
+    std::vector&lt;Enemy*&gt; m_enemies;   // 自分が NewGO した敵
+};
+
+GameScene::~GameScene()
+{
+    // 自分が作ったものは、自分で片づける。
+    for (auto enemy : m_enemies) {
+        DeleteGO(enemy);
+    }
+    m_enemies.clear();
+}</code></pre>
+		<p class="prose">
+			この書き方をするなら、<strong><code>Enemy</code> 側は自分で <code>DeleteGO(this)</code> してはいけません。</strong>
+			両方が消そうとすると、<code>m_enemies</code> の中に死んだポインタが残ります。
+			それがまさに次の章以降で扱う事故です。
+		</p>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">08</span>よくあるエラー</h2>
+
+		<h3>弾を撃つとだんだん重くなる</h3>
+		<p class="prose">
+			<strong>原因：</strong>弾が画面外に出ても <code>DeleteGO</code> していない。
+			見えないだけで、ずっと <code>Update</code> され続けています。<br>
+			<strong>直し方：</strong>画面外に出たら <code>DeleteGO(this); return;</code> する。
+			本当に消えているかは、次の章の <strong>GameObject List パネル</strong>で確認できます。
+		</p>
+
+		<h3>デストラクタが呼ばれない</h3>
+		<p class="prose">
+			<strong>原因：</strong><code>DeleteGO</code> を呼んでいないか、
+			<code>delete</code> を直接呼んでいる。<br>
+			<strong>直し方：</strong><code>NewGO</code> で作ったものは、必ず <code>DeleteGO</code> で消します。
+			<code>delete</code> を直接書いてはいけません。
+			マネージャのリストにポインタが残ったままになります。
+		</p>
+
+		<h3>同じオブジェクトを2回 <code>DeleteGO</code> してしまう</h3>
+		<p class="prose">
+			<strong>原因：</strong>消す係が2人いる。<br>
+			<strong>直し方：</strong>上の「所有のルール」を決める。
+			なお <code>DeleteGO</code> はフラグを立てるだけなので、
+			<em>同じフレームのうちなら</em>2回呼んでも落ちません。
+			<strong>ですが、これは運がいいだけです。</strong>
+			次のフレームまたぎで2回呼ぶと、解放済みメモリに書き込むことになります。
+		</p>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">09</span>演習</h2>
+
+		<h3>演習1（まねる）<span class="diff"><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			上の「確かめてみる」のコードを自分のプロジェクトで動かし、
+			出力ウィンドウで<strong>デストラクタが1フレーム遅れて呼ばれること</strong>を確認する。
+		</p>
+
+		<h3>演習2（数字を変える）<span class="diff"><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			<code>DeleteGO(this);</code> のうしろの <code>return;</code> を消すと何が起きるか、
+			予想してから試す。<code>Update</code> の残りの処理は実行されるか？
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>void Enemy::Update()
+{
+    if (m_frame == 60) {
+        DeleteGO(this);
+        // return; を消してみる
+    }
+    m_frame++;
+    m_position.x += 1.0f;      // ← これは実行されてしまう
+    OutputDebugStringA("この行も実行される\n");
+}</code></pre>
+<p>
+<strong><code>Update()</code> の残りは、全部そのまま実行されます。</strong>
+<code>DeleteGO</code> は「予約」をするだけで、関数を終わらせる力はありません。
+</p>
+<p>
+このフレームでは、メンバ変数はまだ生きているので落ちません。
+<strong>だから気づきにくいのです。</strong>
+たとえば「死んだのにスコアがもう一度入る」「死んだのに弾を撃つ」
+といった形でバグになります。
+</p>
+<p>
+<strong><code>DeleteGO(this);</code> と <code>return;</code> は必ずセットで書いてください。</strong>
+</p>
+		</details>
+
+		<h3>演習3（自分で書く）<span class="diff"><i class="don"></i><i class="don"></i><i class="don"></i><i class="doff"></i><i class="doff"></i></span></h3>
+		<p class="prose">
+			画面の外に出たら自分を消す弾クラスを作る。
+			<strong>本文には答えがありません。</strong>
+			<code>GameObject List</code> パネル（次の章）で、弾がちゃんと消えているか確認できるようにしておくこと。
+		</p>
+		<details class="answer">
+			<summary>解答例を見る（まず自分でやってから）</summary>
+<pre><code>// Bullet.cpp
+void Bullet::Update()
+{
+    const float dt = g_gameTime-&gt;GetFrameDeltaTime();
+    m_position.y += 1200.0f * dt;
+
+    // 画面の外に出たら消える。
+    // 画面の上端は 540。少し余裕をもたせて 600 で判定する。
+    if (m_position.y &gt; 600.0f) {
+        DeleteGO(this);
+        return;
+    }
+
+    m_spriteRender.SetPosition(m_position);
+    m_spriteRender.Update();
+}</code></pre>
+<p>
+<strong>上下左右すべて見るなら、こう書きます。</strong>
+</p>
+<pre><code>if (m_position.y &gt;  600.0f || m_position.y &lt; -600.0f
+ || m_position.x &gt; 1020.0f || m_position.x &lt; -1020.0f) {
+    DeleteGO(this);
+    return;
+}</code></pre>
+<p>
+判定の値を画面ぴったり（540 や 960）にすると、
+<strong>画面の端で消える瞬間が見えてしまいます。</strong>
+少し外側で消すのがコツです。
+</p>
+		</details>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">10</span>確認</h2>
+		<p class="prose">次の質問に、<strong>声に出して説明できますか。</strong></p>
+		<ol class="prose">
+			<li><code>DeleteGO()</code> を呼んだ瞬間、そのオブジェクトのメモリはどうなっている？</li>
+			<li>本当に <code>delete</code> されるのは、いつ・どこ？</li>
+			<li><code>DeleteGO</code> したのに画面から消えるのはなぜ？</li>
+			<li><code>DeleteGO(this)</code> のあとに <code>return;</code> を書くのはなぜ？</li>
+		</ol>
+		<details>
+			<summary>答え</summary>
+			<ol>
+				<li>まだ残っている。死亡フラグ（<code>m_isDead</code>）が立つだけ。</li>
+				<li>次のフレームの <code>GameObjectManager::ExecuteUpdate()</code> のいちばん先頭。</li>
+				<li><code>UpdateWrapper()</code> と <code>RenderWrapper()</code> が
+					<code>m_isDead</code> を見て、呼び出しをスキップするから。</li>
+				<li><code>DeleteGO</code> は関数を終わらせないので、書かないと下の処理が続いてしまうから。</li>
+			</ol>
+		</details>
+	</section>
+
+	<section class="level l2">
+		<h2><span class="n">11</span>次の章</h2>
+		<ul class="prose">
+			<li><a href="2-06_GameObjectList.html"><strong>2-06 GameObject List で寿命を見る</strong></a>
+				— いま学んだことを、画面で目で見て確かめます</li>
+			<li><a href="2-08_DanglingPointer.html">2-08 事故を起こしてみる</a>
+				— この「ズレ」が実際にどんなバグになるか</li>
+		</ul>
+	</section>
+
+	<footer>
+		<p>k2Engine 教材 ／ <a href="index.html">目次にもどる</a></p>
+	</footer>
+
+</div>
+
+<script>
+(function () {
+	var KEY = 'k2-textbook-theme';
+	var root = document.documentElement;
+	var btn = document.getElementById('themeToggle');
+	try {
+		var saved = localStorage.getItem(KEY);
+		if (saved === 'dark' || saved === 'light') { root.setAttribute('data-theme', saved); }
+	} catch (e) {}
+	btn.addEventListener('click', function () {
+		var now = root.getAttribute('data-theme');
+		if (!now) { now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+		var next = (now === 'dark') ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try { localStorage.setItem(KEY, next); } catch (e) {}
+	});
+})();
+</script>
+
+</body>
+</html>
