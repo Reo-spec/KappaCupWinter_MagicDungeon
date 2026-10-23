@@ -1,0 +1,6 @@
+# ゲーム側のコード（Game05/Game/）だけに適用する。エンジン側は CP932 のままにする
+# 理由は Game05/Docs/CODING_RULE.md の R-01、R-02 を参照
+
+[*.{cpp,h}]
+charset = utf-8-bom
+end_of_line = crlf
