@@ -1,6 +1,7 @@
-#pragma once
+﻿#pragma once
 
 class Bullet;
+class Magic;
 
 class Player :  public IGameObject
 {
@@ -28,9 +29,9 @@ public:
 
 	//移動用の向き参照(回転回避にも使用)
 	Vector3 GetCameraDirection(float stickX, float stickY);
-	//あとで魔法クラスに移動させる魔法を実体化させるコード
-	void CastFireBall(const Vector3& pos, const Vector3& dir);
 
+	void SetMagic(Magic* magic) { m_magic = magic; }
+	
 	Vector3 m_position;
 	ModelRender m_modelRender;
 
@@ -47,6 +48,6 @@ public:
 	Quaternion m_rotation;
 	int playerState = 0;	//プレイヤーのステート(状態)を表す変数。
 private:
-	Bullet* m_bullet;
+	Magic* m_magic = nullptr;
 };
 

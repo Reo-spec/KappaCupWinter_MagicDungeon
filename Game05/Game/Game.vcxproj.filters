@@ -17,6 +17,8 @@
     <ClCompile Include="Bullet.cpp" />
     <ClCompile Include="GameCamera.cpp" />
     <ClCompile Include="Magic.cpp" />
+    <ClCompile Include="MagicType.cpp" />
+    <ClCompile Include="MagicSelectUI.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
@@ -29,5 +31,7 @@
     <ClInclude Include="Bullet.h" />
     <ClInclude Include="GameCamera.h" />
     <ClInclude Include="Magic.h" />
+    <ClInclude Include="MagicType.h" />
+    <ClInclude Include="MagicSelectUI.h" />
   </ItemGroup>
 </Project>

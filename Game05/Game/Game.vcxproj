@@ -227,6 +227,8 @@
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="GameCamera.cpp" />
     <ClCompile Include="Magic.cpp" />
+    <ClCompile Include="MagicSelectUI.cpp" />
+    <ClCompile Include="MagicType.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Map.cpp" />
     <ClCompile Include="Player.cpp" />
@@ -242,6 +244,8 @@
     <ClInclude Include="Game.h" />
     <ClInclude Include="GameCamera.h" />
     <ClInclude Include="Magic.h" />
+    <ClInclude Include="MagicSelectUI.h" />
+    <ClInclude Include="MagicType.h" />
     <ClInclude Include="Map.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="stdafx.h" />

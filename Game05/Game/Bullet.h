@@ -1,4 +1,8 @@
-#pragma once
+﻿#pragma once
+#include "MagicType.h"
+
+class MagicType;
+class Magic;
 
 class Bullet : public IGameObject
 {
@@ -11,17 +15,19 @@ public:
 	void Render(RenderContext& rc);
 
 	//発射時に、初期位置と進む方向を設定する。
-	void SetPositionAndDirection(const Vector3& pos, const Vector3& dir);
+	//void Init(const MagicParam& param, const Vector3& pos, const Vector3& dir);
 
 public:
-	Vector3 position;
-	Vector3 direction;      //進む方向
+	Vector3 m_position;
+	Vector3 m_direction;      //進む方向
 
-	void SetSpeed(float s) { speed = s; }
-	void SetLifeTime(float t) { lifeTime = t; }
+	void SetSpeed(float s) { m_speed = s; }
+	void SetLifeTime(float t) { m_lifeTime = t; }
 
-	float speed = 600.0f;  //弾の速さ
-	float lifeTime = 3.0f;  //この秒数が経ったら、当たらなくても消える
+	// パラメータ保持用
+	float m_speed = 0.0f;
+	float m_lifeTime = 0.0f;
+	int m_damage = 0;
 
 	ModelRender modelRender;
 };

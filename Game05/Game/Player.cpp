@@ -1,6 +1,7 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "Player.h"
 #include "Bullet.h"
+#include "Magic.h"
 
 Player::Player() {
 	
@@ -113,7 +114,7 @@ void Player::ManageState()
 //回転回避をさせる
 void Player::Roring() 
 {
-	if (g_pad[0]->IsTrigger(enButtonRB1)) {
+	if (g_pad[0]->IsTrigger(enButtonX)) {
 
 		//カメラからのベクトルを取り最終的に1にしてスティックの方向を探っている
 		Vector3 dir= GetCameraDirection(g_pad[0]->GetLStickXF(), g_pad[0]->GetLStickYF());
@@ -159,7 +160,7 @@ void Player::Rotation()
 
 void Player::ShotMagic()
 {
-	if (g_pad[0]->IsTrigger(enButtonA))
+	if (g_pad[0]->IsTrigger(enButtonRB2))
 	{
 		//向いてる方向をとる
 		Vector3 magicDir = CalcMagicDirection();
@@ -167,7 +168,13 @@ void Player::ShotMagic()
 		Vector3 magicPos = m_position + magicDir * 50.0f;
 		magicPos.y += 100.0f;
 
-		CastFireBall(magicPos, magicDir);
+		//m_magic->Cast(magicPos, magicDir);
+		auto* magic = AttackMagicPoolManager::Get().GetPool(EnMagicType::Fire)->Use();
+
+		if (magic == nullptr) {
+			return;
+		}
+		magic->SetPositionAndDirection(magicPos, magicDir);
 	}
 }
 
@@ -185,8 +192,4 @@ Vector3 Player::CalcMagicDirection()
 	return dir;
 }
 
-void Player::CastFireBall(const Vector3& pos, const Vector3& dir) 
-{
-	m_bullet = NewGO<Bullet>(0, "bullet");
-	m_bullet->SetPositionAndDirection(pos, dir);
-}
+

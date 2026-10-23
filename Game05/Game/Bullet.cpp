@@ -1,5 +1,6 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "Bullet.h"
+#include "Magic.h"
 
 Bullet::Bullet()
 {
@@ -13,34 +14,26 @@ Bullet::~Bullet()
 
 bool Bullet::Start()
 {
-	//仮の弾モデル(球など)。ファイル名は実際のものに置き換えてください。
+	//仮の弾モデル(球など)。
 	modelRender.Init("Assets/modelData/kariFireMagic.tkm");
-	modelRender.SetPosition(position);
+	modelRender.SetPosition(m_position);
 
 	return true;
 }
 
-void Bullet::SetPositionAndDirection(const Vector3& pos, const Vector3& dir)
-{
-	position = pos;
-	direction = dir;
-}
+//void Bullet::Init(const Magic::, const Vector3& pos, const Vector3& dir)
+//{
+//	m_position = pos;
+//	m_direction = dir;
+//}
 
 void Bullet::Update()
 {
-	//発射方向に、毎フレーム進める。
-	position += direction * speed * g_gameTime->GetFrameDeltaTime();
-	modelRender.SetPosition(position);
+	
+	modelRender.SetPosition(m_position);
 	modelRender.Update();
 
-	//一定時間経ったら、何にも当たらず消える。
-	lifeTime -= g_gameTime->GetFrameDeltaTime();
-	if (lifeTime <= 0.0f)
-	{
-		DeleteGO(this);
-		return;
-	}
-
+	
 
 }
 
