@@ -1,0 +1,67 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## プロジェクト概要
+
+k2Engine（DirectX12 ベースの学習用エンジン）で作っている 3D アクションゲーム「MagicDungeon」。一人で開発している。
+ゲーム側のコードは `Game05/Game/` にある。`k2Engine/`・`k2EngineLow/`・`exlib/`・`tools/` はエンジンと配布ツールなので、頼まれない限り編集しない。
+
+ゲームの仕様（魔法の種類と効果、ゲームの流れ、UI）は [Game05/Docs/GameSpec.md](Game05/Docs/GameSpec.md) にある。機能を作る前に読み、仕様が変わったら一緒に更新する。
+タスク・日程・優先順位は Notion で管理している（下の「Notion の運用」を参照）。
+
+## ビルドと実行
+
+- ソリューション：`Game05/Game/Game.sln`（Visual Studio 2022、ツールセット v143）
+- 構成：`Debug` / `Release` / `Preview`、プラットフォームは `x64`
+- コマンドラインでビルドする場合（Developer PowerShell for VS から）：
+  ```
+  msbuild Game05/Game/Game.sln /p:Configuration=Debug /p:Platform=x64
+  ```
+- アセットは `Game05/Game/` からの相対パス（`Assets/modelData/...`）で読み込むので、作業ディレクトリは `Game05/Game/` にする
+- テストやリンターはない。動作確認は実際に起動して行う
+- 新しい `.cpp` / `.h` を追加したら、`Game.vcxproj` と `Game.vcxproj.filters` にも追加する
+
+## アーキテクチャ
+
+- **ゲームオブジェクト**：すべて `IGameObject` を継承し、`NewGO<T>(優先度, "名前")` で生成、`DeleteGO` で削除する。エンジンが `Start()` → 毎フレーム `Update()` / `Render(RenderContext&)` を呼ぶ
+- **起動の流れ**：`main.cpp` が `NewGO<Game>` を呼ぶ → `Game::Start()` が Map / Player / GameCamera / Magic / MagicSelectUI を生成し、`AttackMagicPoolManager` を初期化する
+- **オブジェクト間の参照**：`Game` が生成したポインタをセッター（例：`Player::SetMagic`）で渡す
+- **魔法システム**（`Magic.h` / `Magic.cpp`、作りかけ）：
+  - `IMagicStatus` → `AttackMagicStatus` がステータス、`IMagic` → `AttackMagic` が弾 1 発ぶん
+  - `AttackMagicPool` は `AttackMagic` を 50 個まとめて持ち、使い回すプール。`Use()` で空きを 1 つ取り出す
+  - `AttackMagicPoolManager` はシングルトンで、`EnMagicType` ごとにプールを 1 つ持つ。新しい魔法は `EnMagicType` に追加し、`Setup()` で初期化する
+- 古い弾の実装（`Bullet`）がまだ残っている
+- 共通ヘッダは `stdafx.h`（`nsK2EngineLow` / `nsK2Engine` を using している）。各 `.cpp` の先頭で必ず `#include "stdafx.h"` する
+
+## 仕様に関するルール
+
+- 未定の仕様（「(仮)」や「未定」と書かれた項目）は勝手に決めない。仮の値で実装するときは定数にして `// TODO(仕様未定)` とコメントし、ユーザーに報告する
+- 魔法のダメージ・クールダウン・速度などの数値は `AttackMagicPoolManager::Setup()` にまとめ、ほかの場所に直接数字を書かない
+- 魔法の種類の一覧（enum）は `EnMagicType` の 1 つだけにする。名前は Stone / Fire / Ice / Thunder / Dark / Heal / Ghost / Enemy で統一する（`MagicType.h` に残っている古い enum は使わない）
+- 今のマイルストーンより後の段階の機能（演出など）を、先に作り込まない
+
+## コーディング上の注意
+
+- 自作ファイルは UTF-8・CRLF。`main.cpp` だけは Shift-JIS なので、編集するときは文字コードを変えない
+- コメントは日本語で書く
+- アセットのファイル名とフォルダ名に日本語を使わない。テクスチャの解像度は 2 のべき乗にする
+
+## Git の運用
+
+- `main` ブランチに直接コミットする（一人開発のため）
+- コミットメッセージは日本語で「〇〇の実装」「〇〇の修正」「〇〇の追加」の形にする
+- コミットは頼まれたら行ってよい。`git push` は必ず事前にユーザーに確認する
+- `.vs/`・`x64/`・`*.user` などのビルド生成物や個人設定はコミットしない（`.gitignore` 参照）
+- コミット前に `git status` で、意図しないファイル（エンジン側の変更、一時ファイル）が含まれていないか確認する
+
+## Notion の運用
+
+- タスク管理は Notion のデータベース「カッパ杯Winter_立花玲穏」（`collection://3f881ee2-7118-8088-aa38-000bdbf4402d`）を使う。スケジュールと優先順位はここが正
+  - 名前がよく似た「カッパ杯winter_立花玲穏」（w が小文字）は古いもの。読まない・触らない
+- 主なプロパティ：`タスク名`、`ステータス`（未着手 / 進行中 / 完了）、`選択`（マイルストーン：プロトタイプ / α版 / β版 / マスター・提出）、`日付`、`ジャンル`、`要素タイプ`、`親アイテム` / `サブアイテム`
+- マイルストーン：プロトタイプ 〜11/1、α版 〜12/1、β版 〜12/22、GFF 応募 12/31（2026年）
+- 作業を始める前に、対応する Notion タスクを確認する。何をやるか決まっていなければ、`日付` が近い未着手のタスクを提案する
+- **Notion への書き込み（ステータスの変更、タスクの追加、日付の変更）は、毎回ユーザーに確認してから行う**
+- 作業中に見つけたバグややり残しは、タスクとして追加するかをユーザーに提案する。勝手に追加しない
+- コミットしたら、対応するタスクのステータスを「完了」にするかをユーザーに確認する
