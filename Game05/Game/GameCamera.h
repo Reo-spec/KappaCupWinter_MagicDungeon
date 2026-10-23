@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 //ばねカメラを採用
 #include "camera/SpringCamera.h"
 
