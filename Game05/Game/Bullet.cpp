@@ -33,7 +33,17 @@ void Bullet::Update()
 	modelRender.SetPosition(m_position);
 	modelRender.Update();
 
-	
+	//一定時間経ったら、何にも当たらず消える。
+
+	float deltaTime= g_gameTime->GetFrameDeltaTime();
+
+	m_lifeTime -= deltaTime;
+
+	if (m_lifeTime <= 0.0f)
+	{
+		DeleteGO(this);
+		return;
+	}
 
 }
 

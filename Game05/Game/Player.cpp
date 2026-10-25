@@ -1,7 +1,7 @@
 ﻿#include "stdafx.h"
 #include "Player.h"
-#include "Bullet.h"
 #include "Magic.h"
+#include "MagicSelectUI.h"
 
 Player::Player() {
 	
@@ -35,7 +35,7 @@ void Player::Update() {
 	Rotation();
 
 	//ローリング回避用のコード
-	Roring();
+	Rolling();
 
 	//魔法を打つために使用
 	ShotMagic();
@@ -112,7 +112,7 @@ void Player::ManageState()
 }
 
 //回転回避をさせる
-void Player::Roring() 
+void Player::Rolling() 
 {
 	if (g_pad[0]->IsTrigger(enButtonX)) {
 
@@ -162,14 +162,81 @@ void Player::ShotMagic()
 {
 	if (g_pad[0]->IsTrigger(enButtonRB2))
 	{
+
+		if (m_magicSelectUI == nullptr) {
+			return;
+		}
+		
 		//向いてる方向をとる
 		Vector3 magicDir = CalcMagicDirection();
 
 		Vector3 magicPos = m_position + magicDir * 50.0f;
 		magicPos.y += 100.0f;
+		
+		//UIで選んでいる魔法を聞く
+		EnMagicType currentMagic = m_magicSelectUI->GetMagicType();
 
-		//m_magic->Cast(magicPos, magicDir);
-		auto* magic = AttackMagicPoolManager::Get().GetPool(EnMagicType::Fire)->Use();
+		//魔法の種類ごとにモデルとステータスを決める
+		const char* modelPath = nullptr;
+		AttackMagicStatus status;
+
+
+		switch (currentMagic) {
+			case EnMagicType::Stone:
+		
+				modelPath = "Assets/modelData/kariFireMagic.tkm";
+				status.m_maxLifeTime = 3.0f;
+				status.m_maxCoolDown = 3.0f;
+				status.m_moveSpeed = 500.0f;
+				break;
+			case EnMagicType::Fire:
+				modelPath = "Assets/modelData/kariFireMagic.tkm";
+				// TODO(仕様未定) 炎の数値
+				status.m_maxLifeTime = 3.0f;
+				status.m_maxCoolDown = 3.0f;
+				status.m_moveSpeed = 1000.0f;
+				break;
+			default:
+				return;
+
+		}
+
+		AttackMagic* magic = NewGO<AttackMagic>(0, "magic");
+
+		if (magic == nullptr) {
+			return;
+		}
+		magic->Init(modelPath, status);
+		magic->SetPositionAndDirection(magicPos, magicDir);
+
+		// todo for 仮で炎にしておく
+		// 将来的に色々変えられるように設計を変える予定
+		/*{
+			AttackMagicStatus status;
+			status.m_maxLifeTime = 3.0f;
+			status.m_maxCoolDown = 3.0f;
+			status.m_moveSpeed = 1000.0f;
+			magic->Init("Assets/modelData/kariFireMagic.tkm", status);
+		}*/
+
+		
+		//// レベル１の炎の初期化を書く
+		//{
+		//	auto& pool = m_pools[static_cast<uint8_t>(EnMagicType::Fire)];
+		//	AttackMagicStatus status;
+		//	status.m_maxLifeTime = 3.0f;
+		//	status.m_maxCoolDown = 3.0f;
+		//	status.m_moveSpeed = 1000.0f;
+		//	pool.Init("Assets/modelData/kariFireMagic.tkm", status);
+		//}
+		//// レベル2の炎
+		//{
+		//	//auto& pool = m_pools[static_cast<uint8_t>(EnMagicType::Fire)];
+		//	//AttackMagicStatus status;
+		//	//status.m_maxLifeTime = 3.0f;
+		//	//status.m_maxCoolDown = 3.0f;
+		//	//pool.Init("Assets/Model/test.tkm", status);
+		//}
 
 		if (magic == nullptr) {
 			return;

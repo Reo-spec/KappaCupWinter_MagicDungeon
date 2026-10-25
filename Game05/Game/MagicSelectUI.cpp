@@ -1,5 +1,6 @@
 ﻿#include "stdafx.h"
 #include "MagicSelectUI.h"
+#include "Magic.h"
 #include <cmath>
 
 //Mathの方が安定するそして他のプラットフォームでも使える
@@ -21,8 +22,13 @@ bool MagicSelectUI::Start()
 	m_baseSpriteRender.Update();
 
 	m_slotSprites[0].Init("Assets/MagicIcon/Rock.dds", 64.0f, 64.0f);
+	m_magicTypeSlot[0] = EnMagicType::Stone;
+
 	m_slotSprites[1].Init("Assets/MagicIcon/FireIcon_circle.dds", 64.0f, 64.0f);
-	m_slotSprites[2].Init("Assets/MagicIcon/Ice_circle.dds", 64.0f, 64.0f);
+	m_magicTypeSlot[1] = EnMagicType::Fire;
+
+	//m_slotSprites[2].Init("Assets/MagicIcon/Ice_circle.dds", 64.0f, 64.0f);
+	m_magicTypeSlot[2] = EnMagicType::None;
 	
 	return true;
 
@@ -54,7 +60,13 @@ void MagicSelectUI::Update()
 	m_baseSpriteRender.Update(); // ★追加
 
 	//各スロットの三角関数出の座標計算
-	for (int i = 0;i < 3;i / i++) {
+	for (int i = 0;i < 3;i++) {
+
+		//空欄のスロットは読み込まないので計算しない
+		if (m_magicTypeSlot[i] == EnMagicType::None) {
+			continue;
+		}
+
 		//120度ずつスロットを回転させる
 		float slotAngle = m_currentAngle + (i * ONE_THIRD_CIRCLE);
 
@@ -74,6 +86,11 @@ void MagicSelectUI::Render(RenderContext& rc)
 	m_baseSpriteRender.Draw(rc);
 
 	for (int i = 0;i < 3;i++) {
+
+		if (m_magicTypeSlot[i] == EnMagicType::None) {
+			continue;
+		}
+
 		m_slotSprites[i].Draw(rc);
 	}
 }
@@ -81,11 +98,11 @@ void MagicSelectUI::Render(RenderContext& rc)
 void MagicSelectUI::RotateLeft() 
 {
 	m_targetAngle += ONE_THIRD_CIRCLE;
-	m_selectedSlot = (m_selectedSlot + 1) % 3;
+	m_selectedSlot = (m_selectedSlot + 2) % 3;
 }
 
 void MagicSelectUI::RotateRight()
 {
 	m_targetAngle -= ONE_THIRD_CIRCLE;
-	m_selectedSlot = (m_selectedSlot + 2) % 3;
+	m_selectedSlot = (m_selectedSlot + 1) % 3;
 }

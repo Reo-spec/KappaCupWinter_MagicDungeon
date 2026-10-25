@@ -17,18 +17,18 @@ bool Game::Start()
 
 	m_msUI = NewGO<MagicSelectUI>(0, "magicSelectUI");
 
-	AttackMagicPoolManager::Init();
-	AttackMagicPoolManager::Get().Setup();
+	//Playerが打つ魔法をUIに聞けるようにUIを渡す
+	m_player->SetUI(m_msUI);
 
 	return true;
 }
 
 void Game::Update()
 {
-	AttackMagicPoolManager::Get().Update();
 }
 
 void Game::Render(RenderContext&rc)
 {
-	AttackMagicPoolManager::Get().Render(rc);
+
+
 }

@@ -3,8 +3,10 @@
 
 enum class EnMagicType : uint8_t
 {
+	Stone,
 	Fire,
-	Max
+	Max,
+	None
 };
 
 
@@ -27,12 +29,12 @@ using AttackValue = int;
 struct AttackMagicStatus : public IMagicStatus
 {
 	/** 移動速度 */
-	float m_moveSpeed;
+	float m_moveSpeed = 0.0f;
 	/** 威力(攻撃力) */
-	AttackValue m_attackValue;
+	AttackValue m_attackValue = 0.0f;
 	/** 消滅時間 */
-	float m_lifeTime;
-	float m_maxLifeTime;
+	float m_lifeTime = 0.0f ;
+	float m_maxLifeTime = 0.0f;
 };
 
 
@@ -85,7 +87,6 @@ public:
 private:
 	void Move();
 
-
 public:
 	AttackMagicStatus* As() { return static_cast<AttackMagicStatus*>(m_status); }
 };
@@ -93,92 +94,3 @@ public:
 
 
 
-/**
- * 攻撃魔法のオブジェクトプールを作る
- * 見た目ごとに作ってください
- */
-class AttackMagicPool : Noncopyable
-{
-	static constexpr uint8_t MAX_NUM = 50;
-
-	struct PoolObject
-	{
-		AttackMagic magic;
-		bool m_isUse;
-	};
-
-
-private:
-	std::array<PoolObject, MAX_NUM> m_pool;
-
-
-public:
-	AttackMagicPool() {}
-	~AttackMagicPool() {}
-
-	void Init(const std::string& modelPath, const AttackMagicStatus& status);
-	void Update();
-	//こいつは書くために必要
-	void Render(RenderContext& rc);
-
-	AttackMagic* Use()
-	{
-		for (auto& object : m_pool) {
-			if (!object.m_isUse) {
-				object.m_isUse = true;
-				return &object.magic;
-			}
-		}
-		// 見つからない
-		return nullptr;
-	}
-};
-
-
-
-
-
-class AttackMagicPoolManager : Noncopyable
-{
-private:
-	std::array<AttackMagicPool, static_cast<uint8_t>(EnMagicType::Max)> m_pools;
-
-
-private:
-	AttackMagicPoolManager() {}
-	~AttackMagicPoolManager() {}
-
-public:
-	void Setup();
-	void Update();
-	void Render(RenderContext& rc);
-
-public:
-	AttackMagicPool* GetPool(EnMagicType type)
-	{
-		return &m_pools[static_cast<uint8_t>(type)];
-	}
-
-
-
-
-private:
-	static AttackMagicPoolManager* m_instance;
-
-public:
-	static void Init()
-	{
-		m_instance = new AttackMagicPoolManager();
-	}
-	static AttackMagicPoolManager& Get()
-	{
-		return *m_instance;
-	}
-	static void Finalize()
-	{
-		if (m_instance) {
-			delete m_instance;
-			m_instance = nullptr;
-		}
-	}
-};

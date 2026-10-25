@@ -1,7 +1,6 @@
 ﻿#pragma once
 
-class Bullet;
-class Magic;
+class MagicSelectUI;
 
 class Player :  public IGameObject
 {
@@ -21,7 +20,7 @@ public:
 	//アニメーションの再生。
 	void PlayAnimation();
 	//回転回避の処理
-	void Roring();
+	void Rolling();
 	//魔法発射の処理関数
 	void ShotMagic();
 	//魔法発射の向きの計算用の関数
@@ -30,8 +29,11 @@ public:
 	//移動用の向き参照(回転回避にも使用)
 	Vector3 GetCameraDirection(float stickX, float stickY);
 
-	void SetMagic(Magic* magic) { m_magic = magic; }
-	
+	//void SetMagic(Magic* magic) { m_magic = magic; }
+
+	//UIをいれるもの
+	void SetUI(MagicSelectUI* magicSelectUI) { m_magicSelectUI = magicSelectUI; }
+
 	Vector3 m_position;
 	ModelRender m_modelRender;
 
@@ -48,6 +50,8 @@ public:
 	Quaternion m_rotation;
 	int playerState = 0;	//プレイヤーのステート(状態)を表す変数。
 private:
-	Magic* m_magic = nullptr;
+
+	MagicSelectUI* m_magicSelectUI = nullptr;
+
 };
 
