@@ -1,5 +1,5 @@
 ﻿#pragma once
-
+#include "AttackValue.h"
 
 enum class EnMagicType : uint8_t
 {
@@ -20,10 +20,6 @@ struct IMagicStatus
 	float m_coolDown = 0.0f;		// 今のクールダウン時間					使用したら更新される
 	float m_maxCoolDown = 0.0f;		// 決められているクールダウン時間		最初に設定されたもの
 };
-
-
-
-using AttackValue = int;
 
 
 struct AttackMagicStatus : public IMagicStatus
