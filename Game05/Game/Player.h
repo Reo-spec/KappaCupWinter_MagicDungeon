@@ -29,8 +29,6 @@ public:
 	//移動用の向き参照(回転回避にも使用)
 	Vector3 GetCameraDirection(float stickX, float stickY);
 
-	//void SetMagic(Magic* magic) { m_magic = magic; }
-
 	//UIをいれるもの
 	void SetUI(MagicSelectUI* magicSelectUI) { m_magicSelectUI = magicSelectUI; }
 

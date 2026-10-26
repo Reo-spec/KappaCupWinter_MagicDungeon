@@ -104,11 +104,6 @@ void Player::ManageState()
 		playerState = 0;
 	}
 
-
-
-
-
-
 }
 
 //回転回避をさせる
@@ -162,7 +157,7 @@ void Player::ShotMagic()
 {
 	if (g_pad[0]->IsTrigger(enButtonRB2))
 	{
-
+		//UIが渡されていないときは撃たない
 		if (m_magicSelectUI == nullptr) {
 			return;
 		}
@@ -184,6 +179,7 @@ void Player::ShotMagic()
 		switch (currentMagic) {
 			case EnMagicType::Stone:
 		
+				//TODO(仕様未定) 石の数値
 				modelPath = "Assets/modelData/kariFireMagic.tkm";
 				status.m_maxLifeTime = 3.0f;
 				status.m_maxCoolDown = 3.0f;
@@ -209,39 +205,6 @@ void Player::ShotMagic()
 		magic->Init(modelPath, status);
 		magic->SetPositionAndDirection(magicPos, magicDir);
 
-		// todo for 仮で炎にしておく
-		// 将来的に色々変えられるように設計を変える予定
-		/*{
-			AttackMagicStatus status;
-			status.m_maxLifeTime = 3.0f;
-			status.m_maxCoolDown = 3.0f;
-			status.m_moveSpeed = 1000.0f;
-			magic->Init("Assets/modelData/kariFireMagic.tkm", status);
-		}*/
-
-		
-		//// レベル１の炎の初期化を書く
-		//{
-		//	auto& pool = m_pools[static_cast<uint8_t>(EnMagicType::Fire)];
-		//	AttackMagicStatus status;
-		//	status.m_maxLifeTime = 3.0f;
-		//	status.m_maxCoolDown = 3.0f;
-		//	status.m_moveSpeed = 1000.0f;
-		//	pool.Init("Assets/modelData/kariFireMagic.tkm", status);
-		//}
-		//// レベル2の炎
-		//{
-		//	//auto& pool = m_pools[static_cast<uint8_t>(EnMagicType::Fire)];
-		//	//AttackMagicStatus status;
-		//	//status.m_maxLifeTime = 3.0f;
-		//	//status.m_maxCoolDown = 3.0f;
-		//	//pool.Init("Assets/Model/test.tkm", status);
-		//}
-
-		if (magic == nullptr) {
-			return;
-		}
-		magic->SetPositionAndDirection(magicPos, magicDir);
 	}
 }
 
