@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "AttackValue.h"
 
+
 enum class EnMagicType : uint8_t
 {
 	Stone,

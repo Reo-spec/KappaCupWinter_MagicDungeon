@@ -1,5 +1,4 @@
 ﻿#pragma once
 
-	using AttackValue = int;
+using AttackValue = int;
 
-	
