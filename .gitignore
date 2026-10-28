@@ -465,3 +465,10 @@ ASALocalRun/
 /Sample/Goal_LV5/Game/Assets/modelData/preset
 # Dear ImGui window layout file (auto generated).
 imgui.ini
+
+# Game05/Docs: keep only our own docs on Git.
+# Topic records (TOPIC_LOG.md, topics/) and the school's k2Engine textbook stay on this PC only.
+/Game05/Docs/*
+!/Game05/Docs/GameSpec.md
+!/Game05/Docs/CODING_RULE.md
+!/Game05/Docs/ASSET_LICENSE.md
