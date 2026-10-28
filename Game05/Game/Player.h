@@ -1,14 +1,13 @@
 ﻿#pragma once
+#include "Character.h"
 
 class MagicSelectUI;
 
-class Player :  public IGameObject
+class Player :  public Character
 {
 public:
 	Player();
 	~Player();
-	//更新処理。
-	void Update();
 	//描画処理。
 	void Render(RenderContext& rc);
 	//移動処理。
@@ -48,6 +47,9 @@ public:
 	Quaternion m_rotation;
 	int playerState = 0;	//プレイヤーのステート(状態)を表す変数。
 private:
+
+	//更新処理。
+	void UpdateAction()override;
 
 	MagicSelectUI* m_magicSelectUI = nullptr;
 

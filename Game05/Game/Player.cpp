@@ -20,6 +20,9 @@ Player::Player() {
 
 	//キャラコンを初期化する。
 	characterController.Init(25.0f, 75.0f, m_position);
+
+	m_baseStatus.maxHp = 500;
+	m_baseStatus.hp = m_baseStatus.maxHp;
 }
 
 Player::~Player() 
@@ -27,7 +30,7 @@ Player::~Player()
 
 }
 
-void Player::Update() {
+void Player::UpdateAction() {
 	//移動処理。
 	Move();
 

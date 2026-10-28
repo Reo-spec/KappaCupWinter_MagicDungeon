@@ -14,8 +14,8 @@ public:
 	struct BaseStatus
 	{
 		int hp = 0;
-		//TODO(仕様未定)最大HPはまだ未定
-		int maxHp = 500;
+		
+		int maxHp = 0;
 	};
 
 	//燃えている最中の状態
@@ -46,7 +46,6 @@ public:
 
 protected:
 
-	//TODO プレイヤーのUpdateをこれに書き換える
 	virtual void UpdateAction();
 
 	virtual void Die();
