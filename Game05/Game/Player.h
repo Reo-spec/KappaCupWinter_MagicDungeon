@@ -8,8 +8,6 @@ class Player :  public Character
 public:
 	Player();
 	~Player();
-	//描画処理。
-	void Render(RenderContext& rc);
 	//移動処理。
 	void Move();
 	//回転処理。
@@ -31,9 +29,6 @@ public:
 	//UIをいれるもの
 	void SetUI(MagicSelectUI* magicSelectUI) { m_magicSelectUI = magicSelectUI; }
 
-	Vector3 m_position;
-	ModelRender m_modelRender;
-
 	enum EnAnimationClip {		//アニメーション。
 		enAnimationClip_Idle,
 		enAnimationClip_Walk,
@@ -42,9 +37,7 @@ public:
 		enAnimationClip_Num,
 	};
 	AnimationClip animationClips[enAnimationClip_Num];		//アニメーションクリップ。
-	CharacterController characterController;  //キャラクターコントローラー。
-	Vector3 m_moveSpeed;		//移動速度。
-	Quaternion m_rotation;
+	
 	int playerState = 0;	//プレイヤーのステート(状態)を表す変数。
 private:
 

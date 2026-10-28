@@ -15,6 +15,10 @@ void Character::Update()
 	UpdateBurnDamage();
 	//子の行動を更新する
 	UpdateAction();
+
+	//絵描きの更新処理。
+	m_modelRender.Update();
+
 }
 
 void Character::Damage(const AttackValue damage)
@@ -34,7 +38,6 @@ void Character::Damage(const AttackValue damage)
 void Character::UpdateAction() 
 {
 	// 何もしない。行動の中身は子（Player など）の UpdateAction に書く
-	//TODO Player側のUpdateをUpdateActionに書き換える
 }
 
 //継続ダメージを食らう処理
@@ -59,6 +62,24 @@ void Character::UpdateBurnDamage()
 	
 }
 
+void Character::MoveAction() 
+{
+	//重力を発生させる。
+	m_moveSpeed.y -= 23.0f;
+
+	const float deltaTime = g_gameTime->GetFrameDeltaTime();
+
+	//キャラクターコントローラーを使って座標を移動させる。
+	m_position = m_characterController.Execute(m_moveSpeed, deltaTime);
+
+	//絵描きさんに座標を教える。
+	m_modelRender.SetPosition(m_position);
+}
+
 void Character::Die() 
 {
+}
+
+void Character::Render(RenderContext& rc) {
+	m_modelRender.Draw(rc);
 }

@@ -39,10 +39,15 @@ public:
 
 	void Update()override final;
 
+	//描画処理。
+	void Render(RenderContext& rc)override;
+
 	//ダメージを受ける
 	void Damage(const AttackValue damage);
 
 	void SetStartFireDamage(const BurnState&burnState) {m_burnState = burnState;}
+
+	Vector3 GetPosition()const { return m_position; }
 
 protected:
 
@@ -50,8 +55,17 @@ protected:
 
 	virtual void Die();
 
+	void MoveAction();
+
 	BaseStatus m_baseStatus;
 	BurnState m_burnState;
+
+	Vector3 m_position;
+	ModelRender m_modelRender;
+
+	CharacterController m_characterController;  //キャラクターコントローラー。
+	Vector3 m_moveSpeed;		//移動速度。
+	Quaternion m_rotation;
 
 private:
 

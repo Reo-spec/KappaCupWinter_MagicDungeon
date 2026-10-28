@@ -19,7 +19,7 @@ Player::Player() {
 	m_modelRender.Init("Assets/modelData/unityChan.tkm", animationClips, enAnimationClip_Num, enModelUpAxisY);
 
 	//キャラコンを初期化する。
-	characterController.Init(25.0f, 75.0f, m_position);
+	m_characterController.Init(25.0f, 75.0f, m_position);
 
 	m_baseStatus.maxHp = 500;
 	m_baseStatus.hp = m_baseStatus.maxHp;
@@ -49,9 +49,6 @@ void Player::UpdateAction() {
 	//アニメーションの再生。
 	//PlayAnimation();
 
-	//絵描きさんの更新処理。
-	m_modelRender.Update();
-
 }
 
 void Player::Move() 
@@ -76,15 +73,7 @@ void Player::Move()
 	//移動速度にスティックの入力量を加算する。
 	m_moveSpeed += GetCameraDirection(g_pad[0]->GetLStickXF(), g_pad[0]->GetLStickYF()) * 240.0f * dashMagnification;
 
-	//重力を発生させる。
-	m_moveSpeed.y -= 23.0f;
-
-	//キャラクターコントローラーを使って座標を移動させる。
-	m_position = characterController.Execute(m_moveSpeed, 1.0f / 60.0f);
-
-	//絵描きさんに座標を教える。
-	m_modelRender.SetPosition(m_position);
-
+	MoveAction();
 
 }
 
@@ -122,14 +111,10 @@ void Player::Rolling()
 		if (dir.Length() > 0.001f) {
 			dir.Normalize();
 			m_position += dir*30.0f;
-			characterController.SetPosition(m_position);
+			m_characterController.SetPosition(m_position);
 			m_modelRender.SetPosition(m_position);
 		}
 	}
-}
-
-void Player::Render(RenderContext& rc) {
-	m_modelRender.Draw(rc);
 }
 
 Vector3 Player::GetCameraDirection(float stickX,float stickY)
