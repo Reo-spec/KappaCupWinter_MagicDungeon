@@ -20,6 +20,7 @@
     <ClCompile Include="MagicType.cpp" />
     <ClCompile Include="MagicSelectUI.cpp" />
     <ClCompile Include="Character.cpp" />
+    <ClCompile Include="Enemy.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
@@ -36,5 +37,6 @@
     <ClInclude Include="MagicSelectUI.h" />
     <ClInclude Include="Character.h" />
     <ClInclude Include="AttackValue.h" />
+    <ClInclude Include="Enemy.h" />
   </ItemGroup>
 </Project>

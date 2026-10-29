@@ -5,6 +5,7 @@
 #include "GameCamera.h"
 #include "Magic.h"
 #include "MagicSelectUI.h"
+#include "Enemy.h"
 
 bool Game::Start()
 {
@@ -19,6 +20,10 @@ bool Game::Start()
 
 	//Playerが打つ魔法をUIに聞けるようにUIを渡す
 	m_player->SetUI(m_msUI);
+
+	m_fireEnemy = NewGO<FireEnemy>(0, "fireEnemy");
+
+	m_fireEnemy->Init(Vector3(800.0f, 0.0f, 700.0f));
 
 	return true;
 }

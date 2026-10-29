@@ -5,6 +5,7 @@
 class Player;
 class Map;
 class GameCamera;
+class FireEnemy;
 //仮実装UIManagerが出来次第移動
 class MagicSelectUI;
 
@@ -22,6 +23,7 @@ private:
 	Vector3 m_pos;
 	Map* m_map=nullptr;
 	Player* m_player=nullptr;
+	FireEnemy* m_fireEnemy = nullptr;
 	GameCamera* m_gameCamera=nullptr;
 	MagicSelectUI* m_msUI=nullptr;
 };
