@@ -472,3 +472,6 @@ imgui.ini
 !/Game05/Docs/GameSpec.md
 !/Game05/Docs/CODING_RULE.md
 !/Game05/Docs/ASSET_LICENSE.md
+
+# Game05/AssetSource: source files for assets (Meshy FBX, Blender files, scripts). Not needed to run the game.
+/Game05/AssetSource/
