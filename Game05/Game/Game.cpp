@@ -25,6 +25,8 @@ bool Game::Start()
 
 	m_fireEnemy->Init(Vector3(800.0f, 0.0f, 700.0f));
 
+	m_fireEnemy->SetPlayer(m_player);
+
 	return true;
 }
 
