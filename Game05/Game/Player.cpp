@@ -172,6 +172,7 @@ void Player::ShotMagic()
 				status.m_maxLifeTime = 3.0f;
 				status.m_maxCoolDown = 3.0f;
 				status.m_moveSpeed = 500.0f;
+				status.m_attackValue = 30;
 				break;
 			case EnMagicType::Fire:
 				modelPath = "Assets/modelData/kariFireMagic.tkm";
@@ -179,6 +180,7 @@ void Player::ShotMagic()
 				status.m_maxLifeTime = 3.0f;
 				status.m_maxCoolDown = 3.0f;
 				status.m_moveSpeed = 1000.0f;
+				status.m_attackValue = 50;
 				break;
 			default:
 				return;

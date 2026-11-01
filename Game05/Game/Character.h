@@ -67,6 +67,9 @@ protected:
 	Vector3 m_moveSpeed;		//移動速度。
 	Quaternion m_rotation;
 
+	//魔法が当たったかの判定をする
+	void CheckHitMagic(const char*magicName);
+
 private:
 
 	void UpdateBurnDamage();

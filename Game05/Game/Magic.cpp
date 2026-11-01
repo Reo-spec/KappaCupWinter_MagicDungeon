@@ -1,6 +1,16 @@
 ﻿#include "stdafx.h"
 #include "Magic.h"
 
+static constexpr float MAGIC_COLLISION_RADIUS = 25.0f;//TODO(仕様未定)
+static const Vector3 MAGIC_COLLISION_OFFSET = Vector3(0.0f,25.0f,0.0f);
+
+AttackMagic::~AttackMagic() 
+{
+	//魔法の当たり判定とステータスは勝手に消えないから消している
+	DeleteGO(m_collision);
+	delete As();
+}
+
 bool AttackMagic::Start()
 {
 	// 特にすることないはず
@@ -14,6 +24,8 @@ void AttackMagic::Update()
 	Move();
 	m_modelRender.SetPosition(m_position);
 	m_modelRender.Update();
+
+	m_collision->SetPosition(m_position + MAGIC_COLLISION_OFFSET);
 
 	//一定時間経ったら、何にも当たらず消える。
 
@@ -29,6 +41,7 @@ void AttackMagic::Update()
 }
 
 
+
 void AttackMagic::Render(RenderContext& rc)
 {
 	m_modelRender.Draw(rc);
@@ -37,6 +50,12 @@ void AttackMagic::Render(RenderContext& rc)
 
 void AttackMagic::Init(const std::string& modelPath, const AttackMagicStatus& status)
 {
+	//魔法の当たり判定を作成している
+	m_collision = NewGO<CollisionObject>(0, "collision");
+	m_collision->CreateSphere(m_position, Quaternion::Identity, MAGIC_COLLISION_RADIUS);
+	m_collision->SetIsEnableAutoDelete(false);
+
+	//ModelPathを持ってくる
 	m_modelRender.Init(modelPath.c_str());
 
 	m_status = new AttackMagicStatus(status);

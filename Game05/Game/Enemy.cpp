@@ -61,6 +61,9 @@ void FireEnemy::UpdateAction()
 {
 	MoveAction();
 
+	//毎フレーム魔法にあったっているかをとっている
+	CheckHitMagic("magic");
+
 	//プレイヤーが渡されていなかったら動かない
 	if (m_player == nullptr) {
 		return;

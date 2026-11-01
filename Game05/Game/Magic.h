@@ -28,7 +28,7 @@ struct AttackMagicStatus : public IMagicStatus
 	/** 移動速度 */
 	float m_moveSpeed = 0.0f;
 	/** 威力(攻撃力) */
-	AttackValue m_attackValue = 0.0f;
+	AttackValue m_attackValue = 0;
 	/** 消滅時間 */
 	float m_lifeTime = 0.0f ;
 	float m_maxLifeTime = 0.0f;
@@ -68,7 +68,7 @@ private:
 
 public:
 	AttackMagic() {};
-	~AttackMagic() {};
+	~AttackMagic();
 
 	bool Start() override;
 	void Update() override;	
@@ -81,8 +81,16 @@ public:
 
 	void SetPositionAndDirection(const Vector3& pos, const Vector3& dir) { m_position = pos; m_direction = dir; }
 
+	//魔法の当たり判定を外に渡すゲッター
+	CollisionObject* GetCollision()const{ return m_collision; }
+
+	//魔法の攻撃力を外に渡すゲッター
+	AttackValue GetAttackValue() { return As()->m_attackValue; }
+
 private:
 	void Move();
+
+	CollisionObject* m_collision = nullptr;
 
 public:
 	AttackMagicStatus* As() { return static_cast<AttackMagicStatus*>(m_status); }

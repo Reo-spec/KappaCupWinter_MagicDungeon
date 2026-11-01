@@ -1,5 +1,6 @@
 ﻿#include "stdafx.h"
 #include "Character.h"
+#include "Magic.h"
 
 Character::Character() 
 {
@@ -82,4 +83,26 @@ void Character::Die()
 
 void Character::Render(RenderContext& rc) {
 	m_modelRender.Draw(rc);
+}
+
+//魔法に当たっているかを確認する
+void Character::CheckHitMagic(const char* magicName)
+{
+	//とりあえずFindGOsで魔法を探す
+	//配列を参照で渡している
+	const std::vector<AttackMagic*>&magics=FindGOs<AttackMagic>(magicName);
+	//魔法を1つづ取り出して確認している
+	for (AttackMagic* magic : magics)
+	{
+		if (magic->GetCollision()->IsHit(m_characterController) == false) {
+			continue;
+		}
+
+		Damage(magic->GetAttackValue());
+		DeleteGO(magic);
+
+		return;
+
+	}
+
 }
