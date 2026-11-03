@@ -6,17 +6,21 @@
 Player::Player() {
 	
 	//アニメーションクリップをロードする。
-	animationClips[enAnimationClip_Idle].Load("Assets/animData/idle.tka");
+	animationClips[enAnimationClip_Idle].Load("Assets/animData/wizard_idle.tka");
 	animationClips[enAnimationClip_Idle].SetLoopFlag(true);
-	animationClips[enAnimationClip_Walk].Load("Assets/animData/walk.tka");
+	animationClips[enAnimationClip_Walk].Load("Assets/animData/wizard_walk.tka");
 	animationClips[enAnimationClip_Walk].SetLoopFlag(true);
-	animationClips[enAnimationClip_Jump].Load("Assets/animData/jump.tka");
-	animationClips[enAnimationClip_Jump].SetLoopFlag(false);
-	animationClips[enAnimationClip_Run].Load("Assets/animData/run.tka");
+	animationClips[enAnimationClip_Run].Load("Assets/animData/wizard_run.tka");
 	animationClips[enAnimationClip_Run].SetLoopFlag(true);
+	animationClips[enAnimationClip_Attack].Load("Assets/animData/wizard_attack.tka");
+	animationClips[enAnimationClip_Attack].SetLoopFlag(false);
+	animationClips[enAnimationClip_Damage].Load("Assets/animData/wizard_damage.tka");
+	animationClips[enAnimationClip_Damage].SetLoopFlag(false);
+	animationClips[enAnimationClip_Die].Load("Assets/animData/wizard_die.tka");
+	animationClips[enAnimationClip_Die].SetLoopFlag(false);
 
 	//ユニティちゃんのモデルを読み込む。
-	m_modelRender.Init("Assets/modelData/unityChan.tkm", animationClips, enAnimationClip_Num, enModelUpAxisY);
+	m_modelRender.Init("Assets/modelData/wizard.tkm", animationClips, enAnimationClip_Num, enModelUpAxisZ);
 
 	//キャラコンを初期化する。
 	m_characterController.Init(25.0f, 75.0f, m_position);
@@ -47,7 +51,7 @@ void Player::UpdateAction() {
 	ManageState();
 
 	//アニメーションの再生。
-	//PlayAnimation();
+	PlayAnimation();
 
 }
 
@@ -56,7 +60,7 @@ void Player::Move()
 	//ダッシュ用の関数
 	int dashMagnification = 1.0f;
 
-	if (g_pad[0]->IsPress(enButtonB) or g_pad[0]->IsPress(enButtonRB2))
+	if (g_pad[0]->IsPress(enButtonB))
 	{
 		dashMagnification *= 2.0f;
 	}
@@ -79,14 +83,30 @@ void Player::Move()
 
 void Player::ManageState()
 {
+
+	//魔法を撃つステートになっているか？
+	//Returnで切り返しても問題ない
+	//理由としてはちゃんと順番を守ってコードを書けば問題ないから
+	if (playerState == 2 && m_modelRender.IsPlayingAnimation())
+	{
+		return;
+	}
+
 	//xかzの移動速度があったら(スティックの入力があったら)。
 	if (fabsf(m_moveSpeed.x) >= 0.001f || fabsf(m_moveSpeed.z) >= 0.001f)
 	{
-		//ステートを2(歩き)にする。
-		playerState = 2;
-		if (g_pad[0]->IsPress(enButtonB) or g_pad[0]->IsPress(enButtonRB2))
+		//ステートを1(歩き)にする。
+		playerState = 1;
+
+		//ダッシュをする(ステート3)
+		if (g_pad[0]->IsPress(enButtonB))
 		{
 			playerState = 3;
+		}
+
+		if (g_pad[0]->IsPress(enButtonX)) 
+		{
+			playerState = 4;
 		}
 	}
 	//xとzの移動速度が無かったら(スティックの入力が無かったら)。
@@ -96,6 +116,30 @@ void Player::ManageState()
 		playerState = 0;
 	}
 
+}
+
+void Player::PlayAnimation()
+{
+	//switch文。
+	switch (playerState) {
+		//プレイヤーステートが0(待機)だったら。
+	case 0:
+		//待機アニメーションを再生する。
+		m_modelRender.PlayAnimation(enAnimationClip_Idle);
+		break;
+		//プレイヤーステートが1(歩き)だったら。
+	case 1:
+		//歩きアニメーションを再生する。
+		m_modelRender.PlayAnimation(enAnimationClip_Walk);
+		break;
+		//プレイヤーステートが2(魔法を打つ)だったら。
+	case 2:
+		m_modelRender.PlayAnimation(enAnimationClip_Attack);
+		break;
+	case 3:
+		m_modelRender.PlayAnimation(enAnimationClip_Run);
+		break;
+	}
 }
 
 //回転回避をさせる
@@ -197,6 +241,8 @@ void Player::ShotMagic()
 		magic->Init(modelPath, status);
 		magic->SetPositionAndDirection(magicPos, magicDir);
 
+		//ステート2(魔法を打つ)に変更
+		playerState = 2;
 	}
 }
 

@@ -29,10 +29,19 @@
 | `Assets/modelData/bg.tkm`、`ground.*`、`building.DDS` | 背景・地面 | 要確認（学校配布のサンプル？） | 要確認 | 要確認 | 要確認 | ? | |
 | `Assets/MagicIcon/*.DDS` | 魔法のアイコン、魔法選択リング | Google Gemini で生成（AI 生成） | Google 利用規約・生成 AI の使用禁止ポリシー | ○（条件あり） | AI 生成であることを明記する | ○ | 2026-10-23 確認。Google は生成物の所有権を主張しない。ただし、生成物を人間だけが作ったと偽ることは禁止なので、クレジットや応募書類に「Gemini で生成」と書く。既存キャラクターや実在の人物に似せた画像は不可。規約に「再配布を禁止する」文言はない。まだコミットしていない |
 | `Assets/modelData/fireSlime.tkm`、`fireSlime.dds`、`fireSlimeAnim.tkm`、`fireSlimeAnim.tks`、`Assets/animData/fireSlime_idle/attack/move/die.tka`（元ファイルは `Game05/AssetSource/fireSlime/`） | 炎の敵のモデル（炎の怪物）と炎の色のテクスチャ | 形は Meshy AI で生成（ユーザー、2026-10-29）。面の削減（119,294 → 6,000 面）・UV・テクスチャ（スクリプトで描いた炎のグラデーション）・tkm への変換は Claude Code（Blender）。骨（16本）とアニメーション4つ（Idle・Attack・Move・Die）も Claude Code が Blender のスクリプトで作成 | CC BY 4.0（**無料プランで生成**、Meshy が所有。2026-10-29 にユーザーが確認） | ○（Meshy の規約・CC BY 4.0 とも商用可）。ただし GFF の応募規約で AI 生成素材を使えるかは要確認 | **必要**：作者（Meshy）、CC BY 4.0 へのリンク、改変したこと（面の削減・UV・テクスチャ・骨とアニメーションの追加）。AI 生成であることも書く | ○（条件つき：リポジトリにクレジットの表記を一緒に入れる） | 2026-10-29。クレジットはこのファイルの「クレジット」に書いた（2026-10-29）。面の削減などの加工が §2.4 に当たるかは規約から判断できない |
+| `Assets/modelData/wizard.tkm`、`wizard.tks`、`wizard.dds`、`Assets/animData/wizard_idle/walk/run/jump/attack/damage/die.tka`（元ファイルは `Game05/AssetSource/wizard/`） | プレイヤーのモデル（星と月のローブの少年の魔法使い、杖つき）とテクスチャ | 元の絵（`Meshy_AI_Wizard Clean A-Pose.png`）と形・色は Meshy AI で生成（ユーザー、2026-11-03）。面の削減（214,780 → 10,000 面）・UV の作り直し・色のベイク（2048×2048）・tkm への変換、骨（21本）とアニメーション7つは Claude Code（Blender のスクリプト）。dds は学校のツールの texconv（BC7）で変換 | CC BY 4.0（**無料プランで生成**、Meshy が所有。2026-11-03 にユーザーが確認） | ○（Meshy の規約・CC BY 4.0 とも商用可）。ただし GFF の応募規約で AI 生成素材を使えるかは要確認 | **必要**：作者（Meshy）、CC BY 4.0 へのリンク、改変したこと。AI 生成であることも書く | ○（条件つき：リポジトリにクレジットの表記を一緒に入れる） | 2026-11-03。クレジットはこのファイルの「クレジット」に書いた。ユニティちゃんの差し替え用。元の絵が Meshy の画像生成かは、ファイル名（Meshy_AI_）からの判断 |
 
 ## クレジット
 
 このリポジトリとゲームに含まれる、表記が必要な素材。
+
+### プレイヤーのモデル（wizard）
+
+- 対象：`Game05/Game/Assets/modelData/wizard.tkm`、`wizard.tks`、`wizard.dds`、`Game05/Game/Assets/animData/wizard_idle.tka`、`wizard_walk.tka`、`wizard_run.tka`、`wizard_jump.tka`、`wizard_attack.tka`、`wizard_damage.tka`、`wizard_die.tka`
+- 元のモデル：Meshy（https://www.meshy.ai/）の AI で生成（無料プラン、2026-11-03）。著作権者は Meshy
+- ライセンス：Creative Commons Attribution 4.0 International（CC BY 4.0） https://creativecommons.org/licenses/by/4.0/
+- 改変：面の数を減らした（214,780 → 10,000 面）、UV を作り直して元の色をベイクした（2048×2048）、大きさと向きを変えた、骨（21本）とアニメーション（Idle・Walk・Run・Jump・Attack・Damage・Die）を付けた、k2Engine の形式（tkm・tks・tka・dds）に変換した。改変は Claude Code（Anthropic）が Blender のスクリプトで行った
+- 無保証：CC BY 4.0 のとおり、元の素材は無保証で提供されている
 
 ### 炎の敵のモデル（fireSlime）
 

@@ -32,8 +32,10 @@ public:
 	enum EnAnimationClip {		//アニメーション。
 		enAnimationClip_Idle,
 		enAnimationClip_Walk,
-		enAnimationClip_Jump,
 		enAnimationClip_Run,
+		enAnimationClip_Attack,
+		enAnimationClip_Damage,
+		enAnimationClip_Die,
 		enAnimationClip_Num,
 	};
 	AnimationClip animationClips[enAnimationClip_Num];		//アニメーションクリップ。
