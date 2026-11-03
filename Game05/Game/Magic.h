@@ -32,6 +32,8 @@ struct AttackMagicStatus : public IMagicStatus
 	/** 消滅時間 */
 	float m_lifeTime = 0.0f ;
 	float m_maxLifeTime = 0.0f;
+	//魔法の種類を見る
+	EnMagicType m_magicType=EnMagicType::None;
 };
 
 
@@ -86,6 +88,9 @@ public:
 
 	//魔法の攻撃力を外に渡すゲッター
 	AttackValue GetAttackValue() { return As()->m_attackValue; }
+
+	//魔法の種類を返す
+	EnMagicType GetMagicType() { return As()->m_magicType; }
 
 private:
 	void Move();

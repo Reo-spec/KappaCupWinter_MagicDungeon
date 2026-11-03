@@ -2,6 +2,11 @@
 #include "Character.h"
 #include "Magic.h"
 
+static constexpr int ONCE_FIRE_DAMAGE = 5;//TODO(仕様未定)
+static constexpr float BURN_DAMAGE_INTERVAL = 3.0f;//TODO(仕様未定)
+static constexpr float BURN_REMAINING_TIME = 6.0f;//TODO(仕様未定)
+
+
 Character::Character() 
 {
 }
@@ -96,6 +101,17 @@ void Character::CheckHitMagic(const char* magicName)
 	{
 		if (magic->GetCollision()->IsHit(m_characterController) == false) {
 			continue;
+		}
+
+		if (magic->GetMagicType() == EnMagicType::Fire)
+		{
+			BurnState burnState;
+
+			burnState.remainingTime = BURN_REMAINING_TIME;
+			burnState.damage = ONCE_FIRE_DAMAGE;
+			burnState.damageInterval = BURN_DAMAGE_INTERVAL;
+
+			SetStartFireDamage(burnState);
 		}
 
 		Damage(magic->GetAttackValue());

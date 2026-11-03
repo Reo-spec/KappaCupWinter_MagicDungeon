@@ -173,6 +173,7 @@ void Player::ShotMagic()
 				status.m_maxCoolDown = 3.0f;
 				status.m_moveSpeed = 500.0f;
 				status.m_attackValue = 30;
+				status.m_magicType = EnMagicType::Stone;
 				break;
 			case EnMagicType::Fire:
 				modelPath = "Assets/modelData/kariFireMagic.tkm";
@@ -181,6 +182,7 @@ void Player::ShotMagic()
 				status.m_maxCoolDown = 3.0f;
 				status.m_moveSpeed = 1000.0f;
 				status.m_attackValue = 50;
+				status.m_magicType = EnMagicType::Fire;
 				break;
 			default:
 				return;
