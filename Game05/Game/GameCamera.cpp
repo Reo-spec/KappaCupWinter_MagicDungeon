@@ -40,8 +40,7 @@ void GameCamera::Update()
 	Vector3 target = m_player->GetPosition();
 	//プレイヤの足元からちょっと上を注視点とする。
 	target.y += 80.0f;
-	target += g_camera3D->GetForward() * 30.0f;
-
+	
 	Vector3 toCameraPosOld = m_toCameraPos;
 	//パッドの入力を使ってカメラを回す。
 	float x = g_pad[0]->GetRStickXF();
@@ -74,9 +73,9 @@ void GameCamera::Update()
 	//視点を計算する。
 	Vector3 pos = target + m_toCameraPos;
 	//メインカメラに注視点と視点を設定する。
-	g_camera3D->SetTarget(target);
-	g_camera3D->SetPosition(pos);
+	m_springCamera.SetTarget(target);
+	m_springCamera.SetPosition(pos);
 
 	//カメラの更新。
-	g_camera3D->Update();
+	m_springCamera.Update();
 }

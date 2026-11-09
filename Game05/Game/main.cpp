@@ -35,6 +35,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 
 	g_renderingEngine->DisableRaytracing();
 
+	//Map
+	g_renderingEngine->DisableTonemap();
+
+	Vector3 DirectionLight = Vector3(0, -1, 0);
+	g_renderingEngine->SetDirectionLight(0,DirectionLight,Vector3(1.2f,1.2f,1.2f));
+
 	//Gameクラスのオブジェクトを作成。
 	NewGO<Game>(0, "game");
 

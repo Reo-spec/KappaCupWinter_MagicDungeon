@@ -12,6 +12,7 @@ public:
 	bool Start() override;
 	void Update() override;
 
+private:
 	Player* m_player;	//プレイヤー。
 	Vector3 m_toCameraPos = { 0.0f, 0.0f, 0.0f };	//注視点から視点に向かうベクトル。
 	SpringCamera m_springCamera;	//ばねカメラ。
