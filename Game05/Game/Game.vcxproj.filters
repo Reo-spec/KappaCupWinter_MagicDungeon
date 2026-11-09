@@ -4,6 +4,21 @@
     <Filter Include="system">
       <UniqueIdentifier>{22dd8095-74f9-46df-81a1-36675a040b1f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Character">
+      <UniqueIdentifier>{6a1f3c2e-8b4d-4e7a-9c15-2d7e0b9a4f31}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Magic">
+      <UniqueIdentifier>{b83e5d17-2f6a-4c09-a4e2-7f1c9d3b6e52}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI">
+      <UniqueIdentifier>{4d9c7a21-e35b-4f86-8b70-1a6e2c5f9d73}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Stage">
+      <UniqueIdentifier>{e1720b4f-9c8d-4a3e-b65f-3c8a7e1d2b94}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Camera">
+      <UniqueIdentifier>{7f4b2e98-1d6c-4b5a-9e37-5b2d8f0c4a15}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp" />
@@ -12,15 +27,36 @@
       <Filter>system</Filter>
     </ClCompile>
     <ClCompile Include="Game.cpp" />
-    <ClCompile Include="Map.cpp" />
-    <ClCompile Include="Player.cpp" />
-    <ClCompile Include="Bullet.cpp" />
-    <ClCompile Include="GameCamera.cpp" />
-    <ClCompile Include="Magic.cpp" />
-    <ClCompile Include="MagicType.cpp" />
-    <ClCompile Include="MagicSelectUI.cpp" />
-    <ClCompile Include="Character.cpp" />
-    <ClCompile Include="Enemy.cpp" />
+    <ClCompile Include="Map.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="Player.cpp">
+      <Filter>Character</Filter>
+    </ClCompile>
+    <ClCompile Include="Bullet.cpp">
+      <Filter>Magic</Filter>
+    </ClCompile>
+    <ClCompile Include="GameCamera.cpp">
+      <Filter>Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="Magic.cpp">
+      <Filter>Magic</Filter>
+    </ClCompile>
+    <ClCompile Include="MagicType.cpp">
+      <Filter>Magic</Filter>
+    </ClCompile>
+    <ClCompile Include="MagicSelectUI.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Character.cpp">
+      <Filter>Character</Filter>
+    </ClCompile>
+    <ClCompile Include="Enemy.cpp">
+      <Filter>Character</Filter>
+    </ClCompile>
+    <ClCompile Include="TreasureChest.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
@@ -28,15 +64,38 @@
       <Filter>system</Filter>
     </ClInclude>
     <ClInclude Include="Game.h" />
-    <ClInclude Include="Map.h" />
-    <ClInclude Include="Player.h" />
-    <ClInclude Include="Bullet.h" />
-    <ClInclude Include="GameCamera.h" />
-    <ClInclude Include="Magic.h" />
-    <ClInclude Include="MagicType.h" />
-    <ClInclude Include="MagicSelectUI.h" />
-    <ClInclude Include="Character.h" />
-    <ClInclude Include="AttackValue.h" />
-    <ClInclude Include="Enemy.h" />
+    <ClInclude Include="Map.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="Player.h">
+      <Filter>Character</Filter>
+    </ClInclude>
+    <ClInclude Include="Bullet.h">
+      <Filter>Magic</Filter>
+    </ClInclude>
+    <ClInclude Include="GameCamera.h">
+      <Filter>Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="Magic.h">
+      <Filter>Magic</Filter>
+    </ClInclude>
+    <ClInclude Include="MagicType.h">
+      <Filter>Magic</Filter>
+    </ClInclude>
+    <ClInclude Include="MagicSelectUI.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Character.h">
+      <Filter>Character</Filter>
+    </ClInclude>
+    <ClInclude Include="AttackValue.h">
+      <Filter>Character</Filter>
+    </ClInclude>
+    <ClInclude Include="Enemy.h">
+      <Filter>Character</Filter>
+    </ClInclude>
+    <ClInclude Include="TreasureChest.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

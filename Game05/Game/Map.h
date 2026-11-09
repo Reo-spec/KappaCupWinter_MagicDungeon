@@ -22,6 +22,8 @@ private:
 
 	bool IsWall(int row, int column)const;
 
+	char GetCellChar(int row, int column)const;
+
 	//行と列をもらって座標を返す関数
 	Vector3 GetCellPosition(int row, int column)const;
 

@@ -1,5 +1,6 @@
 ﻿#include "stdafx.h"
 #include "Map.h"
+#include "TreasureChest.h"
 
 /**迷路の行の数(縦マスの数)*/
 static constexpr int MAZE_ROW_COUNT = 31;
@@ -88,6 +89,24 @@ bool Map::IsWall(int row,int column)const
 	return true;
 }
 
+char Map::GetCellChar(int row, int column)const
+{
+	if (0 <= row && row < MAZE_ROW_COUNT && 0 <= column && column < MAZE_COLUMN_COUNT)
+	{
+		return MAZE_MAP[row][column];
+	}
+
+	int corridorRow = row - START_CORRIDOR_ROW_OFFSET;
+	int corridorColumn = column - START_CORRIDOR_COLUMN_OFFSET;
+
+	if (0 <= corridorRow && corridorRow < START_CORRIDOR_ROW_COUNT && 0 <= corridorColumn && corridorColumn < START_CORRIDOR_COLUMN_COUNT)
+	{
+		return START_CORRIDOR_MAP[corridorRow][corridorColumn];
+	}
+	return '#';
+}
+
+
 Vector3 Map::GetCellPosition(int row,int column) const
 {
 	//ワールド座標をとってMAPを配置する準備をしている
@@ -171,6 +190,55 @@ Map::Map()
 
 				K2_LOG("覚えた板の数:%d\n", (int)m_wallPosition.size());
 			}
+			else if (GetCellChar(row,column)) 
+			{
+				char mapText = GetCellChar(row, column);
+
+				Quaternion chestRotation;
+
+				if (!IsWall(row - 1, column))
+				{
+					chestRotation.SetRotationDegY(0.0f);
+				}
+				else if (!IsWall(row + 1, column))
+				{
+					chestRotation.SetRotationDegY(180.0f);
+				}
+				else if (!IsWall(row, column - 1))
+				{
+					chestRotation.SetRotationDegY(-90.0f);
+				}
+				else if (!IsWall(row, column + 1))
+				{
+					chestRotation.SetRotationDegY(90.0f);
+				}
+		
+
+				if (mapText == 'M') 
+				{
+					//石の魔法が入った宝箱
+					TreasureChest* tc = NewGO<TreasureChest>(0, "treasureChest");
+					tc->SetPosition(GetCellPosition(row, column));
+					tc->SetRotation(chestRotation);
+					tc->SetContents(EnMagicType::Stone);
+				}
+				if (mapText == 'F') 
+				{
+					//炎の魔法が入った宝箱
+					TreasureChest* tc = NewGO<TreasureChest>(0, "treasureChest");
+					tc->SetPosition(GetCellPosition(row, column));
+					tc->SetRotation(chestRotation);
+					tc->SetContents(EnMagicType::Fire);
+				}
+				if (mapText == 'L') 
+				{
+					//たいまつの宝箱（α版では開けたらログを出すだけ）
+					TreasureChest* tc = NewGO<TreasureChest>(0, "treasureChest");
+					tc->SetPosition(GetCellPosition(row, column));
+					tc->SetRotation(chestRotation);
+					tc->SetTorch();
+				}
+			}
 
 		}
 	}
@@ -197,7 +265,7 @@ Map::Map()
 		m_wallCollision.push_back(std::move(wallCollision));
 	}
 
-
+	
 	m_mapFloorModelRender.SetPosition(MAZE_CORNER_POSITION);
 	m_mapCeilingModelRender.SetPosition(MAZE_CORNER_POSITION);
 
