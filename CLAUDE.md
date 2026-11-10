@@ -66,13 +66,14 @@ k2Engine（DirectX12 ベースの学習用エンジン）で作っている 3D �
   - `Player::ShotMagic()` が撃つたびに `NewGO<AttackMagic>` で弾を作り、`Init()`（モデルとステータス）と `SetPositionAndDirection()` を呼ぶ
   - 魔法の種類は `Magic.h` の `EnMagicType`
   - 以前はオブジェクトプールで使い回していたが、やめた（当時のコードはコミット `346983e`）
+  - **MagicManager を作る予定（未作成。2026-11-10 に決定）**：魔法のデータの係。持っている魔法の一覧・スロット（今は `MagicSelectUI::m_magicTypeSlot`）・魔法の基本情報（数値）を持つ。MagicSelectUI は見せるだけにする。弾を撃つ処理は入れない。ほかのオブジェクトには、Game.cpp で作ってセッターで渡す（FindGO は使わない。2026-11-10 に決定）。α版で作る（2026-11-10 に決定）
 - 古い弾の実装（`Bullet`）がまだ残っている
 - 共通ヘッダは `stdafx.h`（`nsK2EngineLow` / `nsK2Engine` を using している）。各 `.cpp` の先頭で必ず `#include "stdafx.h"` する
 
 ## 仕様に関するルール
 
 - 未定の仕様（「(仮)」や「未定」と書かれた項目）は勝手に決めない。仮の値で実装するときは定数にして `// TODO(仕様未定)` とコメントし、ユーザーに報告する
-- 魔法のダメージ・クールダウン・速度などの数値の置き場所は、設計を見直し中（今は仮で `Player::ShotMagic()` に書いてある）。決まったらここに書く。JSON から読む仕組みは未導入
+- 魔法のダメージ・クールダウン・速度などの数値は、MagicManager（作る予定）に置く（2026-11-10 に決定）。それまでは仮で `Player::ShotMagic()` に書いてある。JSON から読む仕組みは未導入
 - 魔法の種類の一覧（enum）は `EnMagicType` の 1 つだけにする。名前は Stone / Fire / Ice / Thunder / Dark / Heal / Ghost / Enemy で統一する（`MagicType.h` に残っている古い enum は使わない）。魔法が入っていない（空欄の）スロットは `None` で表す。`None` は魔法の種類ではないので、種類の数（`Max`）に数えない
 - 今のマイルストーンより後の段階の機能（演出など）を、先に作り込まない
 
