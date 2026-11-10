@@ -2,6 +2,9 @@
 #include "TreasureChest.h"
 #include "Player.h"
 
+//宝箱とプレイヤーの距離
+static constexpr float OPEN_DISTANCE = 100.0f;//TODO仕様未定
+
 bool TreasureChest::Start() 
 {
 	m_closeChestRender.Init("Assets/modelData/treasureChest.tkm");
@@ -57,10 +60,38 @@ void TreasureChest::SetTorch()
 
 void TreasureChest::Update() 
 {
+	if (m_player == nullptr) {
+		return;
+	}
+	
+	if (m_openChest == true) {
+		return;
+	}
+
+	Vector3 target = m_player->GetPosition() - m_position;
+	float diff = target.Length();
+
+	if (diff < OPEN_DISTANCE && g_pad[0]->IsTrigger(enButtonA)) {
+		m_openChest = true;
+
+		if (m_torch == true) {
+			K2_LOG("たいまつの宝箱を開けた\n");
+		}
+		else {
+			K2_LOG("魔法を手に入れた:%d\n", static_cast<int>(m_magicType));
+		}
+	}
 
 }
 
 void TreasureChest::Render(RenderContext& rc) 
 {
-	m_closeChestRender.Draw(rc);
+
+	if (m_openChest == true) {
+		m_openChestRender.Draw(rc);
+	}
+	else {
+		m_closeChestRender.Draw(rc);
+	}
+	
 }
