@@ -2,6 +2,7 @@
 #include "Magic.h"
 
 class Player;
+class MagicManager;
 
 class TreasureChest:public IGameObject
 {
@@ -20,6 +21,9 @@ public:
 	void SetRotation(const Quaternion& rotation);
 	void SetContents(EnMagicType magicType);
 	void SetTorch();
+
+	/**セッター*/
+	void SetMagicManager(MagicManager* magicManager) { m_magicManager = magicManager; }
 
 protected:
 
@@ -40,5 +44,6 @@ private:
 	PhysicsStaticObject m_chestCollision;
 
 	Player* m_player = nullptr;
+	MagicManager* m_magicManager = nullptr;
 };
 

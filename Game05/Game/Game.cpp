@@ -5,21 +5,27 @@
 #include "GameCamera.h"
 #include "Magic.h"
 #include "MagicSelectUI.h"
+#include "MagicManager.h"
 #include "Enemy.h"
 
 bool Game::Start()
 {
 
 	m_map = NewGO<Map>(0, "map");
+
+	/**宝箱に魔法を渡すためにMAPを経由している*/
+	m_map->SetMagicManager(&m_magicManager);
 	
 	m_player = NewGO<Player>(0, "player");
+
+	/**プレイヤーが魔法を聞く*/
+	m_player->SetMagicManager(&m_magicManager);
 
 	m_gameCamera = NewGO<GameCamera>(0, "gameCamera");
 
 	m_msUI = NewGO<MagicSelectUI>(0, "magicSelectUI");
 
-	//Playerが打つ魔法をUIに聞けるようにUIを渡す
-	m_player->SetUI(m_msUI);
+	m_msUI->SetMagicManager(&m_magicManager);
 
 	m_fireEnemy = NewGO<FireEnemy>(0, "fireEnemy");
 

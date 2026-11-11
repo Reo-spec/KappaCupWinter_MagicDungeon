@@ -1,6 +1,7 @@
 ﻿#pragma once
-
-enum class EnMagicType:uint8_t;
+/**前方宣言だけだとわからないことが出たためファイルを読みこむ*/
+#include "Magic.h"
+class MagicManager;
 
 class MagicSelectUI :public IGameObject
 {
@@ -16,16 +17,9 @@ public:
 	void RotateRight();
 	void RotateLeft();
 
-	//現在選択されているスロット(0,1,2)を取得
-	int GetSelectedSlot()const { return m_selectedSlot; }
-
-	//今の魔法のタイプを取得している
-	EnMagicType GetMagicType()const { return m_magicTypeSlot[m_selectedSlot]; }
+	void SetMagicManager(MagicManager* magicManager) { m_magicManager = magicManager; }
 
 private:
-
-	//スロットごとの魔法の種類を記憶している
-	EnMagicType m_magicTypeSlot[3];
 
 	//UIの中心位置と半径の設定
 	Vector3 m_centerPosition = Vector3(-700.0f, -300.0f,0.0f);
@@ -35,13 +29,12 @@ private:
 	float m_currentAngle = 1.5708f;
 	float m_targetAngle = 1.5708f;
 
-	//現在選択しているSlotを記憶している
-	int m_selectedSlot = 0;
-
 	SpriteRender m_baseSpriteRender;
 
-	//Slotアイコンの描画を担当する
-	SpriteRender m_slotSprites[3];
+	/**魔法の種類ごとのアイコンの絵にしている*/
+	SpriteRender m_magicIconSprites[static_cast<int>(EnMagicType::Max)];
+
+	MagicManager* m_magicManager = nullptr;
 
 };
 

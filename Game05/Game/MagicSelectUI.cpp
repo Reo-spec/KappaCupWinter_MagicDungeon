@@ -1,6 +1,7 @@
 ﻿#include "stdafx.h"
 #include "MagicSelectUI.h"
 #include "Magic.h"
+#include "MagicManager.h"
 #include <cmath>
 
 //Mathの方が安定するそして他のプラットフォームでも使える
@@ -21,14 +22,9 @@ bool MagicSelectUI::Start()
 	m_baseSpriteRender.SetPosition(m_centerPosition);
 	m_baseSpriteRender.Update();
 
-	m_slotSprites[0].Init("Assets/MagicIcon/Rock.dds", 64.0f, 64.0f);
-	m_magicTypeSlot[0] = EnMagicType::Stone;
-
-	m_slotSprites[1].Init("Assets/MagicIcon/FireIcon_circle.dds", 64.0f, 64.0f);
-	m_magicTypeSlot[1] = EnMagicType::Fire;
-
-	//m_slotSprites[2].Init("Assets/MagicIcon/Ice_circle.dds", 64.0f, 64.0f);
-	m_magicTypeSlot[2] = EnMagicType::None;
+	m_magicIconSprites[static_cast<int>(EnMagicType::Stone)].Init("Assets/MagicIcon/Rock.dds", 64.0f, 64.0f);
+	
+	m_magicIconSprites[static_cast<int>(EnMagicType::Fire)].Init("Assets/MagicIcon/FireIcon_circle.dds", 64.0f, 64.0f);
 	
 	return true;
 
@@ -62,8 +58,11 @@ void MagicSelectUI::Update()
 	//各スロットの三角関数出の座標計算
 	for (int i = 0;i < 3;i++) {
 
+		//スロット i に入っている魔法を MagicManager に聞く
+		EnMagicType magicType = m_magicManager->GetNumberISlot(i);
+
 		//空欄のスロットは読み込まないので計算しない
-		if (m_magicTypeSlot[i] == EnMagicType::None) {
+		if (magicType == EnMagicType::None) {
 			continue;
 		}
 
@@ -76,8 +75,8 @@ void MagicSelectUI::Update()
 		pos.y = m_centerPosition.y + m_radius * sinf(slotAngle);
 		pos.z = m_centerPosition.z;
 
-		m_slotSprites[i].SetPosition(pos);
-		m_slotSprites[i].Update();
+		m_magicIconSprites[static_cast<int>(magicType)].SetPosition(pos);
+		m_magicIconSprites[static_cast<int>(magicType)].Update();
 	}
 }
 
@@ -87,22 +86,25 @@ void MagicSelectUI::Render(RenderContext& rc)
 
 	for (int i = 0;i < 3;i++) {
 
-		if (m_magicTypeSlot[i] == EnMagicType::None) {
+		EnMagicType magicType = m_magicManager->GetNumberISlot(i);
+
+		if (magicType == EnMagicType::None) {
 			continue;
 		}
 
-		m_slotSprites[i].Draw(rc);
+		m_magicIconSprites[static_cast<int>(magicType)].Draw(rc);
 	}
 }
 
 void MagicSelectUI::RotateLeft() 
 {
 	m_targetAngle += ONE_THIRD_CIRCLE;
-	m_selectedSlot = (m_selectedSlot + 2) % 3;
+	/**ゲッターがManagerに聞く->計算する->セッターが渡すという作りになっている*/
+	m_magicManager->SetSelectedSlot((m_magicManager->GetSelectedSlot() + 2) % 3);
 }
 
 void MagicSelectUI::RotateRight()
 {
 	m_targetAngle -= ONE_THIRD_CIRCLE;
-	m_selectedSlot = (m_selectedSlot + 1) % 3;
+	m_magicManager->SetSelectedSlot((m_magicManager->GetSelectedSlot() + 1) % 3);
 }

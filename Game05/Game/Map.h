@@ -1,5 +1,8 @@
 ﻿#pragma once
 
+/**宝箱に渡すためだけに使う*/
+class MagicManager;
+
 class Map :public IGameObject
 {
 public:
@@ -9,6 +12,12 @@ public:
 	void Update();
 
 	void Render(RenderContext& rc);
+
+	bool Start()override;
+
+	/**魔法をいれるセッター*/
+	void SetMagicManager(MagicManager* magicManager) { m_magicManager = magicManager; }
+
 private:
 
 	ModelRender m_mapFloorModelRender;
@@ -33,5 +42,7 @@ private:
 	
 	//当たり判定の可変長
 	std::vector<std::unique_ptr<PhysicsStaticObject>>m_wallCollision;
+
+	MagicManager* m_magicManager = nullptr;
 };
 

@@ -66,7 +66,7 @@ k2Engine（DirectX12 ベースの学習用エンジン）で作っている 3D �
   - `Player::ShotMagic()` が撃つたびに `NewGO<AttackMagic>` で弾を作り、`Init()`（モデルとステータス）と `SetPositionAndDirection()` を呼ぶ
   - 魔法の種類は `Magic.h` の `EnMagicType`
   - 以前はオブジェクトプールで使い回していたが、やめた（当時のコードはコミット `346983e`）
-  - **MagicManager を作る予定（未作成。2026-11-10 に決定）**：魔法のデータの係。持っている魔法の一覧・スロット（今は `MagicSelectUI::m_magicTypeSlot`）・魔法の基本情報（数値）を持つ。MagicSelectUI は見せるだけにする。弾を撃つ処理は入れない。ほかのオブジェクトには、Game.cpp で作ってセッターで渡す（FindGO は使わない。2026-11-10 に決定）。α版で作る（2026-11-10 に決定）
+  - **MagicManager（作成中。2026-11-10 に決定）**：魔法のデータの係。持っている魔法の一覧・スロット（今は `MagicSelectUI::m_magicTypeSlot`）・選んでいるスロットの番号（今は `MagicSelectUI::m_selectedSlot`。2026-11-11 に決定。Player は UI を持たず、MagicManager にだけ聞く）・魔法の基本情報（数値と、見た目のモデルのパス。モデルは 2026-11-10 に追加）を持つ。MagicSelectUI は見せるだけにする。弾を撃つ処理は入れない。ほかのオブジェクトには、Game.cpp で作ってセッターで渡す（FindGO は使わない。2026-11-10 に決定）。α版で作る（2026-11-10 に決定）
 - 古い弾の実装（`Bullet`）がまだ残っている
 - 共通ヘッダは `stdafx.h`（`nsK2EngineLow` / `nsK2Engine` を using している）。各 `.cpp` の先頭で必ず `#include "stdafx.h"` する
 

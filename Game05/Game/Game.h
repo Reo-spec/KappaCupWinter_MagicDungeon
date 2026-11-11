@@ -1,6 +1,8 @@
 ﻿#pragma once
 
 #include "Level3DRender/LevelRender.h"
+/**本体を持たせるため前方宣言では足りない*/
+#include "MagicManager.h"
 
 class Player;
 class Map;
@@ -26,5 +28,7 @@ private:
 	FireEnemy* m_fireEnemy = nullptr;
 	GameCamera* m_gameCamera=nullptr;
 	MagicSelectUI* m_msUI=nullptr;
+
+	MagicManager m_magicManager;
 };
 

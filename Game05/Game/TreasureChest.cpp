@@ -1,6 +1,7 @@
 ﻿#include "stdafx.h"
 #include "TreasureChest.h"
 #include "Player.h"
+#include "MagicManager.h"
 
 //宝箱とプレイヤーの距離
 static constexpr float OPEN_DISTANCE = 100.0f;//TODO仕様未定
@@ -78,7 +79,14 @@ void TreasureChest::Update()
 			K2_LOG("たいまつの宝箱を開けた\n");
 		}
 		else {
+			
+			if (m_magicManager == nullptr) {
+				return;
+			}
+
+			m_magicManager->AddMagic(m_magicType);
 			K2_LOG("魔法を手に入れた:%d\n", static_cast<int>(m_magicType));
+			K2_LOG("スロット0に魔法をセットした:%d\n", static_cast<int>(m_magicManager->GetNumberISlot(0)));
 		}
 	}
 

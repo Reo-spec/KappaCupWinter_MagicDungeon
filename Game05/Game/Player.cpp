@@ -1,7 +1,7 @@
 ﻿#include "stdafx.h"
 #include "Player.h"
 #include "Magic.h"
-#include "MagicSelectUI.h"
+#include "MagicManager.h"
 
 Player::Player() {
 	
@@ -190,7 +190,7 @@ void Player::ShotMagic()
 	if (g_pad[0]->IsTrigger(enButtonRB2))
 	{
 		//UIが渡されていないときは撃たない
-		if (m_magicSelectUI == nullptr) {
+		if (m_magicManager == nullptr) {
 			return;
 		}
 		
@@ -200,39 +200,18 @@ void Player::ShotMagic()
 		Vector3 magicPos = m_position + magicDir * 50.0f;
 		magicPos.y += 100.0f;
 		
-		//UIで選んでいる魔法を聞く
-		EnMagicType currentMagic = m_magicSelectUI->GetMagicType();
-
-		//魔法の種類ごとにモデルとステータスを決める
-		const char* modelPath = nullptr;
-		AttackMagicStatus status;
+		/**MagicManagerに魔法を聞く*/
+		EnMagicType currentMagic = m_magicManager->GetMagicType();
 
 
-		switch (currentMagic) {
-			case EnMagicType::Stone:
-		
-				//TODO(仕様未定) 石の数値
-				modelPath = "Assets/modelData/kariFireMagic.tkm";
-				status.m_maxLifeTime = 3.0f;
-				status.m_maxCoolDown = 3.0f;
-				status.m_moveSpeed = 500.0f;
-				status.m_attackValue = 30;
-				status.m_magicType = EnMagicType::Stone;
-				break;
-			case EnMagicType::Fire:
-				modelPath = "Assets/modelData/kariFireMagic.tkm";
-				// TODO(仕様未定) 炎の数値
-				status.m_maxLifeTime = 3.0f;
-				status.m_maxCoolDown = 3.0f;
-				status.m_moveSpeed = 1000.0f;
-				status.m_attackValue = 50;
-				status.m_magicType = EnMagicType::Fire;
-				break;
-			default:
-				return;
-
+		if (currentMagic==EnMagicType::None) {
+			return;
 		}
 
+		//魔法の種類ごとにモデルとステータスを決める
+		const char* modelPath = m_magicManager->GetModelPath(currentMagic);
+		AttackMagicStatus status = m_magicManager->GetBaseStatus(currentMagic);
+	
 		AttackMagic* magic = NewGO<AttackMagic>(0, "magic");
 
 		if (magic == nullptr) {

@@ -190,56 +190,6 @@ Map::Map()
 
 				K2_LOG("覚えた板の数:%d\n", (int)m_wallPosition.size());
 			}
-			else if (GetCellChar(row,column)) 
-			{
-				char mapText = GetCellChar(row, column);
-
-				Quaternion chestRotation;
-
-				if (!IsWall(row - 1, column))
-				{
-					chestRotation.SetRotationDegY(0.0f);
-				}
-				else if (!IsWall(row + 1, column))
-				{
-					chestRotation.SetRotationDegY(180.0f);
-				}
-				else if (!IsWall(row, column - 1))
-				{
-					chestRotation.SetRotationDegY(-90.0f);
-				}
-				else if (!IsWall(row, column + 1))
-				{
-					chestRotation.SetRotationDegY(90.0f);
-				}
-		
-
-				if (mapText == 'M') 
-				{
-					//石の魔法が入った宝箱
-					TreasureChest* tc = NewGO<TreasureChest>(0, "treasureChest");
-					tc->SetPosition(GetCellPosition(row, column));
-					tc->SetRotation(chestRotation);
-					tc->SetContents(EnMagicType::Stone);
-				}
-				if (mapText == 'F') 
-				{
-					//炎の魔法が入った宝箱
-					TreasureChest* tc = NewGO<TreasureChest>(0, "treasureChest");
-					tc->SetPosition(GetCellPosition(row, column));
-					tc->SetRotation(chestRotation);
-					tc->SetContents(EnMagicType::Fire);
-				}
-				if (mapText == 'L') 
-				{
-					//たいまつの宝箱（α版では開けたらログを出すだけ）
-					TreasureChest* tc = NewGO<TreasureChest>(0, "treasureChest");
-					tc->SetPosition(GetCellPosition(row, column));
-					tc->SetRotation(chestRotation);
-					tc->SetTorch();
-				}
-			}
-
 		}
 	}
 
@@ -277,6 +227,71 @@ Map::Map()
 	K2_LOG("板の枚数:%d\n",mapWallCounter);
 	K2_LOG("座標: x=%f y=%f z=%f\n", cellPosition.x,cellPosition.y,cellPosition.z);
 
+}
+
+bool Map::Start() 
+{
+	for (int row = 0; row < MAZE_ROW_COUNT + START_CORRIDOR_ROW_COUNT; row++)
+	{
+		//行と列を定数の回数見る
+		for (int column = 0;column < MAZE_COLUMN_COUNT;column++)
+		{
+
+			if (GetCellChar(row, column))
+			{
+				char mapText = GetCellChar(row, column);
+
+				Quaternion chestRotation;
+
+				if (!IsWall(row - 1, column))
+				{
+					chestRotation.SetRotationDegY(0.0f);
+				}
+				else if (!IsWall(row + 1, column))
+				{
+					chestRotation.SetRotationDegY(180.0f);
+				}
+				else if (!IsWall(row, column - 1))
+				{
+					chestRotation.SetRotationDegY(-90.0f);
+				}
+				else if (!IsWall(row, column + 1))
+				{
+					chestRotation.SetRotationDegY(90.0f);
+				}
+
+
+				if (mapText == 'M')
+				{
+					//石の魔法が入った宝箱
+					TreasureChest* tc = NewGO<TreasureChest>(0, "treasureChest");
+					tc->SetPosition(GetCellPosition(row, column));
+					tc->SetRotation(chestRotation);
+					tc->SetContents(EnMagicType::Stone);
+					tc->SetMagicManager(m_magicManager);
+				}
+				if (mapText == 'F')
+				{
+					//炎の魔法が入った宝箱
+					TreasureChest* tc = NewGO<TreasureChest>(0, "treasureChest");
+					tc->SetPosition(GetCellPosition(row, column));
+					tc->SetRotation(chestRotation);
+					tc->SetContents(EnMagicType::Fire);
+					tc->SetMagicManager(m_magicManager);
+				}
+				if (mapText == 'L')
+				{
+					//たいまつの宝箱（α版では開けたらログを出すだけ）
+					TreasureChest* tc = NewGO<TreasureChest>(0, "treasureChest");
+					tc->SetPosition(GetCellPosition(row, column));
+					tc->SetRotation(chestRotation);
+					tc->SetTorch();
+				}
+
+			}
+		}
+	}
+	return true;
 }
 
 Map::~Map()

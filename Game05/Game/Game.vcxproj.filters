@@ -57,6 +57,9 @@
     <ClCompile Include="TreasureChest.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
+    <ClCompile Include="MagicManager.cpp">
+      <Filter>Magic</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
@@ -96,6 +99,9 @@
     </ClInclude>
     <ClInclude Include="TreasureChest.h">
       <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="MagicManager.h">
+      <Filter>Magic</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

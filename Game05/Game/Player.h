@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "Character.h"
 
-class MagicSelectUI;
+class MagicManager;
 
 class Player :  public Character
 {
@@ -26,8 +26,8 @@ public:
 	//移動用の向き参照(回転回避にも使用)
 	Vector3 GetCameraDirection(float stickX, float stickY);
 
-	//UIをいれるもの
-	void SetUI(MagicSelectUI* magicSelectUI) { m_magicSelectUI = magicSelectUI; }
+	/**MagicManagerをいれるもの*/
+	void SetMagicManager(MagicManager* magicManager) { m_magicManager = magicManager; }
 
 	enum EnAnimationClip {		//アニメーション。
 		enAnimationClip_Idle,
@@ -46,7 +46,7 @@ private:
 	//更新処理。
 	void UpdateAction()override;
 
-	MagicSelectUI* m_magicSelectUI = nullptr;
+	MagicManager* m_magicManager = nullptr;
 
 };
 
