@@ -95,6 +95,9 @@ void Character::CheckHitMagic(const char* magicName)
 {
 	//とりあえずFindGOsで魔法を探す
 	//配列を参照で渡している
+
+	//FindGOsを使わずにプレイヤーに配列を持たせてそれで球を打ったときに
+	//プレイヤーの持ちものにすることで綺麗になる
 	const std::vector<AttackMagic*>&magics=FindGOs<AttackMagic>(magicName);
 	//魔法を1つづ取り出して確認している
 	for (AttackMagic* magic : magics)

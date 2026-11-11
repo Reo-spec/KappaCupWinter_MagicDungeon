@@ -67,7 +67,6 @@ private:
 	Vector3 m_position;
 	Vector3 m_direction;      //進む方向
 
-
 public:
 	AttackMagic() {};
 	~AttackMagic();

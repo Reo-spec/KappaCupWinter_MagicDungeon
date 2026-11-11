@@ -29,9 +29,12 @@ bool Game::Start()
 
 	m_fireEnemy = NewGO<FireEnemy>(0, "fireEnemy");
 
-	m_fireEnemy->Init(Vector3(800.0f, 0.0f, 700.0f));
+	m_fireEnemy->Init(Vector3(800.0f, 0.0f, 600.0f));
 
 	m_fireEnemy->SetPlayer(m_player);
+
+	/**ゲームが炎の敵のファイルパスとステータスを取り出して渡している*/
+	m_fireEnemy->SetMagicStatusAndPath(m_magicManager.GetBaseStatus(EnMagicType::Fire),m_magicManager.GetModelPath(EnMagicType::Fire));
 
 	return true;
 }

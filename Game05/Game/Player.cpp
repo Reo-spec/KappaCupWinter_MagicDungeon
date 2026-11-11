@@ -53,6 +53,9 @@ void Player::UpdateAction() {
 	//アニメーションの再生。
 	PlayAnimation();
 
+	/**敵の魔法に当たっているかの確認*/
+	CheckHitMagic("enemyMagic");
+
 }
 
 void Player::Move() 

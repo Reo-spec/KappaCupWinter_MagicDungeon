@@ -7,7 +7,9 @@ static constexpr EnemyStatus FIRE_ENEMY_STATUS =
 	EnMagicType::Fire,
 	300,// TODO(仕様未定)
 	120.0f,// TODO(仕様未定)
-	"Assets/modelData/fireSlime.tkm"
+	"Assets/modelData/fireSlime.tkm",
+	3.0f,//TODO(仕様未定)
+	170.0f//TODO(仕様未定)
 };
 
 
@@ -51,6 +53,13 @@ void IEnemy::MoveToTarget(const Vector3& target)
 	
 }
 
+void IEnemy::SetMagicStatusAndPath(const AttackMagicStatus& status, const char* modelPath) 
+{
+	/**魔法のステータスとファイルパスをコピーして渡す*/
+	m_attackMagicStatus = status;
+	m_modelPath = modelPath;
+}
+
 void FireEnemy::Init(Vector3 position) 
 {
 	IEnemy::Init(position,FIRE_ENEMY_STATUS);
@@ -70,5 +79,45 @@ void FireEnemy::UpdateAction()
 	}
 
 	MoveToTarget(m_player->GetPosition());
+
+	float deltaTime = g_gameTime->GetFrameDeltaTime();
+
+	m_nextAttackLimit -= deltaTime;
+
+	Vector3 diff = m_player->GetPosition() - m_position;
+	diff.y = 0.0f;
+
+	if (diff.Length() <= m_enemyStatus.attackRange &&m_nextAttackLimit <= 0.0f) {
+		MagicAttack();
+		m_nextAttackLimit = m_enemyStatus.attackInterval;
+	}
+}
+
+void IEnemy::MagicAttack() 
+{
+	if (m_modelPath == nullptr) {
+		return;
+	}
+
+	//向いてる方向をとる
+	Vector3 diff = m_player->GetPosition()-m_position;
+	diff.y = 0.0f;
+
+	diff.Normalize();
+
+	Vector3 magicPos = m_position + diff * 50.0f;
+	magicPos.y += 100.0f;
+
+	//魔法の種類ごとにモデルとステータスを決める
+	const char* modelPath = m_modelPath;
+	AttackMagicStatus status = m_attackMagicStatus;
+
+	AttackMagic* magic = NewGO<AttackMagic>(0, "enemyMagic");
+
+	if (magic == nullptr) {
+		return;
+	}
+	magic->Init(modelPath, status);
+	magic->SetPositionAndDirection(magicPos, diff);
 
 }
