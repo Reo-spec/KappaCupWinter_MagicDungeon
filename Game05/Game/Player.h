@@ -2,6 +2,8 @@
 #include "Character.h"
 
 class MagicManager;
+class Map;
+
 
 class Player :  public Character
 {
@@ -41,12 +43,16 @@ public:
 	AnimationClip animationClips[enAnimationClip_Num];		//アニメーションクリップ。
 	
 	int playerState = 0;	//プレイヤーのステート(状態)を表す変数。
+
+	/**おおもとはconstを付けて変更できないようにしていたけど、ここではその逆はできない*/
+	void SetMap(const Map* map) { m_map = map; }
+
 private:
 
 	//更新処理。
 	void UpdateAction()override;
 
 	MagicManager* m_magicManager = nullptr;
-
+	const Map* m_map = nullptr;
 };
 

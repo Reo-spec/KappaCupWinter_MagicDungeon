@@ -15,11 +15,13 @@ bool Game::Start()
 
 	/**宝箱に魔法を渡すためにMAPを経由している*/
 	m_map->SetMagicManager(&m_magicManager);
-	
+
 	m_player = NewGO<Player>(0, "player");
 
 	/**プレイヤーが魔法を聞く*/
 	m_player->SetMagicManager(&m_magicManager);
+
+	m_player->SetMap(m_map);
 
 	m_gameCamera = NewGO<GameCamera>(0, "gameCamera");
 
@@ -35,6 +37,8 @@ bool Game::Start()
 
 	/**ゲームが炎の敵のファイルパスとステータスを取り出して渡している*/
 	m_fireEnemy->SetMagicStatusAndPath(m_magicManager.GetBaseStatus(EnMagicType::Fire),m_magicManager.GetModelPath(EnMagicType::Fire));
+
+	m_fireEnemy->SetMap(m_map);
 
 	return true;
 }

@@ -18,6 +18,9 @@ public:
 	/**魔法をいれるセッター*/
 	void SetMagicManager(MagicManager* magicManager) { m_magicManager = magicManager; }
 
+	/**この座標が壁かどうかを聞いている*/
+	bool IsWallAndCheckPosition(const Vector3&position)const;
+
 private:
 
 	ModelRender m_mapFloorModelRender;

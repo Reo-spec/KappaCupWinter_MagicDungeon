@@ -1,5 +1,6 @@
 ﻿#include "stdafx.h"
 #include "Magic.h"
+#include "Map.h"
 
 static constexpr float MAGIC_COLLISION_RADIUS = 25.0f;//TODO(仕様未定)
 static const Vector3 MAGIC_COLLISION_OFFSET = Vector3(0.0f,25.0f,0.0f);
@@ -38,6 +39,13 @@ void AttackMagic::Update()
 		DeleteGO(this);
 		return;
 	}
+
+	/**壁と当たったら魔法が消える*/
+	if (CheckHitWallCollision()) {
+		DeleteGO(this);
+		return;
+	}
+
 }
 
 
@@ -61,6 +69,16 @@ void AttackMagic::Init(const std::string& modelPath, const AttackMagicStatus& st
 	m_status = new AttackMagicStatus(status);
 }
 
+/**座標をチェック*/
+bool AttackMagic::CheckHitWallCollision() 
+{
+	if (m_map == nullptr) 
+	{
+		return false ;
+	}
+
+	return m_map->IsWallAndCheckPosition(m_position) ;
+}
 
 void AttackMagic::Move()
 {

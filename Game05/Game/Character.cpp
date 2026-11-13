@@ -39,6 +39,7 @@ void Character::Damage(const AttackValue damage)
 		m_baseStatus.hp = 0;
 		Die();
 	}
+	
 }
 
 void Character::UpdateAction() 
@@ -75,6 +76,10 @@ void Character::MoveAction()
 
 	const float deltaTime = g_gameTime->GetFrameDeltaTime();
 
+	if (m_characterController.IsOnGround()) {
+		m_moveSpeed.y = 0.0f;
+	}
+
 	//キャラクターコントローラーを使って座標を移動させる。
 	m_position = m_characterController.Execute(m_moveSpeed, deltaTime);
 
@@ -96,8 +101,10 @@ void Character::CheckHitMagic(const char* magicName)
 	//とりあえずFindGOsで魔法を探す
 	//配列を参照で渡している
 
+	/**オーナーを持たせる*/
 	//FindGOsを使わずにプレイヤーに配列を持たせてそれで球を打ったときに
 	//プレイヤーの持ちものにすることで綺麗になる
+	/**エラーの温床*/
 	const std::vector<AttackMagic*>&magics=FindGOs<AttackMagic>(magicName);
 	//魔法を1つづ取り出して確認している
 	for (AttackMagic* magic : magics)

@@ -220,6 +220,8 @@ void Player::ShotMagic()
 		if (magic == nullptr) {
 			return;
 		}
+
+		magic->SetMap(m_map);
 		magic->Init(modelPath, status);
 		magic->SetPositionAndDirection(magicPos, magicDir);
 

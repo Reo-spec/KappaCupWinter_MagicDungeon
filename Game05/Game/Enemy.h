@@ -37,6 +37,8 @@ public:
 	/**炎の魔法のステータスとファイルパスをコピーしていれている*/
 	void SetMagicStatusAndPath(const AttackMagicStatus& status, const char* modelPath);
 
+	void SetMap(const Map* map) { m_map = map; }
+
 protected:
 
 	//初期化
@@ -64,6 +66,9 @@ protected:
 	void MagicAttack();
 
 private:
+
+	const Map* m_map = nullptr;
+
 };
 
 class FireEnemy :public IEnemy 

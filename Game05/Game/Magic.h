@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "AttackValue.h"
 
+class Map;
 
 enum class EnMagicType : uint8_t
 {
@@ -91,13 +92,23 @@ public:
 	//魔法の種類を返す
 	EnMagicType GetMagicType() { return As()->m_magicType; }
 
+	void SetMap(const Map* map) { m_map = map; }
+
 private:
 	void Move();
 
+	/**壁かどうかを判定する
+	壁のマスに入ったらtrueを返す
+	*/
+	bool CheckHitWallCollision();
+
 	CollisionObject* m_collision = nullptr;
+
+	const Map* m_map = nullptr;
 
 public:
 	AttackMagicStatus* As() { return static_cast<AttackMagicStatus*>(m_status); }
+
 };
 
 
