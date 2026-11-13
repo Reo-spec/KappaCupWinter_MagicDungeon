@@ -192,7 +192,7 @@ void Player::ShotMagic()
 {
 	if (g_pad[0]->IsTrigger(enButtonRB2))
 	{
-		//UIが渡されていないときは撃たない
+		//MagicManagerが渡されていないときは撃たない
 		if (m_magicManager == nullptr) {
 			return;
 		}
@@ -211,6 +211,11 @@ void Player::ShotMagic()
 			return;
 		}
 
+
+		if (!m_magicManager->IsReady(currentMagic)) {
+			return;
+		}
+
 		//魔法の種類ごとにモデルとステータスを決める
 		const char* modelPath = m_magicManager->GetModelPath(currentMagic);
 		AttackMagicStatus status = m_magicManager->GetBaseStatus(currentMagic);
@@ -223,6 +228,7 @@ void Player::ShotMagic()
 
 		magic->SetMap(m_map);
 		magic->Init(modelPath, status);
+		m_magicManager->UseMagic(currentMagic);
 		magic->SetPositionAndDirection(magicPos, magicDir);
 
 		//ステート2(魔法を打つ)に変更

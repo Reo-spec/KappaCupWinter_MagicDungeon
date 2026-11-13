@@ -30,5 +30,8 @@ private:
 	MagicSelectUI* m_msUI=nullptr;
 
 	MagicManager m_magicManager;
+
+	/**デバッグGUIの魔法のパネル（F1 → メニューの Game → Magic で開く）*/
+	DebugGuiPanel m_debugMagicPanel;
 };
 

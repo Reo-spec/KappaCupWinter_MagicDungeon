@@ -29,6 +29,15 @@ public:
 	/**セッター*/
 	void SetSelectedSlot(int selectedSlot) { m_selectedSlot = selectedSlot; }
 
+	/**魔法の残りのクールダウンを減らす*/
+	void CoolDownLimit();
+
+	/**撃てるかどうかを確認している*/
+	bool IsReady(EnMagicType magicType)const;
+
+	/**魔法を使っているかどうかの判定*/
+	void UseMagic(EnMagicType magicType);
+
 private:
 	/**手に入れた魔法を全て覚えておくための一覧*/
 	std::vector<EnMagicType> m_magicTypes;
@@ -41,6 +50,9 @@ private:
 
 	/**魔法の種類ごとのModelPath*/
 	const char* m_modelPath[static_cast<int>(EnMagicType::Max)];
+
+	/**魔法の種類ごとのクールダウン*/
+	float m_coolDownTimer[static_cast<int>(EnMagicType::Max)] ;
 
 	/**現在設定しているSlotを記憶している*/
 	int m_selectedSlot = 0;
