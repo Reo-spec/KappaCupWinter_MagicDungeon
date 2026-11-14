@@ -1,6 +1,8 @@
 ﻿#include "stdafx.h"
 #include "Map.h"
 #include "TreasureChest.h"
+#include "Enemy.h"
+#include "MagicManager.h"
 
 /**迷路の行の数(縦マスの数)*/
 static constexpr int MAZE_ROW_COUNT = 31;
@@ -287,7 +289,21 @@ bool Map::Start()
 				tc->SetRotation(chestRotation);
 				tc->SetTorch();
 			}
+			if (mapText == 'E') 
+			{
+				FireEnemy* fireEnemy = NewGO<FireEnemy>(0, "fireEnemy");
+				fireEnemy->Init(GetCellPosition(row, column));
+				fireEnemy->SetPlayer(m_player);
 
+				//敵は MagicManager を知らないので、Map が数値を取り出してコピーを渡す（C2）
+				fireEnemy->SetMagicStatusAndPath(
+					m_magicManager->GetBaseStatus(EnMagicType::Fire),
+					m_magicManager->GetModelPath(EnMagicType::Fire)
+				);
+
+				//壁の判定のために Map 自身を渡す
+				fireEnemy->SetMap(this);
+			}
 		
 		}
 	}

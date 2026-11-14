@@ -2,6 +2,8 @@
 
 /**宝箱に渡すためだけに使う*/
 class MagicManager;
+/**敵に渡すためだけに使う*/
+class Player;
 
 class Map :public IGameObject
 {
@@ -17,6 +19,9 @@ public:
 
 	/**魔法をいれるセッター*/
 	void SetMagicManager(MagicManager* magicManager) { m_magicManager = magicManager; }
+
+	/**敵に渡すPlayerを受け取るセッター*/
+	void SetPlayer(Player* player) { m_player = player; }
 
 	/**この座標が壁かどうかを聞いている*/
 	bool IsWallAndCheckPosition(const Vector3&position)const;
@@ -47,5 +52,8 @@ private:
 	std::vector<std::unique_ptr<PhysicsStaticObject>>m_wallCollision;
 
 	MagicManager* m_magicManager = nullptr;
+
+	/**敵に渡すためのPlayer(Map自身は使わない)*/
+	Player* m_player = nullptr;
 };
 

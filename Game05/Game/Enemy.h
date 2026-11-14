@@ -19,6 +19,7 @@ struct EnemyStatus
 	const char* modelPath = nullptr;
 	float attackInterval = 0.0f;
 	float attackRange = 0.0f;
+	float chaseRange = 0.0f;
 
 };
 

@@ -9,7 +9,8 @@ static constexpr EnemyStatus FIRE_ENEMY_STATUS =
 	120.0f,// TODO(仕様未定)
 	"Assets/modelData/fireSlime.tkm",
 	3.0f,//TODO(仕様未定)
-	170.0f//TODO(仕様未定)
+	170.0f,//TODO(仕様未定)
+	1200.0f//TODO(仕様未定)
 };
 
 
@@ -78,14 +79,21 @@ void FireEnemy::UpdateAction()
 		return;
 	}
 
-	MoveToTarget(m_player->GetPosition());
+	Vector3 diff = m_player->GetPosition() - m_position;
+	diff.y = 0.0f;
 
+	/**プレイヤーの方向を向くかどうかを場合分けしている*/
+	if (diff.Length() < m_enemyStatus.chaseRange) 
+	{
+		MoveToTarget(m_player->GetPosition());
+	}
+	else {
+		m_moveSpeed.x = 0.0f;           
+		m_moveSpeed.z = 0.0f;
+	}
 	float deltaTime = g_gameTime->GetFrameDeltaTime();
 
 	m_nextAttackLimit -= deltaTime;
-
-	Vector3 diff = m_player->GetPosition() - m_position;
-	diff.y = 0.0f;
 
 	if (diff.Length() <= m_enemyStatus.attackRange &&m_nextAttackLimit <= 0.0f) {
 		MagicAttack();
