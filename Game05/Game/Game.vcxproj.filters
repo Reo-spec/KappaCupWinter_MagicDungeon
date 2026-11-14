@@ -16,6 +16,9 @@
     <Filter Include="Stage">
       <UniqueIdentifier>{e1720b4f-9c8d-4a3e-b65f-3c8a7e1d2b94}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Debug">
+      <UniqueIdentifier>{c5a8e2d1-6b3f-4f9a-8d27-9e1b4c7a3f60}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Camera">
       <UniqueIdentifier>{7f4b2e98-1d6c-4b5a-9e37-5b2d8f0c4a15}</UniqueIdentifier>
     </Filter>
@@ -56,6 +59,9 @@
     </ClCompile>
     <ClCompile Include="TreasureChest.cpp">
       <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="DebugMagicPanel.cpp">
+      <Filter>Debug</Filter>
     </ClCompile>
     <ClCompile Include="MagicManager.cpp">
       <Filter>Magic</Filter>
@@ -100,8 +106,11 @@
     <ClInclude Include="TreasureChest.h">
       <Filter>Stage</Filter>
     </ClInclude>
+    <ClInclude Include="DebugMagicPanel.h">
+      <Filter>Debug</Filter>
+    </ClInclude>
     <ClInclude Include="MagicManager.h">
       <Filter>Magic</Filter>
     </ClInclude>
   </ItemGroup>
-</Project>
+</Project>
