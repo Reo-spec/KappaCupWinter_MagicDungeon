@@ -6,6 +6,7 @@
 #include "Magic.h"
 #include "MagicSelectUI.h"
 #include "MagicManager.h"
+#include "Clear.h"
 
 bool Game::Start()
 {
@@ -40,10 +41,36 @@ bool Game::Start()
 void Game::Update()
 {
 	m_magicManager.CoolDownLimit();
+
+	/**プレイヤーがゴールのマスに入ったかどうか*/
+	if (m_map->IsGoalPosition(m_player->GetPosition()))
+	{
+		clear = NewGO<Clear>(0, "clear");
+		DeleteGO(this);
+
+		return;
+	}
 }
 
 void Game::Render(RenderContext&rc)
 {
 
 
-}
+}
+
+Game::~Game() 
+{
+	/**飛んでいる魔法を消す*/
+	const std::vector<AttackMagic*>& playerMagics = FindGOs<AttackMagic>("magic");
+	for (int i = 0;i < playerMagics.size();i++) {
+		DeleteGO(playerMagics[i]);
+	}
+
+	const std::vector<AttackMagic*>& enemyMagics = FindGOs<AttackMagic>("enemyMagic");
+	for (int i = 0;i < enemyMagics.size();i++) {
+		DeleteGO(enemyMagics[i]);
+	}
+	DeleteGO(m_map);
+	DeleteGO(m_player);
+	DeleteGO(m_gameCamera);
+	DeleteGO(m_msUI);}

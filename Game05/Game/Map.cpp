@@ -233,6 +233,7 @@ Map::Map()
 
 bool Map::Start() 
 {
+
 	for (int row = 0; row < MAZE_ROW_COUNT + START_CORRIDOR_ROW_COUNT; row++)
 	{
 		//行と列を定数の回数見る
@@ -267,6 +268,9 @@ bool Map::Start()
 			{
 				//石の魔法が入った宝箱
 				TreasureChest* tc = NewGO<TreasureChest>(0, "treasureChest");
+				GOHandle<TreasureChest> chestHandle;
+				chestHandle.Reset(tc);
+				m_treasureChest.push_back(chestHandle);
 				tc->SetPosition(GetCellPosition(row, column));
 				tc->SetRotation(chestRotation);
 				tc->SetContents(EnMagicType::Stone);
@@ -276,6 +280,9 @@ bool Map::Start()
 			{
 				//炎の魔法が入った宝箱
 				TreasureChest* tc = NewGO<TreasureChest>(0, "treasureChest");
+				GOHandle<TreasureChest> chestHandle;
+				chestHandle.Reset(tc);
+				m_treasureChest.push_back(chestHandle);
 				tc->SetPosition(GetCellPosition(row, column));
 				tc->SetRotation(chestRotation);
 				tc->SetContents(EnMagicType::Fire);
@@ -285,6 +292,9 @@ bool Map::Start()
 			{
 				//たいまつの宝箱（α版では開けたらログを出すだけ）
 				TreasureChest* tc = NewGO<TreasureChest>(0, "treasureChest");
+				GOHandle<TreasureChest> chestHandle;
+				chestHandle.Reset(tc);
+				m_treasureChest.push_back(chestHandle);
 				tc->SetPosition(GetCellPosition(row, column));
 				tc->SetRotation(chestRotation);
 				tc->SetTorch();
@@ -292,6 +302,9 @@ bool Map::Start()
 			if (mapText == 'E') 
 			{
 				FireEnemy* fireEnemy = NewGO<FireEnemy>(0, "fireEnemy");
+				GOHandle<FireEnemy> fireEnemyHandle;
+				fireEnemyHandle.Reset(fireEnemy);
+				m_enemies.push_back(fireEnemyHandle);
 				fireEnemy->Init(GetCellPosition(row, column));
 				fireEnemy->SetPlayer(m_player);
 
@@ -318,9 +331,35 @@ bool Map::IsWallAndCheckPosition(const Vector3& position)const
 	return 	IsWall(row, column);
 }
 
+bool Map::IsGoalPosition(const Vector3& position)const 
+{
+	int column = (position.x - MAZE_CORNER_POSITION.x) / CELL_SIZE;
+	int row = (MAZE_CORNER_POSITION.z - position.z) / CELL_SIZE;
+
+	return GetCellChar(row, column) == 'G';
+}
+
+
 
 Map::~Map()
 {
+	/**MAPが置いた敵を消す*/
+	for (int i = 0;i < m_enemies.size();i++) 
+	{
+		FireEnemy* enemy = m_enemies[i].Get();
+		if (enemy != nullptr) {
+			DeleteGO(enemy);
+		}
+	}
+
+	/**MAPが置いた宝箱を消す*/
+	for (int i = 0;i < m_treasureChest.size();i++) {
+		TreasureChest* chest = m_treasureChest[i].Get();
+		if (chest != nullptr) {
+			DeleteGO(chest);
+		}
+	}
+
 }
 
 void Map::Update() 

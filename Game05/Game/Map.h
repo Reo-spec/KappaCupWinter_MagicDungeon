@@ -5,6 +5,10 @@ class MagicManager;
 /**敵に渡すためだけに使う*/
 class Player;
 
+/**消すときに使う*/
+class FireEnemy;
+class TreasureChest;
+
 class Map :public IGameObject
 {
 public:
@@ -25,6 +29,9 @@ public:
 
 	/**この座標が壁かどうかを聞いている*/
 	bool IsWallAndCheckPosition(const Vector3&position)const;
+
+	/**この座標がゴールのマスならtrueを返す*/
+	bool IsGoalPosition(const Vector3&position)const;
 
 private:
 
@@ -52,6 +59,16 @@ private:
 	std::vector<std::unique_ptr<PhysicsStaticObject>>m_wallCollision;
 
 	MagicManager* m_magicManager = nullptr;
+
+	/**Handleとは物の本体ではなく、物を探すための引換券的な役割をになっている
+	あとでさらに勉強する必要がある*/
+
+
+	/**Map が置いた敵（Map が消えるときに一緒に消す）*/
+	std::vector<GOHandle<FireEnemy>>m_enemies;
+
+	/**Map が置いた宝箱（Map が消えるときに一緒に消す）*/
+	std::vector<GOHandle<TreasureChest>>m_treasureChest;
 
 	/**敵に渡すためのPlayer(Map自身は使わない)*/
 	Player* m_player = nullptr;

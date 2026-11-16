@@ -11,12 +11,13 @@ class Map;
 class GameCamera;
 //仮実装UIManagerが出来次第移動
 class MagicSelectUI;
+class Clear;
 
 class Game : public IGameObject
 {
 public:
 	Game() {}
-	~Game() {}
+	~Game();
 	bool Start()override;
 	void Update()override;
 	void Render(RenderContext& rc)override;
@@ -30,6 +31,8 @@ private:
 	MagicSelectUI* m_msUI=nullptr;
 
 	MagicManager m_magicManager;
+
+	Clear* clear = nullptr;
 
 	/**デバッグGUIの魔法のパネル（F1 → メニューの Game → Magic で開く）*/
 	DebugMagicPanel m_debugMagicPanel;

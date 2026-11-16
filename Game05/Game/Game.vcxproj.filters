@@ -66,6 +66,8 @@
     <ClCompile Include="MagicManager.cpp">
       <Filter>Magic</Filter>
     </ClCompile>
+    <ClCompile Include="Title.cpp" />
+    <ClCompile Include="Clear.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
@@ -112,5 +114,7 @@
     <ClInclude Include="MagicManager.h">
       <Filter>Magic</Filter>
     </ClInclude>
+    <ClInclude Include="Title.h" />
+    <ClInclude Include="Clear.h" />
   </ItemGroup>
-</Project>
+</Project>
