@@ -59,6 +59,9 @@ void Player::UpdateAction() {
 	/**敵の魔法に当たっているかの確認*/
 	CheckHitMagic("enemyMagic");
 
+	/**とりあえずログを出している*/
+	K2_LOG("プレイヤーの残りHP:%d\n",m_baseStatus.hp);
+
 }
 
 void Player::Move() 

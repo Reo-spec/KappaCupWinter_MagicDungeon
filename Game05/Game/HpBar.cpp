@@ -1,11 +1,11 @@
 ﻿#include "stdafx.h"
 #include "HpBar.h"
 
-void HpBar::Init(float width, float heigh, const Vector4& color) 
+void HpBar::Init(float width, float height, const Vector4& color) 
 {
 
 	//真っ白な四角の絵を、決めた大きさで読み込む
-	m_spriteRender.Init("Assets/sprite/hpBar.dds", width, heigh);
+	m_spriteRender.Init("Assets/sprite/hpBar.dds", width, height);
 
 	//基準を「左端の、上下の真ん中」にする（縮むときに右から縮むように）
 	m_spriteRender.SetPivot(Vector2(0.0f, 0.5f));

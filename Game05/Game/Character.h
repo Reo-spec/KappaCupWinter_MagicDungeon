@@ -53,6 +53,9 @@ public:
 	int GetHp()const { return m_baseStatus.hp; }
 	int GetMaxHp()const { return m_baseStatus.maxHp; }
 
+
+	void ChangeActiveRender();
+
 protected:
 
 	virtual void UpdateAction();
@@ -73,6 +76,17 @@ protected:
 
 	//魔法が当たったかの判定をする
 	void CheckHitMagic(const char*magicName);
+
+	/**ダメージを受けているかを判定している*/
+	bool m_isDamageActive = false;
+
+	float m_activeLimitTime = 0.0f;
+
+	/**Renderがアクティブかどうかを判断している*/
+	bool m_isActiveRender = true;
+
+	/**期間*/
+	float m_activeTime = 0.0f;
 
 private:
 

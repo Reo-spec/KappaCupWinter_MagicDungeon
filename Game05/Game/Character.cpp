@@ -6,6 +6,8 @@ static constexpr int ONCE_FIRE_DAMAGE = 5;//TODO(仕様未定)
 static constexpr float BURN_DAMAGE_INTERVAL = 3.0f;//TODO(仕様未定)
 static constexpr float BURN_REMAINING_TIME = 6.0f;//TODO(仕様未定)
 
+static constexpr float ACTIVE_TIME = 0.1f;//TODO(仕様未定)
+
 
 Character::Character() 
 {
@@ -21,6 +23,8 @@ void Character::Update()
 	UpdateBurnDamage();
 	//子の行動を更新する
 	UpdateAction();
+	/**点滅表示に使用する関数*/
+	ChangeActiveRender();
 
 	//絵描きの更新処理。
 	m_modelRender.Update();
@@ -29,6 +33,8 @@ void Character::Update()
 
 void Character::Damage(const AttackValue damage)
 {
+	m_activeLimitTime = 1.0f;
+
 	if (m_baseStatus.hp<=0) {
 		return;
 	}
@@ -92,7 +98,10 @@ void Character::Die()
 }
 
 void Character::Render(RenderContext& rc) {
-	m_modelRender.Draw(rc);
+
+	if (m_isActiveRender) {
+		m_modelRender.Draw(rc);
+	}
 }
 
 //魔法に当たっているかを確認する
@@ -131,4 +140,29 @@ void Character::CheckHitMagic(const char* magicName)
 
 	}
 
+}
+
+void Character::ChangeActiveRender() 
+{
+	if (m_activeLimitTime <= 0) {
+		return;
+	}
+
+
+	float deltaTime = g_gameTime->GetFrameDeltaTime();
+
+	m_activeLimitTime -= deltaTime;
+
+	m_activeTime += deltaTime;
+
+	if (m_activeLimitTime > ACTIVE_TIME) 
+	{
+		m_isActiveRender = !m_isActiveRender;
+
+		m_activeTime = 0.0f;
+	}
+
+	if (m_activeLimitTime <= 0) {
+		m_isActiveRender = true;
+	}
 }
