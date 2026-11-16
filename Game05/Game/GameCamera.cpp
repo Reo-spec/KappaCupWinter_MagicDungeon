@@ -2,6 +2,9 @@
 #include "GameCamera.h"
 #include "Player.h"
 
+/**１フレームでこれより動いたらワープしたとみなす位置*/
+static constexpr float WARP_DISTANCE = 1000.0f;//TODO(仕様未定)
+
 GameCamera::GameCamera()
 {
 }
@@ -29,6 +32,10 @@ bool GameCamera::Start()
 		5.0f				//カメラに設定される球体コリジョンの半径。第３引数がtrueの時に有効になる。
 	);
 
+	/**最初の注視点を覚えっておく*/
+	m_oldTarget = m_player->GetPosition();
+	m_oldTarget.y += 80.0f;
+
 	return true;
 }
 
@@ -41,6 +48,15 @@ void GameCamera::Update()
 	//プレイヤの足元からちょっと上を注視点とする。
 	target.y += 80.0f;
 	
+	/**プレイヤーがワープしたら*/
+	Vector3 moveDiff = target - m_oldTarget;
+	if (moveDiff.Length() >= WARP_DISTANCE) 
+	{
+		m_springCamera.Refresh();
+	}
+
+	m_oldTarget = target;
+
 	Vector3 toCameraPosOld = m_toCameraPos;
 	//パッドの入力を使ってカメラを回す。
 	float x = g_pad[0]->GetRStickXF();

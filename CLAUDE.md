@@ -17,6 +17,7 @@ k2Engine（DirectX12 ベースの学習用エンジン）で作っている 3D �
 
 - **ゲームのコード（`.cpp` / `.h` / `.vcxproj` など）を、Claude が勝手に書いたり直したりしない。** ユーザーに頼まれても、ファイルへの書き込みはしない
   - ドキュメント（CLAUDE.md、GameSpec.md など）の更新や、Git / Notion の操作は、これまでのルールどおり行ってよい
+  - **例外：デバッグ GUI（k2Engine の `DebugGuiPanel` / ImGui で作る、確認用のパネル）のコードは Claude が書いてよい**（2026-11-14、ユーザーが決めた）。パネルから呼ぶゲーム本体の関数（MagicManager の関数など）が足りないときは、Claude は作らず、名前と役目を伝えてユーザーが学習モードどおりに書く
 - 同じ問題について質問された回数に合わせて、教え方を段階的に変える
   1. **1回目**：ヒントと、進め方の方針だけを伝える。答えのコードは出さない
   2. **2回目**：1回目よりかみ砕いて、なぜそうするのかの説明まで入れる。必要なら短い例（そのまま貼れない断片）を見せる
@@ -39,6 +40,7 @@ k2Engine（DirectX12 ベースの学習用エンジン）で作っている 3D �
 - **ユーザーが `/next` と打ったら、今の話題を閉じて、新しい話題のファイルに切り替える**（手順は `.claude/commands/next.md`）。新しい話題は、学習モードの段階を1回目から数える
 - **ユーザーが `/topics` と打ったら、保存してある話題の一覧を、それぞれ何の話か分かる形で出す**（手順は `.claude/commands/topics.md`。読むだけで、ファイルは書き換えない）
 - エラーの種類ごとのまとめは `Game05/Docs/ERROR_NOTES.md`。新しいエラーに出会ったら足す（話題の記録と同じく Git に上げない）
+- 4回目で答えのコードを出したときは、コードのあとに**仕様書ふうの解説**（目的・使うもの・数値の理由・処理の流れ・大事な順番・いい所・確かめること）を付け、`Game05/Docs/SPEC_NOTES.md` に見出しを1つ足して、先頭の目次（クリックで飛べるリンク）にも1行足す（2026-11-16、ユーザーの希望。Git に上げない）
 - `/next` がなくても、話題が明らかに変わったときは、切り替えるかをユーザーに確認する
 - 今の話題のファイルは、段階が進んだとき（2回目→3回目など）と、区切りがついたときに更新する
 - これらのファイルの更新はドキュメントの更新なので、ユーザーに確認せずに行ってよい
@@ -46,9 +48,9 @@ k2Engine（DirectX12 ベースの学習用エンジン）で作っている 3D �
 
 ## ビルドと実行
 
-- ソリューション：`Game05/Game/Game.sln`（Visual Studio 2022、ツールセット v143）
+- ソリューション：`Game05/Game/Game.sln`（**Visual Studio 2026、ツールセット v145**。2026-11-15 にユーザーが確認。x64 の Debug/Release/Preview は v145。Win32 の構成は v143 のまま）
 - 構成：`Debug` / `Release` / `Preview`、プラットフォームは `x64`
-- コマンドラインでビルドする場合（Developer PowerShell for VS から）：
+- コマンドラインでビルドする場合（Developer PowerShell for VS 2026 から）：
   ```
   msbuild Game05/Game/Game.sln /p:Configuration=Debug /p:Platform=x64
   ```
@@ -66,7 +68,7 @@ k2Engine（DirectX12 ベースの学習用エンジン）で作っている 3D �
   - `Player::ShotMagic()` が撃つたびに `NewGO<AttackMagic>` で弾を作り、`Init()`（モデルとステータス）と `SetPositionAndDirection()` を呼ぶ
   - 魔法の種類は `Magic.h` の `EnMagicType`
   - 以前はオブジェクトプールで使い回していたが、やめた（当時のコードはコミット `346983e`）
-  - **MagicManager**（`MagicManager.h` / `.cpp`。2026-11-11 に完成、コミット `2cf81c42`）：魔法のデータの係。IGameObject ではなく、Game がメンバ変数で本体を持つ。持っている魔法の一覧（`m_magicTypes`）・スロット（`m_magicSlot[3]`）・選んでいるスロットの番号（`m_selectedSlot`）・魔法の種類ごとの基本ステータス（`m_baseStatus`）と弾のモデルのパス（`m_modelPath`）を持つ（数値表は敵の魔法にも使う。敵は MagicManager を持たず、Game が `GetBaseStatus`・`GetModelPath` で取り出した値のコピーをセッターで敵に渡す。2026-11-11 に決定。数値表を別のクラスに分けるかは β 版で考える）。Game が `SetMagicManager(&m_magicManager)` で Map・Player・MagicSelectUI に渡し、Map が宝箱を作るとき（`Map::Start`）に宝箱へ渡す（FindGO は使わない）。宝箱は `AddMagic`、MagicSelectUI はスロットと番号を読んで表示し、左右の入力で番号を計算してセッターで渡す、Player は `GetMagicType`・`GetBaseStatus`・`GetModelPath` で撃つ。弾を撃つ処理は入れない
+  - **MagicManager**（`MagicManager.h` / `.cpp`。2026-11-11 に完成、コミット `2cf81c42`）：魔法のデータの係。IGameObject ではなく、Game がメンバ変数で本体を持つ。持っている魔法の一覧（`m_magicTypes`）・スロット（`m_magicSlot[3]`）・選んでいるスロットの番号（`m_selectedSlot`）・魔法の種類ごとの基本ステータス（`m_baseStatus`）と弾のモデルのパス（`m_modelPath`）を持つ（数値表は敵の魔法にも使う。敵は MagicManager を持たず、Game が `GetBaseStatus`・`GetModelPath` で取り出した値のコピーをセッターで敵に渡す。2026-11-11 に決定。数値表を別のクラスに分けるかは β 版で考える）。プレイヤーの魔法のクールダウン（種類ごとの残り時間）も MagicManager に持たせる（2026-11-14 に完成。`m_coolDownTimer[Max]`・`CoolDownLimit()`（Game::Update が毎フレーム呼ぶ）・`IsReady()`・`UseMagic()`。Player::ShotMagic が IsReady で確かめ、撃ったら UseMagic）。魔法を持つ・持たないを切り替えるデバッグ GUI は `DebugMagicPanel.h` / `.cpp`（F1 → Game → Magic。Game がメンバ `m_debugMagicPanel` で持ち、Start で `Init(&m_magicManager)`。2026-11-15 に Game.cpp から分けた）。Game が `SetMagicManager(&m_magicManager)` で Map・Player・MagicSelectUI に渡し、Map が宝箱を作るとき（`Map::Start`）に宝箱へ渡す（FindGO は使わない）。宝箱は `AddMagic`、MagicSelectUI はスロットと番号を読んで表示し、左右の入力で番号を計算してセッターで渡す、Player は `GetMagicType`・`GetBaseStatus`・`GetModelPath` で撃つ。弾を撃つ処理は入れない
 - 古い弾の実装（`Bullet`）がまだ残っている
 - 共通ヘッダは `stdafx.h`（`nsK2EngineLow` / `nsK2Engine` を using している）。各 `.cpp` の先頭で必ず `#include "stdafx.h"` する
 

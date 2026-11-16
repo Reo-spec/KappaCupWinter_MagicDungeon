@@ -52,6 +52,12 @@ private:
 	//更新処理。
 	void UpdateAction()override;
 
+	/**死んだときの処理*/
+	void Die()override;
+
+	/**死んだときに戻る地点*/
+	Vector3 m_startPosition;
+
 	MagicManager* m_magicManager = nullptr;
 	const Map* m_map = nullptr;
 };

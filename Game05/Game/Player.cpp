@@ -25,6 +25,9 @@ Player::Player() {
 	//キャラコンを初期化する。
 	m_characterController.Init(25.0f, 75.0f, m_position);
 
+	/**スタート地点を覚えている*/
+	m_startPosition = m_position;
+
 	m_baseStatus.maxHp = 500;
 	m_baseStatus.hp = m_baseStatus.maxHp;
 }
@@ -250,4 +253,22 @@ Vector3 Player::CalcMagicDirection()
 	return dir;
 }
 
+void Player::Die()
+{
+	m_position = m_startPosition;
+	m_characterController.SetPosition(m_position);
+	m_modelRender.SetPosition(m_position);
 
+	m_baseStatus.maxHp /= 2;
+
+	/**最大HPの下限はまだ未定とりあえず1*/
+	if (m_baseStatus.maxHp <= 0) {
+
+		m_baseStatus.maxHp = 1;
+
+	}
+
+	m_baseStatus.hp = m_baseStatus.maxHp;
+
+	m_burnState.remainingTime = 0.0f;
+}

@@ -20,7 +20,7 @@ MagicManager::MagicManager()
 	m_modelPath[static_cast<int>(EnMagicType::Stone)] = "Assets/modelData/kariFireMagic.tkm";
 	m_baseStatus[static_cast<int>(EnMagicType::Stone)].m_magicType = EnMagicType::Stone;
 	m_baseStatus[static_cast<int>(EnMagicType::Stone)].m_moveSpeed = 500.0f;
-	m_baseStatus[static_cast<int>(EnMagicType::Stone)].m_maxCoolDown = 3.0f;
+	m_baseStatus[static_cast<int>(EnMagicType::Stone)].m_maxCoolDown = 2.0f;
 	m_baseStatus[static_cast<int>(EnMagicType::Stone)].m_maxLifeTime = 3.0f;
 	m_baseStatus[static_cast<int>(EnMagicType::Stone)].m_attackValue = 30;
 
@@ -29,7 +29,7 @@ MagicManager::MagicManager()
 	m_modelPath[static_cast<int>(EnMagicType::Fire)] = "Assets/modelData/kariFireMagic.tkm";
 	m_baseStatus[static_cast<int>(EnMagicType::Fire)].m_magicType = EnMagicType::Fire;
 	m_baseStatus[static_cast<int>(EnMagicType::Fire)].m_moveSpeed = 1000.0f;
-	m_baseStatus[static_cast<int>(EnMagicType::Fire)].m_maxCoolDown = 3.0f;
+	m_baseStatus[static_cast<int>(EnMagicType::Fire)].m_maxCoolDown = 2.0f;
 	m_baseStatus[static_cast<int>(EnMagicType::Fire)].m_maxLifeTime = 3.0f;
 	m_baseStatus[static_cast<int>(EnMagicType::Fire)].m_attackValue = 50;
 

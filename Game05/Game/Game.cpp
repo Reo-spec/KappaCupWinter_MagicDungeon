@@ -5,6 +5,7 @@
 #include "GameCamera.h"
 #include "Magic.h"
 #include "MagicSelectUI.h"
+#include "HpBarUI.h"
 #include "MagicManager.h"
 #include "Clear.h"
 
@@ -32,6 +33,10 @@ bool Game::Start()
 
 	m_msUI->SetMagicManager(&m_magicManager);
 
+	/**HPばーを呼び出す*/
+	m_hpBarUI = NewGO<HpBarUI>(0, "hpBarUI");
+	m_hpBarUI->SetPlayer(m_player);
+
 	/**デバッグGUI：魔法を持つ・持たないを切り替えるパネル（中身は DebugMagicPanel）*/
 	m_debugMagicPanel.Init(&m_magicManager);
 
@@ -45,7 +50,7 @@ void Game::Update()
 	/**プレイヤーがゴールのマスに入ったかどうか*/
 	if (m_map->IsGoalPosition(m_player->GetPosition()))
 	{
-		clear = NewGO<Clear>(0, "clear");
+		m_clear = NewGO<Clear>(0, "clear");
 		DeleteGO(this);
 
 		return;
@@ -73,4 +78,5 @@ Game::~Game()
 	DeleteGO(m_map);
 	DeleteGO(m_player);
 	DeleteGO(m_gameCamera);
-	DeleteGO(m_msUI);}
+	DeleteGO(m_msUI);
+	DeleteGO(m_hpBarUI);}

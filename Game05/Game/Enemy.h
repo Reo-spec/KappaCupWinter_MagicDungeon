@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "Character.h"
 #include "Magic.h"
+#include "HpBar.h"
 
 class Player;
 
@@ -18,6 +19,7 @@ struct EnemyStatus
 	float moveSpeed = 0.0f;
 	const char* modelPath = nullptr;
 	float attackInterval = 0.0f;
+	/**敵が攻撃してくる距離*/
 	float attackRange = 0.0f;
 	float chaseRange = 0.0f;
 
@@ -39,6 +41,9 @@ public:
 	void SetMagicStatusAndPath(const AttackMagicStatus& status, const char* modelPath);
 
 	void SetMap(const Map* map) { m_map = map; }
+
+	/**HpBarから持ってきたやつを使えるように*/
+	void Render(RenderContext& rc)override;
 
 protected:
 
@@ -65,6 +70,18 @@ protected:
 	float m_nextAttackLimit = 7.0f;
 
 	void MagicAttack();
+
+	/**敵のHPバーを動かす*/
+	void UpdateHpBar();
+
+	/**頭の上のHPバー*/
+	HpBar m_hpBar;
+
+	/**HPバーを見せるか（カメラの後ろ・遠くの敵は見せない）*/
+	bool m_isHpBarVisible = false;
+
+	/**敵が追いかけてくるかどうか*/
+	bool m_isChase = false;
 
 private:
 

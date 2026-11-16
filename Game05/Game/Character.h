@@ -49,6 +49,10 @@ public:
 
 	Vector3 GetPosition()const { return m_position; }
 
+	/**HPバーが取得する*/
+	int GetHp()const { return m_baseStatus.hp; }
+	int GetMaxHp()const { return m_baseStatus.maxHp; }
+
 protected:
 
 	virtual void UpdateAction();

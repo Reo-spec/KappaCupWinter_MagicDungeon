@@ -230,6 +230,8 @@
     <ClCompile Include="Enemy.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="GameCamera.cpp" />
+    <ClCompile Include="HpBar.cpp" />
+    <ClCompile Include="HpBarUI.cpp" />
     <ClCompile Include="Magic.cpp" />
     <ClCompile Include="MagicManager.cpp" />
     <ClCompile Include="MagicSelectUI.cpp" />
@@ -255,6 +257,8 @@
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="GameCamera.h" />
+    <ClInclude Include="HpBar.h" />
+    <ClInclude Include="HpBarUI.h" />
     <ClInclude Include="Magic.h" />
     <ClInclude Include="MagicManager.h" />
     <ClInclude Include="MagicSelectUI.h" />

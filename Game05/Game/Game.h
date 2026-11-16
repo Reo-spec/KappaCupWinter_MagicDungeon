@@ -9,9 +9,10 @@
 class Player;
 class Map;
 class GameCamera;
+class Clear;
 //仮実装UIManagerが出来次第移動
 class MagicSelectUI;
-class Clear;
+class HpBarUI;
 
 class Game : public IGameObject
 {
@@ -32,7 +33,9 @@ private:
 
 	MagicManager m_magicManager;
 
-	Clear* clear = nullptr;
+	Clear* m_clear = nullptr;
+
+	HpBarUI* m_hpBarUI = nullptr ;
 
 	/**デバッグGUIの魔法のパネル（F1 → メニューの Game → Magic で開く）*/
 	DebugMagicPanel m_debugMagicPanel;

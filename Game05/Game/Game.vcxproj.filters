@@ -68,6 +68,12 @@
     </ClCompile>
     <ClCompile Include="Title.cpp" />
     <ClCompile Include="Clear.cpp" />
+    <ClCompile Include="HpBar.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="HpBarUI.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
@@ -116,5 +122,11 @@
     </ClInclude>
     <ClInclude Include="Title.h" />
     <ClInclude Include="Clear.h" />
+    <ClInclude Include="HpBar.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="HpBarUI.h">
+      <Filter>UI</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
