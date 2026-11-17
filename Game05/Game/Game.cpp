@@ -75,8 +75,10 @@ Game::~Game()
 	for (int i = 0;i < enemyMagics.size();i++) {
 		DeleteGO(enemyMagics[i]);
 	}
-	DeleteGO(m_map);
+
+	DeleteGO(m_map);
 	DeleteGO(m_player);
 	DeleteGO(m_gameCamera);
 	DeleteGO(m_msUI);
-	DeleteGO(m_hpBarUI);}
+	DeleteGO(m_hpBarUI);
+}

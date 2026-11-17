@@ -45,7 +45,7 @@ void Player::UpdateAction() {
 	Rotation();
 
 	//ローリング回避用のコード
-	Rolling();
+	//Rolling();
 
 	//魔法を打つために使用
 	ShotMagic();

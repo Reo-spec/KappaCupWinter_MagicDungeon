@@ -7,6 +7,7 @@ static constexpr float BURN_DAMAGE_INTERVAL = 3.0f;//TODO(仕様未定)
 static constexpr float BURN_REMAINING_TIME = 6.0f;//TODO(仕様未定)
 
 static constexpr float ACTIVE_TIME = 0.1f;//TODO(仕様未定)
+static constexpr float DAMAGE_BLINK_TIME = 1.0f;//TODO(仕様未定)
 
 
 Character::Character() 
@@ -33,11 +34,13 @@ void Character::Update()
 
 void Character::Damage(const AttackValue damage)
 {
-	m_activeLimitTime = 1.0f;
 
 	if (m_baseStatus.hp<=0) {
 		return;
 	}
+
+	m_activeLimitTime = DAMAGE_BLINK_TIME;
+	m_activeTime = 0.0f;
 
 	m_baseStatus.hp -= damage;
 
@@ -148,21 +151,22 @@ void Character::ChangeActiveRender()
 		return;
 	}
 
-
-	float deltaTime = g_gameTime->GetFrameDeltaTime();
+	const float deltaTime = g_gameTime->GetFrameDeltaTime();
 
 	m_activeLimitTime -= deltaTime;
 
 	m_activeTime += deltaTime;
 
-	if (m_activeLimitTime > ACTIVE_TIME) 
+	if (m_activeLimitTime <= 0) {
+		m_isActiveRender = true;
+
+		return;
+	}
+
+	if (m_activeLimitTime >= ACTIVE_TIME)
 	{
 		m_isActiveRender = !m_isActiveRender;
 
 		m_activeTime = 0.0f;
-	}
-
-	if (m_activeLimitTime <= 0) {
-		m_isActiveRender = true;
 	}
 }

@@ -37,7 +37,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 	g_renderingEngine->DisableRaytracing();
 
 	//Mapの明るさを調整している
-	g_renderingEngine->DisableTonemap();
+	//g_renderingEngine->DisableTonemap();
 
 	Vector3 DirectionLight = Vector3(0, -1, 0);
 	g_renderingEngine->SetDirectionLight(0,DirectionLight,Vector3(1.2f,1.2f,1.2f));
