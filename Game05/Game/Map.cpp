@@ -124,7 +124,7 @@ Map::Map()
 {
 	//PhysicsWorld::GetInstance()->EnableDrawDebugWireFrame();
 
-	m_mapFloorModelRender.Init("Assets/modelData/mazeFloor.tkm");
+	m_mapFloorModelRender.Init("Assets/modelData/mazeFloorBumpy.tkm");
 
 	m_mapCeilingModelRender.Init("Assets/modelData/mazeCeiling.tkm");
 
