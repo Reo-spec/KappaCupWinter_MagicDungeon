@@ -11,6 +11,16 @@ enum class EnEnemyType :uint8_t
 	Max
 };
 
+/**castする回数を減らすため
+	なぜcastする回数が減るかというと勝手にintに変えているから*/
+enum EnEnemyAnimationClip {		/**アニメーション。*/
+	enEnemyAnimationClip_Idle,
+	enEnemyAnimationClip_Walk,
+	enEnemyAnimationClip_Attack,
+	enEnemyAnimationClip_Die,
+	enEnemyAnimationClip_Num,
+};
+
 struct EnemyStatus 
 {
 	//敵のステータスをいれる
@@ -22,7 +32,9 @@ struct EnemyStatus
 	/**敵が攻撃してくる距離*/
 	float attackRange = 0.0f;
 	float chaseRange = 0.0f;
-
+	/**animationのパスをいれる*/
+	const char* animationPath[enEnemyAnimationClip_Num]{};
+	
 };
 
 /**
@@ -69,6 +81,12 @@ protected:
 
 	float m_nextAttackLimit = 7.0f;
 
+	/**animationをいれる箱*/
+	AnimationClip m_animationClips[enEnemyAnimationClip_Num];		/**アニメーションクリップ。*/
+
+	/**敵のアニメーションを管理*/
+	void ManageEnemyState();
+
 	void MagicAttack();
 
 	/**敵のHPバーを動かす*/
@@ -80,8 +98,15 @@ protected:
 	/**HPバーを見せるか（カメラの後ろ・遠くの敵は見せない）*/
 	bool m_isHpBarVisible = false;
 
-	/**敵が追いかけてくるかどうか*/
+	/**敵が追いかけるかどうか*/
 	bool m_isChase = false;
+
+	int m_enemyState = 0;
+
+	/**敵が生きているかどうか*/
+	bool m_isAlive = true;
+
+	void PlayAnimation();
 
 private:
 

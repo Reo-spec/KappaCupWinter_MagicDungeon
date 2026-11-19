@@ -67,7 +67,7 @@ void Player::UpdateAction() {
 void Player::Move() 
 {
 	//ダッシュ用の関数
-	int dashMagnification = 1.0f;
+	float dashMagnification = 1.0f;
 
 	if (g_pad[0]->IsPress(enButtonB))
 	{

@@ -83,6 +83,9 @@ protected:
 	/**前に入れ替えてからの時間*/
 	float m_activeTime = 0.0f;
 
+	/**魔法を撃って攻撃するか*/
+	bool m_isMagicAttack = false;
+
 private:
 
 	void UpdateBurnDamage();

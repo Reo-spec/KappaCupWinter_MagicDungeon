@@ -13,18 +13,31 @@ static constexpr EnemyStatus FIRE_ENEMY_STATUS =
 	EnMagicType::Fire,
 	300,// TODO(仕様未定)
 	120.0f,// TODO(仕様未定)
-	"Assets/modelData/fireSlime.tkm",
+	"Assets/modelData/fireSlimeAnim.tkm",
 	3.0f,//TODO(仕様未定)
 	1000.0f,//TODO(仕様未定)
-	1200.0f//TODO(仕様未定)
+	1200.0f,//TODO(仕様未定)
+	{ "Assets/animData/fireSlime_idle.tka",/**animationPathを渡している*/
+	"Assets/animData/fireSlime_move.tka",
+	"Assets/animData/fireSlime_attack.tka",
+	"Assets/animData/fireSlime_die.tka" }
 };
-
 
 void IEnemy::Init(Vector3 position,const EnemyStatus&status)
 {
 	m_enemyStatus = status;
 	m_position = position;
-	m_modelRender.Init(m_enemyStatus.modelPath);
+
+	for (int i = 0;i < enEnemyAnimationClip_Num;i++) 
+	{
+		m_animationClips[i].Load(m_enemyStatus.animationPath[i]);
+		m_animationClips[enEnemyAnimationClip_Idle].SetLoopFlag(true);
+		m_animationClips[enEnemyAnimationClip_Walk].SetLoopFlag(true);
+		m_animationClips[enEnemyAnimationClip_Attack].SetLoopFlag(false);
+		m_animationClips[enEnemyAnimationClip_Die].SetLoopFlag(false);
+	}
+
+	m_modelRender.Init(m_enemyStatus.modelPath,m_animationClips,enEnemyAnimationClip_Num,enModelUpAxisZ);
 	m_modelRender.SetPosition(m_position);
 	m_characterController.Init(40.0f, 50.0f, position);
 	m_baseStatus.maxHp = m_enemyStatus.maxHp;
@@ -86,6 +99,8 @@ void IEnemy::Render(RenderContext& rc)
 
 void IEnemy::Die() 
 {
+	m_isAlive = false;
+
 	DeleteGO(this);
 }
 
@@ -123,61 +138,34 @@ void IEnemy::SetMagicStatusAndPath(const AttackMagicStatus& status, const char* 
 	m_modelPath = modelPath;
 }
 
-void FireEnemy::Init(Vector3 position) 
+void IEnemy::ManageEnemyState()
 {
-	IEnemy::Init(position,FIRE_ENEMY_STATUS);
 
-}
-
-void FireEnemy::UpdateAction() 
-{
-	MoveAction();
-
-	//毎フレーム魔法にあったっているかをとっている
-	CheckHitMagic("magic");
-
-	//プレイヤーが渡されていなかったら動かない
-	if (m_player == nullptr) {
+	if (m_enemyState == 2 && m_modelRender.IsPlayingAnimation())
+	{
 		return;
 	}
 
-	Vector3 diff = m_player->GetPosition() - m_position;
-	diff.y = 0.0f;
-
-	/**プレイヤーの方向を向くかどうかを場合分けしている*/
-	if (diff.Length() < m_enemyStatus.chaseRange) 
+	/**移動していたら*/
+	if (fabsf(m_moveSpeed.x) >= 0.001f || fabsf(m_moveSpeed.z) >= 0.001f)
 	{
-		MoveToTarget(m_player->GetPosition());
+
+
+		//ステートを1(歩き)にする。
+		m_enemyState = 1;
+
 	}
-	else {
-		m_moveSpeed.x = 0.0f;           
-		m_moveSpeed.z = 0.0f;
-	}
-	float deltaTime = g_gameTime->GetFrameDeltaTime();
-
-	m_nextAttackLimit -= deltaTime;
-
-	if (diff.Length() <= m_enemyStatus.attackRange &&m_nextAttackLimit <= 0.0f) {
-		MagicAttack();
-		m_nextAttackLimit = m_enemyStatus.attackInterval;
-	}
-
-
-	if (m_isChase) {
-		//頭の上の HP バーを表示し動かす
-		UpdateHpBar();
-
-		/**敵が何をしているかを見ている。
-		敵がplayerを見つけているかどうかを見ている*/
-		m_isChase = false;
-	}
-	else 
+	//xとzの移動速度が無かったら(スティックの入力が無かったら)。
+	else
 	{
-		/**こっちの判定の変数はHPバーを実装するかどうかを見ている。
-		そしてこいつがあるかないかでDrawを管理しているから敵がチェイスじゃないときに表示を切っている*/
-		m_isHpBarVisible = false;
+		//ステートを0(待機)にする。
+		m_enemyState = 0;
 	}
 
+	if (!m_isAlive)
+	{
+		m_enemyState = 3;
+	}
 }
 
 void IEnemy::MagicAttack() 
@@ -205,8 +193,109 @@ void IEnemy::MagicAttack()
 		return;
 	}
 
+	/**エネミーのStateを2(魔法を撃っている状態)に変化させている*/
+	m_enemyState = 2;
+
 	magic->SetMap(m_map);
 	magic->Init(modelPath, status);
 	magic->SetPositionAndDirection(magicPos, diff);
 
+	//m_isAttackMagic = true;
+
 }
+
+void IEnemy::PlayAnimation() 
+{
+	switch (m_enemyState) 
+	{
+	case 0:
+		m_modelRender.PlayAnimation(enEnemyAnimationClip_Idle);
+		break;
+    /**歩きのanimation*/
+	case 1:
+		m_modelRender.PlayAnimation(enEnemyAnimationClip_Walk);
+		break;
+	/**攻撃のanimation*/
+	case 2:
+		m_modelRender.PlayAnimation(enEnemyAnimationClip_Attack);
+		break;
+	/**倒される時のanimation*/
+	case 3:
+		m_modelRender.PlayAnimation(enEnemyAnimationClip_Die);
+		break;
+	default:
+		break;
+	}
+}
+
+
+void FireEnemy::Init(Vector3 position)
+{
+	IEnemy::Init(position, FIRE_ENEMY_STATUS);
+
+}
+
+void FireEnemy::UpdateAction()
+{
+
+	MoveAction();
+
+	//毎フレーム魔法にあったっているかをとっている
+	CheckHitMagic("magic");
+
+	//プレイヤーが渡されていなかったら動かない
+	if (m_player == nullptr) {
+		return;
+	}
+
+	Vector3 diff = m_player->GetPosition() - m_position;
+	diff.y = 0.0f;
+
+	/**プレイヤーの方向を向くかどうかを場合分けしている*/
+	if (diff.Length() < m_enemyStatus.chaseRange)
+	{
+		MoveToTarget(m_player->GetPosition());
+	}
+	else {
+		m_moveSpeed.x = 0.0f;
+		m_moveSpeed.z = 0.0f;
+	}
+
+	if (m_enemyState == 2) 
+	{
+		m_moveSpeed.x = 0.0f;
+		m_moveSpeed.z = 0.0f;
+	}
+
+
+	float deltaTime = g_gameTime->GetFrameDeltaTime();
+
+	m_nextAttackLimit -= deltaTime;
+
+	if (diff.Length() <= m_enemyStatus.attackRange && m_nextAttackLimit <= 0.0f) {
+		MagicAttack();
+		m_nextAttackLimit = m_enemyStatus.attackInterval;
+	}
+
+
+	if (m_isChase) {
+		//頭の上の HP バーを表示し動かす
+		UpdateHpBar();
+
+		/**敵が何をしているかを見ている。
+		敵がplayerを見つけているかどうかを見ている*/
+		m_isChase = false;
+	}
+	else
+	{
+		/**こっちの判定の変数はHPバーを実装するかどうかを見ている。
+		そしてこいつがあるかないかでDrawを管理しているから敵がチェイスじゃないときに表示を切っている*/
+		m_isHpBarVisible = false;
+	}
+
+	ManageEnemyState();
+
+	PlayAnimation();
+
+}
+

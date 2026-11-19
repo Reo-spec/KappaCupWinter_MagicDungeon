@@ -9,6 +9,18 @@ class Player :  public Character
 {
 public:
 	Player();
+	
+	int playerState = 0;	//プレイヤーのステート(状態)を表す変数。
+
+	/**おおもとはconstを付けて変更できないようにしていたけど、ここではその逆はできない*/
+	void SetMap(const Map* map) { m_map = map; }
+
+	/**MagicManagerをいれるもの*/
+	void SetMagicManager(MagicManager* magicManager) { m_magicManager = magicManager; }
+
+
+private:
+
 	~Player();
 	//移動処理。
 	void Move();
@@ -28,9 +40,6 @@ public:
 	//移動用の向き参照(回転回避にも使用)
 	Vector3 GetCameraDirection(float stickX, float stickY);
 
-	/**MagicManagerをいれるもの*/
-	void SetMagicManager(MagicManager* magicManager) { m_magicManager = magicManager; }
-
 	enum EnAnimationClip {		//アニメーション。
 		enAnimationClip_Idle,
 		enAnimationClip_Walk,
@@ -41,13 +50,6 @@ public:
 		enAnimationClip_Num,
 	};
 	AnimationClip animationClips[enAnimationClip_Num];		//アニメーションクリップ。
-	
-	int playerState = 0;	//プレイヤーのステート(状態)を表す変数。
-
-	/**おおもとはconstを付けて変更できないようにしていたけど、ここではその逆はできない*/
-	void SetMap(const Map* map) { m_map = map; }
-
-private:
 
 	//更新処理。
 	void UpdateAction()override;
