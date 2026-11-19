@@ -8,6 +8,9 @@ static constexpr float ENEMY_HP_BAR_HEIGHT = 10.0f;//TODO(仕様未定)
 /**足元から HP バーまでの高さ*/
 static constexpr float ENEMY_HP_BAR_OFFSET_Y = 120.0f;//TODO(仕様未定)
 
+/**攻撃を始めてから球を出すためのOffset的な役割*/
+static constexpr float ATTACK_FRAME_TIME = 0.5f;//TODO(仕様未定)
+
 static constexpr EnemyStatus FIRE_ENEMY_STATUS =
 {
 	EnMagicType::Fire,
@@ -100,8 +103,6 @@ void IEnemy::Render(RenderContext& rc)
 void IEnemy::Die() 
 {
 	m_isAlive = false;
-
-	DeleteGO(this);
 }
 
 //最初はプレイヤーに向かって歩くだけ
@@ -193,16 +194,62 @@ void IEnemy::MagicAttack()
 		return;
 	}
 
-	/**エネミーのStateを2(魔法を撃っている状態)に変化させている*/
-	m_enemyState = 2;
-
 	magic->SetMap(m_map);
 	magic->Init(modelPath, status);
 	magic->SetPositionAndDirection(magicPos, diff);
 
-	//m_isAttackMagic = true;
+}
+
+/**この関数は魔法の撃つタイミングとアニメーションのタイミングを合わせている*/
+void IEnemy::CountDownMagicShot() 
+{
+	if (m_isShotDone || m_enemyState != 2) {
+		return;
+	}
+
+	float deltaTime = g_gameTime->GetFrameDeltaTime();
+
+	m_magicTimer -= deltaTime;
+
+	if (m_magicTimer <= 0.0f) {
+		MagicAttack();
+
+		/**魔法を撃ったかどうか*/
+		m_isShotDone = true;
+	}
+}
+
+void IEnemy::CountDownDie() 
+{
+	/**生きていたら切り上げ*/
+	if (m_isAlive) {
+		return;
+	}
+
+	/**Stateを死んだときの状態にする*/
+	m_enemyState = 3;
+
+	/**ここにこの関数を置く理由はif式で切り上げを作っているから
+	本来のアニメーションを再生するところを通らなくなるから*/
+	PlayAnimation();
+
+	if (!m_modelRender.IsPlayingAnimation()) {
+		DeleteGO(this);
+	}
 
 }
+
+/**魔法を撃つ準備をしている(これはOffset的なもの)*/
+void IEnemy::ReadyMagic() 
+{
+	/**エネミーのStateを2(魔法を撃っている状態)に変化させている*/
+	m_enemyState = 2;
+
+	m_magicTimer = ATTACK_FRAME_TIME;
+
+	m_isShotDone = false;
+}
+
 
 void IEnemy::PlayAnimation() 
 {
@@ -237,6 +284,13 @@ void FireEnemy::Init(Vector3 position)
 
 void FireEnemy::UpdateAction()
 {
+	/**死んだらこの関数の中を通って切り上げ*/
+	if (!m_isAlive) {
+		CountDownDie();
+
+		return;
+	}
+	
 
 	MoveAction();
 
@@ -273,10 +327,11 @@ void FireEnemy::UpdateAction()
 	m_nextAttackLimit -= deltaTime;
 
 	if (diff.Length() <= m_enemyStatus.attackRange && m_nextAttackLimit <= 0.0f) {
-		MagicAttack();
+		ReadyMagic();
 		m_nextAttackLimit = m_enemyStatus.attackInterval;
 	}
 
+	CountDownMagicShot();
 
 	if (m_isChase) {
 		//頭の上の HP バーを表示し動かす

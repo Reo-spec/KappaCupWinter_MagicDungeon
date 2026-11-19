@@ -87,7 +87,18 @@ protected:
 	/**敵のアニメーションを管理*/
 	void ManageEnemyState();
 
+	/**魔法で攻撃する*/
 	void MagicAttack();
+
+	/**魔法を撃つ準備(作業分け)*/
+	void ReadyMagic();
+
+	/**魔法とアニメーションの差を減らす関数*/
+	void CountDownMagicShot();
+
+	/**死んだときの処理を受け持つ関数(作業分け)
+	{やられのアニメーションを再生して、終わったら消す}*/
+	void CountDownDie();
 
 	/**敵のHPバーを動かす*/
 	void UpdateHpBar();
@@ -106,7 +117,14 @@ protected:
 	/**敵が生きているかどうか*/
 	bool m_isAlive = true;
 
+	/**アニメーションをステートで振り分ける*/
 	void PlayAnimation();
+
+	/**魔法を出すまで残りの時間*/
+	float m_magicTimer = 0.0f;
+
+	/**もう魔法を出したか*/
+	bool m_isShotDone = false;
 
 private:
 
