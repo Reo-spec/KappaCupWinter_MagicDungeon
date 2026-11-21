@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "AttackValue.h"
+#include "MagicInfluence.h"
 
 
 /**
@@ -18,21 +19,7 @@ public:
 		int maxHp = 0;
 	};
 
-	//燃えている最中の状態
-	struct BurnState 
-	{
-
-		//残りの燃える時間
-		float remainingTime = 0.0f;
-		//1回のダメージ
-		AttackValue damage = 0;
-		//ダメージをいれる間隔
-		float damageInterval = 0.0f;
-		//次のダメージまでの時間を数える
-		float intervalTimer = 0.0f;
-
-	};
-
+	
 public:
 	Character();
 	virtual ~Character();
@@ -44,8 +31,6 @@ public:
 
 	//ダメージを受ける
 	void Damage(const AttackValue damage);
-
-	void SetStartFireDamage(const BurnState&burnState) {m_burnState = burnState;}
 
 	Vector3 GetPosition()const { return m_position; }
 
@@ -62,7 +47,9 @@ protected:
 	void MoveAction();
 
 	BaseStatus m_baseStatus;
-	BurnState m_burnState;
+
+	/**魔法が当たった後に続く効果*/
+	MagicInfluence m_magicInfluence;
 
 	Vector3 m_position;
 	ModelRender m_modelRender;
@@ -88,7 +75,6 @@ protected:
 
 private:
 
-	void UpdateBurnDamage();
 	void ChangeActiveRender();
 
 };

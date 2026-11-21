@@ -233,6 +233,7 @@
     <ClCompile Include="HpBar.cpp" />
     <ClCompile Include="HpBarUI.cpp" />
     <ClCompile Include="Magic.cpp" />
+    <ClCompile Include="MagicInfluence.cpp" />
     <ClCompile Include="MagicManager.cpp" />
     <ClCompile Include="MagicSelectUI.cpp" />
     <ClCompile Include="MagicType.cpp" />
@@ -260,6 +261,7 @@
     <ClInclude Include="HpBar.h" />
     <ClInclude Include="HpBarUI.h" />
     <ClInclude Include="Magic.h" />
+    <ClInclude Include="MagicInfluence.h" />
     <ClInclude Include="MagicManager.h" />
     <ClInclude Include="MagicSelectUI.h" />
     <ClInclude Include="MagicType.h" />

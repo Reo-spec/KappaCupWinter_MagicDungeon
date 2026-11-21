@@ -273,5 +273,7 @@ void Player::Die()
 
 	m_baseStatus.hp = m_baseStatus.maxHp;
 
-	m_burnState.remainingTime = 0.0f;
+	/**燃えたまま復活しないように戻している
+	関数にする理由は、Playerが直接触れないようにするため*/
+	m_magicInfluence.ClearInfluence();
 }

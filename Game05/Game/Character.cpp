@@ -2,10 +2,6 @@
 #include "Character.h"
 #include "Magic.h"
 
-static constexpr int ONCE_FIRE_DAMAGE = 5;//TODO(仕様未定)
-static constexpr float BURN_DAMAGE_INTERVAL = 3.0f;//TODO(仕様未定)
-static constexpr float BURN_REMAINING_TIME = 6.0f;//TODO(仕様未定)
-
 static constexpr float ACTIVE_TIME = 0.1f;//TODO(仕様未定)
 static constexpr float DAMAGE_BLINK_TIME = 1.0f;//TODO(仕様未定)
 
@@ -20,8 +16,13 @@ Character::~Character()
 
 void Character::Update() 
 {
-	//燃えるダメージの処理
-	UpdateBurnDamage();
+	/**燃焼など、続く効果のダメージを受ける
+	魔法で炎以外でも後遺ダメージがあればここを変える*/
+	const AttackValue influenceDamage = m_magicInfluence.CountDownBurn();
+	if (influenceDamage > 0) {
+		Damage(influenceDamage);
+	}
+
 	//子の行動を更新する
 	UpdateAction();
 	/**点滅表示に使用する関数*/
@@ -54,28 +55,6 @@ void Character::Damage(const AttackValue damage)
 void Character::UpdateAction() 
 {
 	// 何もしない。行動の中身は子（Player など）の UpdateAction に書く
-}
-
-//継続ダメージを食らう処理
-void Character::UpdateBurnDamage() 
-{
-	if (m_burnState.remainingTime <= 0) 
-	{
-		return;
-	}
-
-	const float deltaTime = g_gameTime->GetFrameDeltaTime();
-
-	m_burnState.remainingTime -= deltaTime;
-	m_burnState.intervalTimer += deltaTime;
-
-	if (m_burnState.intervalTimer >= m_burnState.damageInterval) 
-	{
-		Damage(m_burnState.damage);
-
-		m_burnState.intervalTimer = 0.0f;
-	}
-	
 }
 
 void Character::MoveAction() 
@@ -125,16 +104,8 @@ void Character::CheckHitMagic(const char* magicName)
 			continue;
 		}
 
-		if (magic->GetMagicType() == EnMagicType::Fire)
-		{
-			BurnState burnState;
-
-			burnState.remainingTime = BURN_REMAINING_TIME;
-			burnState.damage = ONCE_FIRE_DAMAGE;
-			burnState.damageInterval = BURN_DAMAGE_INTERVAL;
-
-			SetStartFireDamage(burnState);
-		}
+		/**魔法の処理を渡す*/
+		m_magicInfluence.StartInfluence(magic->GetMagicType());
 
 		Damage(magic->GetAttackValue());
 		DeleteGO(magic);

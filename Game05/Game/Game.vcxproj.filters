@@ -74,6 +74,9 @@
     <ClCompile Include="HpBarUI.cpp">
       <Filter>UI</Filter>
     </ClCompile>
+    <ClCompile Include="MagicInfluence.cpp">
+      <Filter>Magic</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
@@ -127,6 +130,9 @@
     </ClInclude>
     <ClInclude Include="HpBarUI.h">
       <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="MagicInfluence.h">
+      <Filter>Magic</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
