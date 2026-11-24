@@ -108,6 +108,7 @@ void Character::CheckHitMagic(const char* magicName)
 		m_magicInfluence.StartInfluence(magic->GetMagicType());
 
 		Damage(magic->GetAttackValue());
+		magic->PlayHitEffect();
 		DeleteGO(magic);
 
 		return;

@@ -7,10 +7,17 @@ enum class EnMagicType : uint8_t
 {
 	Stone,
 	Fire,
+	Ice,
 	Max,
 	None
 };
 
+/**ここでは魔法のエフェクト番号を取得している*/
+/**inlineとはヘッダに関数の中身まで書くときに付ける印*/
+inline int GetMagicEffectNumber(const EnMagicType magicType) { return static_cast<int>(magicType); }
+
+/**+の意味は球の番号と着弾の番号かを区別するため*/
+inline int GetMagicHitEffectNumber(const EnMagicType magicType) { return static_cast<int>(EnMagicType::Max) + static_cast<int>(magicType); }
 
 
 /**
@@ -65,6 +72,10 @@ class AttackMagic : public IMagic
 {
 private:
 	ModelRender m_modelRender;
+
+	/**魔法のエフェクト*/
+	EffectEmitter* m_effect = nullptr;
+
 	Vector3 m_position;
 	Vector3 m_direction;      //進む方向
 
@@ -79,7 +90,12 @@ public:
 	/**
 	 * TODO: あとでパラメータでステータスの情報は渡してほしい
 	 */
-	void Init(const std::string& modelPath, const AttackMagicStatus& status);
+
+	/**charの理由はnullを返すため*/
+	void Init(const char* modelPath, const AttackMagicStatus& status);
+
+	/**今の位置で着弾エフェクトを出すかどうか*/
+	void PlayHitEffect();
 
 	void SetPositionAndDirection(const Vector3& pos, const Vector3& dir) { m_position = pos; m_direction = dir; }
 

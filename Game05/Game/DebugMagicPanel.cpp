@@ -20,7 +20,7 @@ void DebugMagicPanel::Draw()
 	}
 
 	//EnMagicType の順番どおりに名前を並べる（種類を増やしたらここにも足す）
-	const char* magicNames[] = { "Stone", "Fire" };
+	const char* magicNames[] = { "Stone", "Fire", "Ice" };
 	static_assert(
 		sizeof(magicNames) / sizeof(magicNames[0]) == static_cast<int>(EnMagicType::Max),
 		"EnMagicType を増やしたら magicNames にも名前を足す"

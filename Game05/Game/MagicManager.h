@@ -51,6 +51,12 @@ private:
 	/**魔法の種類ごとのModelPath*/
 	const char* m_modelPath[static_cast<int>(EnMagicType::Max)];
 
+	/**魔法のエフェクトごとのパスを渡している
+	2バイトで渡す文字列の型*/
+	const char16_t* m_effectPath[static_cast<int>(EnMagicType::Max)];
+	const char16_t* m_hitEffectPath[static_cast<int>(EnMagicType::Max)];
+
+
 	/**魔法の種類ごとのクールダウン*/
 	float m_coolDownTimer[static_cast<int>(EnMagicType::Max)] ;
 

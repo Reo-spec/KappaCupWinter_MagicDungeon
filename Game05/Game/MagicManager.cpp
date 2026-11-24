@@ -13,6 +13,10 @@ MagicManager::MagicManager()
 	for (int i = 0; i < static_cast<int>(EnMagicType::Max); i++)
 	{
 		m_coolDownTimer[i] = 0.0f;
+
+		/**最初はどの魔法もエフェクトなし*/
+		m_effectPath[i] = nullptr;
+		m_hitEffectPath[i] = nullptr;
 	}
 
 	//石の魔法のステータス
@@ -26,12 +30,26 @@ MagicManager::MagicManager()
 
 	//炎の魔法のステータス
 	// TODO(仕様未定) 炎の数値
-	m_modelPath[static_cast<int>(EnMagicType::Fire)] = "Assets/modelData/kariFireMagic.tkm";
+	m_modelPath[static_cast<int>(EnMagicType::Fire)] = nullptr;
+	m_effectPath[static_cast<int>(EnMagicType::Fire)] = u"Assets/effect/fireMagic.efk";
+	m_hitEffectPath[static_cast<int>(EnMagicType::Fire)] = u"Assets/effect/fireHit.efk";
 	m_baseStatus[static_cast<int>(EnMagicType::Fire)].m_magicType = EnMagicType::Fire;
 	m_baseStatus[static_cast<int>(EnMagicType::Fire)].m_moveSpeed = 1000.0f;
 	m_baseStatus[static_cast<int>(EnMagicType::Fire)].m_maxCoolDown = 2.0f;
 	m_baseStatus[static_cast<int>(EnMagicType::Fire)].m_maxLifeTime = 3.0f;
 	m_baseStatus[static_cast<int>(EnMagicType::Fire)].m_attackValue = 50;
+
+
+	for (int i = 0;i < static_cast<int>(EnMagicType::Max);i++) {
+		const EnMagicType magicType = static_cast<EnMagicType>(i);
+		if (m_effectPath[i] != nullptr) {
+			EffectEngine::GetInstance()->ResistEffect(GetMagicEffectNumber(magicType), m_effectPath[i]);
+		}
+		
+		if(m_hitEffectPath[i] != nullptr){
+			EffectEngine::GetInstance()->ResistEffect(GetMagicHitEffectNumber(magicType), m_hitEffectPath[i]);
+		}
+	}
 
 }
 

@@ -171,7 +171,8 @@ void IEnemy::ManageEnemyState()
 
 void IEnemy::MagicAttack() 
 {
-	if (m_modelPath == nullptr) {
+	/**魔法を渡されていない敵が撃たないようにする*/
+	if (m_attackMagicStatus.m_magicType == EnMagicType::None) {
 		return;
 	}
 
