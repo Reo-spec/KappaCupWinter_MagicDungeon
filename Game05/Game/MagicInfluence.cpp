@@ -83,7 +83,7 @@ void MagicInfluence::CountDownFrost()
 	}
 
 	/**戻るまでの時間が残っていなかったら、数えるものが無いから切り上げ*/
-	if (m_frostState.remainingTime <= 0.0f) 
+	if (m_frostState.rateResetTimer <= 0.0f) 
 	{
 		return;
 	}
