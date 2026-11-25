@@ -11,6 +11,9 @@ static constexpr float ENEMY_HP_BAR_OFFSET_Y = 120.0f;//TODO(仕様未定)
 /**攻撃を始めてから球を出すためのOffset的な役割*/
 static constexpr float ATTACK_FRAME_TIME = 0.5f;//TODO(仕様未定)
 
+/**敵側の1回目の凍る時間の定数*/
+static constexpr float ENEMY_BASE_FROZEN_TIME = 3.0f;//TODO(仕様未定)
+
 static constexpr EnemyStatus FIRE_ENEMY_STATUS =
 {
 	EnMagicType::Fire,
@@ -45,6 +48,9 @@ void IEnemy::Init(Vector3 position,const EnemyStatus&status)
 	m_characterController.Init(40.0f, 50.0f, position);
 	m_baseStatus.maxHp = m_enemyStatus.maxHp;
 	m_baseStatus.hp = m_baseStatus.maxHp;
+	/**凍る時間を、魔法の効果のかかりに教える*/
+	m_magicInfluence.SetBaseFrozenTime(ENEMY_BASE_FROZEN_TIME);
+
 	m_hpBar.Init(ENEMY_HP_BAR_WIDTH, ENEMY_HP_BAR_HEIGHT,Vector4(1.0f, 0.0f, 0.0f, 1.0f));
 }
 
@@ -251,7 +257,6 @@ void IEnemy::ReadyMagic()
 	m_isShotDone = false;
 }
 
-
 void IEnemy::PlayAnimation() 
 {
 	switch (m_enemyState) 
@@ -285,13 +290,22 @@ void FireEnemy::Init(Vector3 position)
 
 void FireEnemy::UpdateAction()
 {
+	
+	if (m_magicInfluence.IsFrozen()) 
+	{
+		m_modelRender.SetAnimationSpeed(0.0f);
+	}
+	else 
+	{
+		m_modelRender.SetAnimationSpeed(1.0f);
+	}
+	
 	/**死んだらこの関数の中を通って切り上げ*/
 	if (!m_isAlive) {
 		CountDownDie();
 
 		return;
 	}
-	
 
 	MoveAction();
 
@@ -300,6 +314,12 @@ void FireEnemy::UpdateAction()
 
 	//プレイヤーが渡されていなかったら動かない
 	if (m_player == nullptr) {
+		return;
+	}
+
+	if (m_magicInfluence.IsFrozen()) {
+		UpdateHpBar();
+
 		return;
 	}
 

@@ -21,11 +21,11 @@ MagicManager::MagicManager()
 
 	//石の魔法のステータス
 	//TODO(仕様未定) 石の数値
-	m_modelPath[static_cast<int>(EnMagicType::Stone)] = "Assets/modelData/kariFireMagic.tkm";
+	m_modelPath[static_cast<int>(EnMagicType::Stone)] = "Assets/modelData/stoneMagic.tkm";
 	m_baseStatus[static_cast<int>(EnMagicType::Stone)].m_magicType = EnMagicType::Stone;
-	m_baseStatus[static_cast<int>(EnMagicType::Stone)].m_moveSpeed = 500.0f;
+	m_baseStatus[static_cast<int>(EnMagicType::Stone)].m_moveSpeed = 1500.0f;
 	m_baseStatus[static_cast<int>(EnMagicType::Stone)].m_maxCoolDown = 2.0f;
-	m_baseStatus[static_cast<int>(EnMagicType::Stone)].m_maxLifeTime = 3.0f;
+	m_baseStatus[static_cast<int>(EnMagicType::Stone)].m_maxLifeTime = 0.8f;
 	m_baseStatus[static_cast<int>(EnMagicType::Stone)].m_attackValue = 30;
 
 	//炎の魔法のステータス
@@ -39,6 +39,16 @@ MagicManager::MagicManager()
 	m_baseStatus[static_cast<int>(EnMagicType::Fire)].m_maxLifeTime = 3.0f;
 	m_baseStatus[static_cast<int>(EnMagicType::Fire)].m_attackValue = 50;
 
+	//氷の魔法のステータス
+	//TODO(仕様未定)
+	m_modelPath[static_cast<int>(EnMagicType::Ice)] = nullptr;
+	m_effectPath[static_cast<int>(EnMagicType::Ice)] = u"Assets/effect/iceMagic.efk";
+	m_hitEffectPath[static_cast<int>(EnMagicType::Ice)] = u"Assets/effect/iceHit.efk";
+	m_baseStatus[static_cast<int>(EnMagicType::Ice)].m_magicType = EnMagicType::Ice;
+	m_baseStatus[static_cast<int>(EnMagicType::Ice)].m_moveSpeed = 900.0f;
+	m_baseStatus[static_cast<int>(EnMagicType::Ice)].m_maxCoolDown = 2.0f;
+	m_baseStatus[static_cast<int>(EnMagicType::Ice)].m_maxLifeTime = 3.0f;
+	m_baseStatus[static_cast<int>(EnMagicType::Ice)].m_attackValue = 45;
 
 	for (int i = 0;i < static_cast<int>(EnMagicType::Max);i++) {
 		const EnMagicType magicType = static_cast<EnMagicType>(i);

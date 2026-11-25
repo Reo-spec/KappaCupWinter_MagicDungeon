@@ -17,6 +17,17 @@ struct BurnState
 
 };
 
+struct FrostState 
+{
+	/**残りの凍り時間*/
+	float remainingTime = 0.0f;
+	/**速さの倍率,魔法を重ね掛けすると下がる*/
+	float frozenTimeRate = 1.0f;
+	/**凍りが溶けてから、倍率が1.0に戻るまでの残り時間*/
+	float rateResetTimer = 0.0f;
+
+};
+
 /**
 魔法が当たった後に続く効果を持つクラス
 Characterがメンバで1つ持つHPはこちらでは変えない*/
@@ -30,12 +41,30 @@ public:
 	/**燃焼の時間を数えて、このフレームに受けるダメージを返す*/
 	AttackValue CountDownBurn();
 
+	/**凍っている時間を数える*/
+	void CountDownFrost();
+
 	/**続いている魔法の効果を全部消す*/
 	void ClearInfluence();
+
+	/**スピードを低下の倍率を返す*/
+	float GetSpeedMagnification()const;
+
+	/**凍っているかどうかを返す*/
+	bool IsFrozen()const;
+
+	/**1回目に凍る時間を決めている、playerと敵に最初に私ている*/
+	void SetBaseFrozenTime(const float baseFrozenTime) { m_baseFrozenTime = baseFrozenTime; }
 
 private:
 
 	/**燃焼状態*/
 	BurnState m_burnState;
+
+	/**凍り状態*/
+	FrostState m_frostState;
+
+	/**1回目に凍る時間、2回目以降はここに倍率を掛ける、死んでも変わらない*/
+	float m_baseFrozenTime = 0.0f;
 };
 

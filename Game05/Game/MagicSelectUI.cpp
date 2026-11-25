@@ -25,6 +25,8 @@ bool MagicSelectUI::Start()
 	m_magicIconSprites[static_cast<int>(EnMagicType::Stone)].Init("Assets/MagicIcon/Rock.dds", 64.0f, 64.0f);
 	
 	m_magicIconSprites[static_cast<int>(EnMagicType::Fire)].Init("Assets/MagicIcon/FireIcon_circle.dds", 64.0f, 64.0f);
+
+	m_magicIconSprites[static_cast<int>(EnMagicType::Ice)].Init("Assets/MagicIcon/Ice_circle.dds", 64.0f, 64.0f);
 	
 	return true;
 

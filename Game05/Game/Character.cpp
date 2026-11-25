@@ -22,6 +22,8 @@ void Character::Update()
 	if (influenceDamage > 0) {
 		Damage(influenceDamage);
 	}
+	/**凍り状態の処理*/
+	m_magicInfluence.CountDownFrost();
 
 	//子の行動を更新する
 	UpdateAction();
@@ -68,8 +70,16 @@ void Character::MoveAction()
 		m_moveSpeed.y = 0.0f;
 	}
 
-	//キャラクターコントローラーを使って座標を移動させる。
-	m_position = m_characterController.Execute(m_moveSpeed, deltaTime);
+	/**凍った時とそうでないときの移動速度を変えるためにスピードをコピーしている*/
+	Vector3 frozenMoveSpeed = m_moveSpeed;
+	/*低下倍率を聞く**/
+	const float frozenMagnification =  m_magicInfluence.GetSpeedMagnification();
+
+	frozenMoveSpeed.x *= frozenMagnification;
+	frozenMoveSpeed.z *= frozenMagnification;
+
+	/**凍った時の移動速度*/ //キャラクターコントローラーを使って座標を移動させる。
+	m_position = m_characterController.Execute(frozenMoveSpeed, deltaTime);
 
 	//絵描きさんに座標を教える。
 	m_modelRender.SetPosition(m_position);

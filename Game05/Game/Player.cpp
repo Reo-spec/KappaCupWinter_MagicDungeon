@@ -3,6 +3,9 @@
 #include "Magic.h"
 #include "MagicManager.h"
 
+/**playerが1回目に凍る時間の長さ*/
+static constexpr float PLAYER_BASE_FROZEN_TIME = 1.0f;//TODO(仕様未定)
+
 Player::Player() {
 	
 	//アニメーションクリップをロードする。
@@ -30,6 +33,8 @@ Player::Player() {
 
 	m_baseStatus.maxHp = 500;
 	m_baseStatus.hp = m_baseStatus.maxHp;
+	/**凍る時間を、魔法の効果の係に教えている*/
+	m_magicInfluence.SetBaseFrozenTime(PLAYER_BASE_FROZEN_TIME);
 }
 
 Player::~Player() 
@@ -207,7 +212,7 @@ void Player::ShotMagic()
 		Vector3 magicDir = CalcMagicDirection();
 
 		Vector3 magicPos = m_position + magicDir * 50.0f;
-		magicPos.y += 100.0f;
+		magicPos.y += 80.0f;
 		
 		/**MagicManagerに魔法を聞く*/
 		EnMagicType currentMagic = m_magicManager->GetMagicType();
